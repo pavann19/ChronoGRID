@@ -1,0 +1,179 @@
+{
+  "evaluation_title": "Reproduced 5-Fold Walk-Forward Cross-Validation Leaderboard",
+  "scheme": "Expanding Window (5 splits, 168h test per fold, 24h purge gap, 840 out-of-fold hours)",
+  "information_constraint": "Strict Day-Ahead Gate Closure (min_lag_hours=24, h=24 horizon)",
+  "leaderboard_persistence_weather": [
+    {
+      "Model": "Random_Forest",
+      "MAE (MW)": 1043.55,
+      "RMSE (MW)": 1383.88,
+      "MAPE (%)": 2.101,
+      "sMAPE (%)": 2.101,
+      "R2": 0.9688,
+      "MAE 95% CI": "(984.12, 1104.34)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "HistGradientBoosting",
+      "MAE (MW)": 1056.68,
+      "RMSE (MW)": 1375.39,
+      "MAPE (%)": 2.141,
+      "sMAPE (%)": 2.151,
+      "R2": 0.9692,
+      "MAE 95% CI": "(994.54, 1114.24)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "LightGBM",
+      "MAE (MW)": 1063.69,
+      "RMSE (MW)": 1376.57,
+      "MAPE (%)": 2.155,
+      "sMAPE (%)": 2.165,
+      "R2": 0.9691,
+      "MAE 95% CI": "(1000.85, 1118.91)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "XGBoost",
+      "MAE (MW)": 1121.8,
+      "RMSE (MW)": 1441.5,
+      "MAPE (%)": 2.272,
+      "sMAPE (%)": 2.288,
+      "R2": 0.9662,
+      "MAE 95% CI": "(1061.84, 1179.52)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "Weekly_168h",
+      "MAE (MW)": 1225.04,
+      "RMSE (MW)": 1613.34,
+      "MAPE (%)": 2.452,
+      "sMAPE (%)": 2.443,
+      "R2": 0.9576,
+      "MAE 95% CI": "(1154.37, 1299.45)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "Ridge_Regression",
+      "MAE (MW)": 1407.35,
+      "RMSE (MW)": 1767.22,
+      "MAPE (%)": 2.918,
+      "sMAPE (%)": 2.939,
+      "R2": 0.9491,
+      "MAE 95% CI": "(1332.69, 1478.17)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "Naive_24h",
+      "MAE (MW)": 3771.22,
+      "RMSE (MW)": 5562.87,
+      "MAPE (%)": 7.682,
+      "sMAPE (%)": 7.722,
+      "R2": 0.496,
+      "MAE 95% CI": "(3503.6, 4027.59)",
+      "Diebold-Mariano vs Naive": "Baseline"
+    },
+    {
+      "Model": "Moving_Avg_24h",
+      "MAE (MW)": 7443.62,
+      "RMSE (MW)": 8836.5,
+      "MAPE (%)": 15.414,
+      "sMAPE (%)": 15.047,
+      "R2": -0.2717,
+      "MAE 95% CI": "(7123.25, 7758.43)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    }
+  ],
+  "leaderboard_load_only_ablation": [
+    {
+      "Model": "Random_Forest",
+      "MAE (MW)": 1035.46,
+      "RMSE (MW)": 1372.08,
+      "MAPE (%)": 2.083,
+      "sMAPE (%)": 2.083,
+      "R2": 0.9693,
+      "MAE 95% CI": "(975.27, 1095.62)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "HistGradientBoosting",
+      "MAE (MW)": 1091.72,
+      "RMSE (MW)": 1413.53,
+      "MAPE (%)": 2.213,
+      "sMAPE (%)": 2.226,
+      "R2": 0.9675,
+      "MAE 95% CI": "(1029.74, 1151.04)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "LightGBM",
+      "MAE (MW)": 1104.62,
+      "RMSE (MW)": 1421.07,
+      "MAPE (%)": 2.237,
+      "sMAPE (%)": 2.251,
+      "R2": 0.9671,
+      "MAE 95% CI": "(1045.78, 1163.61)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "XGBoost",
+      "MAE (MW)": 1131.47,
+      "RMSE (MW)": 1445.7,
+      "MAPE (%)": 2.298,
+      "sMAPE (%)": 2.315,
+      "R2": 0.966,
+      "MAE 95% CI": "(1073.33, 1194.5)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "Weekly_168h",
+      "MAE (MW)": 1225.04,
+      "RMSE (MW)": 1613.34,
+      "MAPE (%)": 2.452,
+      "sMAPE (%)": 2.443,
+      "R2": 0.9576,
+      "MAE 95% CI": "(1154.37, 1299.45)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "Ridge_Regression",
+      "MAE (MW)": 1406.07,
+      "RMSE (MW)": 1772.87,
+      "MAPE (%)": 2.919,
+      "sMAPE (%)": 2.937,
+      "R2": 0.9488,
+      "MAE 95% CI": "(1329.43, 1479.85)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    },
+    {
+      "Model": "Naive_24h",
+      "MAE (MW)": 3771.22,
+      "RMSE (MW)": 5562.87,
+      "MAPE (%)": 7.682,
+      "sMAPE (%)": 7.722,
+      "R2": 0.496,
+      "MAE 95% CI": "(3503.6, 4027.59)",
+      "Diebold-Mariano vs Naive": "Baseline"
+    },
+    {
+      "Model": "Moving_Avg_24h",
+      "MAE (MW)": 7443.62,
+      "RMSE (MW)": 8836.5,
+      "MAPE (%)": 15.414,
+      "sMAPE (%)": 15.047,
+      "R2": -0.2717,
+      "MAE 95% CI": "(7123.25, 7758.43)",
+      "Diebold-Mariano vs Naive": "p=0.0000 (***)"
+    }
+  ],
+  "champion_selected": "Random_Forest",
+  "champion_mae": 1043.55,
+  "champion_rmse": 1383.88,
+  "champion_mape": 2.101,
+  "baseline_comparison": {
+    "naive_24h_mae": 3771.22,
+    "champion_mae_reduction_pct": 72.33
+  },
+  "evaluation_timestamp": "2026-11-03T09:02:27.930463+00:00",
+  "status": "VERIFIED_REPRODUCIBLE"
+}

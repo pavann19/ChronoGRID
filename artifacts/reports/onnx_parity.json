@@ -1,0 +1,30 @@
+{
+  "status": "PARITY_VERIFIED",
+  "model_type": "HistGradientBoosting",
+  "n_features": 43,
+  "tolerance_absolute_mw": 0.5,
+  "test_suites": {
+    "normal_samples": {
+      "n_samples": 100,
+      "max_absolute_difference_mw": 0.003191,
+      "passed": true
+    },
+    "peak_load_samples": {
+      "n_samples": 30,
+      "max_absolute_difference_mw": 0.006701,
+      "passed": true
+    },
+    "low_load_samples": {
+      "n_samples": 30,
+      "max_absolute_difference_mw": 0.006044,
+      "passed": true
+    },
+    "boundary_extreme_conditions": {
+      "n_samples": 10,
+      "max_absolute_difference_mw": 0.00372,
+      "passed": true
+    }
+  },
+  "export_reproducibility": true,
+  "timestamp": "2026-11-03T08:56:56.783600+00:00"
+}

@@ -13,49 +13,31 @@ def add_weather_features(
     df: pd.DataFrame,
     heating_base: float = 18.0,
     cooling_base: float = 22.0,
-    weather_mode: str = "nwp_forecast", # "nwp_forecast" or "persistence"
-    forecast_noise_seed: int = 42,
+    weather_mode: str = "persistence", # "persistence", "load_only"
+    min_lag_hours: int = 24,
 ) -> pd.DataFrame:
     """
     Computes thermodynamic weather features available at forecast issuance time.
     
-    IMPORTANT: Realised weather at delivery hour t is NOT available at day-ahead gate closure (t - 24h).
-    - If weather_mode == "nwp_forecast": Simulates authentic DWD ICON Day-Ahead Numerical
-      Weather Prediction (NWP) forecast with realistic verification error (MAE ~ 1.1 C, wind error ~ 1.0 m/s).
-    - If weather_mode == "persistence": Uses 24-hour lagged weather known at issuance (T_{t-24}).
+    IMPORTANT: Realised weather at delivery hour t is NOT available at day-ahead gate closure.
+    - If weather_mode == "persistence" (default honest production fallback):
+      Uses lagged weather observations strictly known at forecast issuance (T_{t - min_lag_hours}).
+    - If weather_mode == "load_only":
+      Does not append weather features, returning the DataFrame untouched for load-only benchmark ablation.
     
     Contemporaneous realised weather (t) is NEVER directly fed to the model to guarantee ZERO leakage.
+    Synthetic NWP noise injection is disallowed per senior data governance rules.
     """
     out = df.copy()
-    rng = np.random.RandomState(forecast_noise_seed)
-    n = len(out)
 
-    # 1. Determine Day-Ahead Weather Features (Known at Issuance)
-    if weather_mode == "nwp_forecast":
-        # Simulate DWD ICON Day-Ahead NWP Forecast with empirical error distributions
-        # Temperature forecast error: AR(1) process with std ~ 1.2 C (DWD ICON 24h verification)
-        t_err = np.zeros(n)
-        te = 0.0
-        for i in range(n):
-            te = 0.85 * te + rng.normal(0, 0.6)
-            t_err[i] = te
+    if weather_mode == "load_only":
+        return out
 
-        # Solar irradiance forecast error: cloud cover prediction uncertainty (~15-20%)
-        solar_mult = np.clip(1.0 + rng.normal(0, 0.18, n), 0.2, 1.8)
-        
-        # Wind forecast error: std ~ 1.1 m/s
-        wind_err = rng.normal(0, 1.1, n)
-
-        out["forecast_temperature_c"] = out["temperature_c"] + t_err if "temperature_c" in out.columns else 12.0
-        out["forecast_wind_speed_ms"] = np.maximum(0.1, out["wind_speed_ms"] + wind_err) if "wind_speed_ms" in out.columns else 4.0
-        out["forecast_solar_radiation_wm2"] = np.maximum(0.0, out["solar_radiation_wm2"] * solar_mult) if "solar_radiation_wm2" in out.columns else 0.0
-        out["forecast_humidity_pct"] = np.clip(out["humidity_pct"] + rng.normal(0, 4.0, n), 10.0, 100.0) if "humidity_pct" in out.columns else 65.0
-
-    else: # "persistence" mode: use 24h lag known at issuance
-        out["forecast_temperature_c"] = out["temperature_c"].shift(24) if "temperature_c" in out.columns else 12.0
-        out["forecast_wind_speed_ms"] = out["wind_speed_ms"].shift(24) if "wind_speed_ms" in out.columns else 4.0
-        out["forecast_solar_radiation_wm2"] = out["solar_radiation_wm2"].shift(24) if "solar_radiation_wm2" in out.columns else 0.0
-        out["forecast_humidity_pct"] = out["humidity_pct"].shift(24) if "humidity_pct" in out.columns else 65.0
+    # "persistence" mode: use lag known at issuance (strictly >= min_lag_hours)
+    out["forecast_temperature_c"] = out["temperature_c"].shift(min_lag_hours) if "temperature_c" in out.columns else 12.0
+    out["forecast_wind_speed_ms"] = out["wind_speed_ms"].shift(min_lag_hours) if "wind_speed_ms" in out.columns else 4.0
+    out["forecast_solar_radiation_wm2"] = out["solar_radiation_wm2"].shift(min_lag_hours) if "solar_radiation_wm2" in out.columns else 0.0
+    out["forecast_humidity_pct"] = out["humidity_pct"].shift(min_lag_hours) if "humidity_pct" in out.columns else 65.0
 
     temp = out["forecast_temperature_c"]
 

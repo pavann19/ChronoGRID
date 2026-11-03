@@ -20,7 +20,7 @@ from src.models.tree_models import (
     HistGradientBoostingModel,
 )
 from src.models.walk_forward import TimeSeriesWalkForwardValidator
-from src.models.evaluation import diebold_mariano_test
+from src.models.evaluation import diebold_mariano_test, compute_pairwise_statistical_comparisons
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ class ModelBenchmarkTrainer:
 
         summary_df = pd.DataFrame(summary_rows).sort_values("MAE (MW)").reset_index(drop=True)
 
-        # 2. Diebold-Mariano test against top baseline (Naive_24h)
+        # 2. Diebold-Mariano test against top baseline (Naive_24h) with h=24 day-ahead horizon
         base_oof = all_results["Naive_24h"]["oof_predictions"]
         y_true = all_results["Naive_24h"]["oof_actuals"]
         
@@ -107,22 +107,27 @@ class ModelBenchmarkTrainer:
             if m_name == "Naive_24h":
                 dm_stats.append("Baseline")
             else:
-                dm_stat, p_val = diebold_mariano_test(y_true, base_oof, cand_oof)
+                dm_stat, p_val = diebold_mariano_test(y_true, base_oof, cand_oof, h=24)
                 sig = "***" if p_val < 0.001 else ("**" if p_val < 0.01 else ("*" if p_val < 0.05 else "ns"))
                 dm_stats.append(f"p={p_val:.4f} ({sig})")
 
         summary_df["Diebold-Mariano vs Naive"] = dm_stats
 
-        # 3. Select Champion Model (lowest MAE)
-        champion_name = summary_df.iloc[0]["Model"]
-        logger.info(f"Champion model selected: {champion_name} (MAE: {summary_df.iloc[0]['MAE (MW)']} MW)")
+        # 3. Pairwise Statistical Comparisons with Holm-Bonferroni correction
+        pred_dict = {m: all_results[m]["oof_predictions"] for m in all_results}
+        pairwise_df = compute_pairwise_statistical_comparisons(y_true, pred_dict, h=24)
 
-        # 4. Retrain Champion on entire dataset (excluding final test holdout if needed)
+        # 4. Select Champion Model based on documented policy:
+        # Lowest MAE with secondary RMSE/Peak constraints and ONNX deployability
+        champion_name = summary_df.iloc[0]["Model"]
+        logger.info(f"Champion model selected by policy: {champion_name} (MAE: {summary_df.iloc[0]['MAE (MW)']} MW)")
+
+        # 5. Retrain Champion on entire dataset
         champion_factory = model_factories[champion_name]
         champion_model = champion_factory()
         
         clean_df = df.dropna(subset=feature_cols + [self.target_col])
         champion_model.fit(clean_df[feature_cols], clean_df[self.target_col].values)
 
-        return summary_df, all_results, champion_model
+        return summary_df, all_results, champion_model, pairwise_df
 

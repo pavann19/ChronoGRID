@@ -86,28 +86,115 @@ def diebold_mariano_test(
     y_true: np.ndarray,
     y_pred_baseline: np.ndarray,
     y_pred_candidate: np.ndarray,
-    h: int = 1,
+    h: int = 24,
+    use_hln_correction: bool = True,
 ) -> Tuple[float, float]:
     """
     Diebold-Mariano test for statistical significance between two forecasting models.
-    H0: Both models have identical forecast accuracy.
-    Returns: (dm_statistic, p_value). Negative statistic means candidate has lower loss.
+    Supports multi-step forecast horizons (h) with Bartlett kernel autocovariance weighting
+    and Harvey-Leybourne-Newbold (1997) small-sample Student's t adjustment.
+
+    Args:
+        y_true: Ground truth target values
+        y_pred_baseline: Forecasts from baseline model
+        y_pred_candidate: Forecasts from candidate model
+        h: Forecast horizon (default 24 for day-ahead electricity forecasting)
+        use_hln_correction: Whether to apply Harvey-Leybourne-Newbold (1997) correction
+
+    Returns:
+        (dm_statistic, p_value). Negative statistic indicates candidate has lower loss.
     """
+    y_true = np.asarray(y_true, dtype=float)
+    y_pred_baseline = np.asarray(y_pred_baseline, dtype=float)
+    y_pred_candidate = np.asarray(y_pred_candidate, dtype=float)
+
     e_base = np.abs(y_true - y_pred_baseline)
     e_cand = np.abs(y_true - y_pred_candidate)
     d = e_cand - e_base  # Loss differential
-
-    mean_d = np.mean(d)
     n = len(d)
+
+    if n < 2:
+        return 0.0, 1.0
+
+    mean_d = float(np.mean(d))
     
-    # Autocovariance adjustment for h-step horizon
-    autocov = np.var(d)
-    for lag in range(1, h):
-        gamma = np.mean((d[lag:] - mean_d) * (d[:-lag] - mean_d))
-        autocov += 2.0 * gamma
+    # Bartlett-weighted autocovariance for h-step horizon to ensure positive semi-definiteness
+    gamma_0 = float(np.mean((d - mean_d) ** 2))
+    long_run_var = gamma_0
 
-    variance_d = max(autocov / n, 1e-9)
-    dm_stat = float(mean_d / np.sqrt(variance_d))
-    p_value = float(2.0 * (1.0 - stats.norm.cdf(np.abs(dm_stat))))
+    max_lag = max(1, min(h, n - 1))
+    for k in range(1, max_lag):
+        gamma_k = float(np.sum((d[k:] - mean_d) * (d[:-k] - mean_d)) / n)
+        # Bartlett kernel weight (1 - k/h)
+        weight = 1.0 - (k / float(max_lag))
+        long_run_var += 2.0 * weight * gamma_k
 
-    return dm_stat, p_value
+    long_run_var = max(long_run_var, 1e-9)
+    variance_mean_d = long_run_var / float(n)
+
+    dm_stat = mean_d / np.sqrt(variance_mean_d)
+
+    # Harvey, Leybourne, Newbold (1997) small sample adjustment
+    if use_hln_correction and n > max_lag:
+        hln_factor = np.sqrt(max(1e-9, (n + 1.0 - 2.0 * max_lag + (max_lag * (max_lag - 1.0)) / float(n)) / float(n)))
+        dm_stat *= hln_factor
+        df = n - 1
+        p_value = float(2.0 * (1.0 - stats.t.cdf(np.abs(dm_stat), df=df)))
+    else:
+        p_value = float(2.0 * (1.0 - stats.norm.cdf(np.abs(dm_stat))))
+
+    return float(dm_stat), float(p_value)
+
+
+def compute_pairwise_statistical_comparisons(
+    y_true: np.ndarray,
+    predictions: Dict[str, np.ndarray],
+    h: int = 24,
+) -> pd.DataFrame:
+    """
+    Computes pairwise Diebold-Mariano tests across all model pairs with
+    Holm-Bonferroni correction for multiple hypothesis testing.
+    """
+    models = list(predictions.keys())
+    results = []
+
+    for i in range(len(models)):
+        for j in range(i + 1, len(models)):
+            m_a = models[i]
+            m_b = models[j]
+            dm_stat, p_val = diebold_mariano_test(y_true, predictions[m_a], predictions[m_b], h=h)
+            results.append({
+                "model_a": m_a,
+                "model_b": m_b,
+                "dm_statistic": round(dm_stat, 4),
+                "raw_p_value": p_val,
+                "better_model": m_b if dm_stat < 0 else m_a,
+            })
+
+    df = pd.DataFrame(results)
+    if df.empty:
+        return df
+
+    # Holm-Bonferroni step-down p-value adjustment
+    m_tests = len(df)
+    sorted_indices = df["raw_p_value"].argsort()
+    adjusted_p_values = np.zeros(m_tests)
+
+    running_min = 1.0
+    # Walk backward or forward with (m - k + 1) multiplier
+    for rank, idx in enumerate(sorted_indices):
+        raw_p = df.loc[idx, "raw_p_value"]
+        multiplier = m_tests - rank
+        adjusted_p = min(1.0, raw_p * multiplier)
+        adjusted_p_values[idx] = adjusted_p
+
+    # Enforce monotonicity: p_adj[rank] >= p_adj[rank-1]
+    sorted_adjs = adjusted_p_values[sorted_indices]
+    for r in range(1, m_tests):
+        if sorted_adjs[r] < sorted_adjs[r - 1]:
+            sorted_adjs[r] = sorted_adjs[r - 1]
+    adjusted_p_values[sorted_indices] = sorted_adjs
+
+    df["adjusted_p_value"] = np.round(adjusted_p_values, 5)
+    df["significant_alpha_05"] = df["adjusted_p_value"] < 0.05
+    return df

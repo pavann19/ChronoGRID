@@ -1,0 +1,81 @@
+{
+  "audit_name": "Multi-Tier Drift & Residual Degradation Audit",
+  "reference_window": "720 hours (30 days)",
+  "current_window": "168 hours (7 days)",
+  "overall_feature_psi": 0.2389,
+  "overall_drift_status": "WARNING",
+  "tiers": {
+    "tier_1_feature_covariate_drift": {
+      "temperature_c": {
+        "ks_statistic": 0.2609,
+        "ks_pvalue": 0.0,
+        "psi": 0.4522,
+        "wasserstein_distance": 2.7063,
+        "drift_detected": true,
+        "status": "ALERT"
+      },
+      "wind_speed_ms": {
+        "ks_statistic": 0.2635,
+        "ks_pvalue": 0.0,
+        "psi": 0.4481,
+        "wasserstein_distance": 0.5527,
+        "drift_detected": true,
+        "status": "ALERT"
+      },
+      "solar_radiation_wm2": {
+        "ks_statistic": 0.0859,
+        "ks_pvalue": 0.25121,
+        "psi": 0.0644,
+        "wasserstein_distance": 38.25,
+        "drift_detected": false,
+        "status": "STABLE"
+      },
+      "humidity_pct": {
+        "ks_statistic": 0.1208,
+        "ks_pvalue": 0.03416,
+        "psi": 0.1581,
+        "wasserstein_distance": 4.5317,
+        "drift_detected": true,
+        "status": "ALERT"
+      },
+      "grid_load_mw": {
+        "ks_statistic": 0.0895,
+        "ks_pvalue": 0.21138,
+        "psi": 0.0715,
+        "wasserstein_distance": 624.6639,
+        "drift_detected": false,
+        "status": "STABLE"
+      }
+    },
+    "tier_2_prediction_distribution_drift": {
+      "ks_statistic": 0.0667,
+      "ks_pvalue": 0.55542,
+      "psi": 0.0586,
+      "status": "STABLE"
+    },
+    "tier_3_target_concept_drift": {
+      "ks_statistic": 0.0895,
+      "ks_pvalue": 0.21138,
+      "psi": 0.0715,
+      "status": "STABLE"
+    },
+    "tier_4_residual_degradation": {
+      "ref_mae": 741.76,
+      "curr_mae": 673.06,
+      "ref_mape": 1.477,
+      "curr_mape": 1.341,
+      "mae_degradation_pct": -9.26,
+      "cusum_score": 1.915,
+      "concept_drift_detected": false
+    },
+    "tier_5_peak_hour_degradation": {
+      "reference_peak_mae_mw": 789.28,
+      "current_peak_mae_mw": 499.07,
+      "peak_degradation_pct": -36.77,
+      "safety_passed": true
+    }
+  },
+  "retraining_recommended": false,
+  "timestamp": "2026-11-03T09:02:28.030768+00:00",
+  "status": "VERIFIED"
+}

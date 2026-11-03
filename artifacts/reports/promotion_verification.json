@@ -1,0 +1,26 @@
+{
+  "audit_name": "Champion-Challenger Governance & Rollback Audit",
+  "governance_rules": {
+    "rule_1_minimum_improvement": "Challenger MAE must improve by >= 2.0%",
+    "rule_2_statistical_significance": "Diebold-Mariano test p < 0.05 and DM < 0",
+    "rule_3_peak_hour_safety": "Peak-hour MAE degradation must not exceed 5.0%",
+    "rule_4_atomic_promotion": "Export to staging temporary ONNX, verify runtime parser, atomic swap, and rollback on DB failure",
+    "rule_5_rollback_recoverability": "Previous active champion backed up before promotion; instant rollback supported via rollback_to_previous_champion()"
+  },
+  "tests": {
+    "inferior_challenger_rejection": {
+      "decision": "REJECT_CHALLENGER",
+      "improvement_pct": -877.66,
+      "passed_gate": false,
+      "verified": true
+    },
+    "rollback_execution": {
+      "status": "ROLLBACK_SUCCESSFUL",
+      "restored_backup": "champion_backup_20261103_090228.onnx",
+      "restored_version": 1,
+      "verified": true
+    }
+  },
+  "timestamp": "2026-11-03T09:02:28.493767+00:00",
+  "status": "LOCAL_CHECKS_COMPLETED"
+}
