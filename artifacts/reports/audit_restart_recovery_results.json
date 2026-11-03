@@ -1,0 +1,45 @@
+{
+  "test_2_1_restart_state_inversion": {
+    "hypothesis": "Router re-instantiation resets in-memory recovery manager to HEALTHY, losing prior failure state.",
+    "results": [
+      {
+        "pre_restart_state": "DEGRADED",
+        "post_restart_state": "HEALTHY",
+        "state_preserved": false
+      },
+      {
+        "pre_restart_state": "STALE",
+        "post_restart_state": "HEALTHY",
+        "state_preserved": false
+      },
+      {
+        "pre_restart_state": "UNAVAILABLE",
+        "post_restart_state": "HEALTHY",
+        "state_preserved": false
+      }
+    ],
+    "demonstrated_risk": "Process crashes or rolling deploys during an ongoing weather outage cause state amnesia, resetting to HEALTHY."
+  },
+  "test_2_2_prolonged_outage_recovery": {
+    "hypothesis": "Delayed updates (age > 28h) cannot trigger recovery; only fresh advancing updates within SLA increment counter.",
+    "delayed_held_fallback": true,
+    "fresh_recovery_promoted": true,
+    "result": "VERIFIED_CORRECT"
+  },
+  "test_2_3_frozen_sensor_vulnerability": {
+    "hypothesis": "Because payload fingerprint includes the timestamp field, frozen physical telemetry with an advancing timestamp bypasses duplicate detection.",
+    "frozen_sensor_promoted": true,
+    "demonstrated_vulnerability": "Anti-replay protects against byte-identical replays, but does NOT detect static/frozen telemetry streams if the timestamp is updated upstream."
+  },
+  "test_2_4_non_advancing_timestamp": {
+    "hypothesis": "Payload with different readings but older/equal timestamp is rejected by timestamp ordering check.",
+    "counter_held": true,
+    "result": "VERIFIED_CORRECT"
+  },
+  "test_2_5_concurrent_recovery": {
+    "hypothesis": "In a multithreaded process, mutex locking ensures thread-safe atomic progression of recovery counter.",
+    "final_state": "HEALTHY",
+    "final_count": 12,
+    "thread_safety_verified": true
+  }
+}

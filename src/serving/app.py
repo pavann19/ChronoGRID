@@ -3,11 +3,13 @@ FastAPI Model Serving Application (P5.8 & P5.11).
 Ultra-low latency inference via ONNX Runtime with Prometheus metrics integration.
 """
 
+import os
 import time
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Response, Request
@@ -22,10 +24,14 @@ from src.serving.schemas import (
     DayAheadForecastRequest,
     DayAheadForecastResponse,
     HealthResponse,
+    ResilientForecastRequest,
+    ResilientForecastResponse,
 )
 from src.serving.onnx_engine import OnnxInferenceEngine
 from src.db.database import get_session, init_db
 from src.db.models import ModelRegistryRecord
+
+logger = logging.getLogger(__name__)
 
 # Prometheus Metrics Definitions (P5.11)
 REQUEST_COUNT = Counter(
@@ -48,23 +54,51 @@ CHAMPION_VERSION = Gauge(
     "chronogrid_champion_model_version",
     "Version number of the current active champion model"
 )
+DDIR_REQUEST_COUNT = Counter(
+    "chronogrid_ddir_requests_total",
+    "Total number of DDIR resilient inference requests",
+    ["state", "head"]
+)
+DDIR_QUALITY_GAUGE = Gauge(
+    "chronogrid_ddir_weather_quality_score",
+    "Current weather telemetry quality score (0.0 to 1.0)"
+)
 
-# Global engine instance
+# Global engine and router instances
 ENGINE: Optional[OnnxInferenceEngine] = None
+ROUTER: Optional[Any] = None
 CHAMPION_META = {"version": 1, "model_type": "Unknown", "promoted_at": None}
 
 
 def load_engine():
-    """Initializes ONNX engine and registry metadata."""
-    global ENGINE, CHAMPION_META
+    """Initializes ONNX engine, DDIR router, and registry metadata."""
+    global ENGINE, ROUTER, CHAMPION_META
     onnx_file = Path("artifacts/models/champion_model.onnx")
     meta_file = Path("artifacts/models/champion_metadata.json")
+    fallback_onnx = Path("artifacts/models/load_only_model.onnx")
+    fallback_meta = Path("artifacts/models/load_only_metadata.json")
 
     if onnx_file.exists():
         ENGINE = OnnxInferenceEngine(
             onnx_model_path=str(onnx_file),
             metadata_path=str(meta_file),
         )
+        if fallback_onnx.exists():
+            try:
+                from src.reliability.router import DualHeadInferenceRouter
+                state_file = os.environ.get("DDIR_STATE_FILE", "data/ddir_runtime_state.json")
+                ROUTER = DualHeadInferenceRouter(
+                    primary_onnx_path=str(onnx_file),
+                    primary_metadata_path=str(meta_file),
+                    fallback_onnx_path=str(fallback_onnx),
+                    fallback_metadata_path=str(fallback_meta),
+                    recovery_threshold=2,
+                    state_file_path=state_file,
+                )
+            except Exception:
+                ROUTER = None
+        else:
+            ROUTER = None
         # Fetch version from DB
         try:
             with get_session() as session:
@@ -237,8 +271,104 @@ def forecast_day_ahead(payload: DayAheadForecastRequest):
     )
 
 
+@app.post("/forecast/resilient", response_model=ResilientForecastResponse)
+def forecast_resilient(payload: ResilientForecastRequest):
+    """
+    DDIR-protected resilient day-ahead rolling forecast.
+    Inspects weather telemetry and dynamically routes to Primary or Fallback ONNX head.
+    """
+    global ROUTER
+    if ROUTER is None:
+        load_engine()
+        if ROUTER is None:
+            raise HTTPException(status_code=503, detail="DDIR dual-head router is not loaded.")
+
+    horizon = payload.horizon_hours
+    try:
+        df = pd.read_parquet("data/processed/smard_dwd_hourly.parquet")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Processed dataset not available for day-ahead forecast.")
+
+    start_ts = pd.to_datetime(payload.start_timestamp, utc=True) if payload.start_timestamp else df["timestamp"].max()
+    future_timestamps = pd.date_range(start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC")
+
+    from src.features.engineer import FeatureEngineer
+    fe = FeatureEngineer(min_lag_hours=24)
+    fe.feature_cols = ROUTER.primary_engine.feature_names
+    fe.fitted = True
+
+    recent_history = df.tail(336).copy()
+    last_known_load = recent_history["grid_load_mw"].iloc[-1]
+
+    future_rows = []
+    # If weather_payload is provided, match to future_timestamps
+    weather_by_ts = {}
+    if payload.weather_payload:
+        for w in payload.weather_payload:
+            if "timestamp" in w:
+                try:
+                    w_ts = pd.to_datetime(w["timestamp"], utc=True)
+                    weather_by_ts[w_ts] = w
+                except Exception:
+                    pass
+
+    for i, ts in enumerate(future_timestamps):
+        w_dict = weather_by_ts.get(ts, {})
+        future_rows.append({
+            "timestamp": ts,
+            "grid_load_mw": last_known_load,
+            "temperature_c": w_dict.get("temperature_c", 15.0),
+            "solar_radiation_wm2": w_dict.get("solar_radiation_wm2", 0.0),
+            "wind_speed_ms": w_dict.get("wind_speed_ms", 4.0),
+            "humidity_pct": w_dict.get("humidity_pct", 65.0),
+        })
+
+    future_df = pd.DataFrame(future_rows)
+    combined = pd.concat([recent_history, future_df], ignore_index=True)
+    combined_feats = fe._generate_raw_features(combined)
+    eval_feats = combined_feats.iloc[-horizon:].copy()
+
+    # Route and predict through DDIR
+    res = ROUTER.route_and_predict(
+        features=eval_feats,
+        weather_payload=payload.weather_payload,
+        current_time=start_ts.to_pydatetime() if hasattr(start_ts, "to_pydatetime") else None,
+    )
+
+    # Record Prometheus metrics safely (shielded against observability failures)
+    try:
+        DDIR_REQUEST_COUNT.labels(state=res.routing_state.value, head=res.active_head).inc()
+        DDIR_QUALITY_GAUGE.set(res.weather_quality_score)
+    except Exception as exc:
+        logger.warning(f"Failed to record Prometheus metrics in forecast_resilient: {exc}")
+
+    return ResilientForecastResponse(
+        timestamps=[ts.isoformat() for ts in future_timestamps],
+        forecast_load_mw=res.predictions,
+        routing_state=res.routing_state.value,
+        active_head=res.active_head,
+        fallback_reason=res.fallback_reason,
+        weather_quality_score=res.weather_quality_score,
+        weather_freshness_seconds=res.weather_freshness_seconds,
+        inference_time_ms=res.inference_time_ms,
+        validation_time_ms=res.validation_time_ms,
+        total_time_ms=res.total_time_ms,
+        features_used_count=res.features_used_count,
+        model_version=CHAMPION_META["version"],
+        model_type=CHAMPION_META["model_type"],
+        generated_at=datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+    )
+
+
 @app.get("/metrics")
 def metrics():
-    """Prometheus metrics endpoint."""
-    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    """Prometheus metrics endpoint with multiprocess support."""
+    if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
+        from prometheus_client import CollectorRegistry, multiprocess
+        registry = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry)
+        data = generate_latest(registry)
+    else:
+        data = generate_latest()
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 

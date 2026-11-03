@@ -1,0 +1,79 @@
+{
+  "test_1_1_state_divergence": {
+    "hypothesis": "Isolated worker processes do not share state; failure on worker 0 leaves workers 1..3 in healthy state.",
+    "configuration": "4 OS worker processes, in-memory state machine",
+    "worker_states": {
+      "0": {
+        "active_head": "FALLBACK_LOAD_ONLY",
+        "routing_state": "UNAVAILABLE",
+        "consecutive_healthy": 0,
+        "quality_score": 0.0,
+        "prediction": 48674.1
+      },
+      "1": {
+        "active_head": "PRIMARY_WEATHER",
+        "routing_state": "HEALTHY",
+        "consecutive_healthy": 3,
+        "quality_score": 1.0,
+        "prediction": 47337.6
+      },
+      "2": {
+        "active_head": "PRIMARY_WEATHER",
+        "routing_state": "HEALTHY",
+        "consecutive_healthy": 3,
+        "quality_score": 1.0,
+        "prediction": 47337.6
+      },
+      "3": {
+        "active_head": "PRIMARY_WEATHER",
+        "routing_state": "HEALTHY",
+        "consecutive_healthy": 3,
+        "quality_score": 1.0,
+        "prediction": 47337.6
+      }
+    },
+    "divergence_demonstrated": true
+  },
+  "test_1_2_recovery_fragmentation": {
+    "hypothesis": "Round-robin distribution of valid updates across N workers dilutes recovery progression, preventing timely recovery.",
+    "updates_dispatched": 4,
+    "round_robin_trace": [
+      {
+        "step": 1,
+        "target_worker": 0,
+        "timestamp": "2026-11-03T15:00:00+00:00",
+        "active_head": "FALLBACK_LOAD_ONLY",
+        "consecutive_healthy": 1
+      },
+      {
+        "step": 2,
+        "target_worker": 1,
+        "timestamp": "2026-11-03T16:00:00+00:00",
+        "active_head": "FALLBACK_LOAD_ONLY",
+        "consecutive_healthy": 1
+      },
+      {
+        "step": 3,
+        "target_worker": 2,
+        "timestamp": "2026-11-03T17:00:00+00:00",
+        "active_head": "FALLBACK_LOAD_ONLY",
+        "consecutive_healthy": 1
+      },
+      {
+        "step": 4,
+        "target_worker": 3,
+        "timestamp": "2026-11-03T18:00:00+00:00",
+        "active_head": "FALLBACK_LOAD_ONLY",
+        "consecutive_healthy": 1
+      }
+    ],
+    "workers_recovered_count": 0,
+    "fragmentation_demonstrated": true
+  },
+  "test_1_3_cold_start_inversion": {
+    "hypothesis": "New worker processes default to HEALTHY regardless of ambient cluster/upstream status.",
+    "initial_state_on_boot": "HEALTHY",
+    "consecutive_healthy": 2,
+    "inversion_risk_demonstrated": true
+  }
+}

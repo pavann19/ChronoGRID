@@ -1,0 +1,54 @@
+{
+  "part_1_metric_cardinality": {
+    "metrics": [
+      {
+        "metric_name": "chronogrid_ddir_requests_total",
+        "type": "Counter",
+        "labels": [
+          "state",
+          "head"
+        ],
+        "max_cardinality": 10,
+        "is_bounded": true,
+        "has_high_cardinality_risk": false
+      },
+      {
+        "metric_name": "chronogrid_inference_requests_total",
+        "type": "Counter",
+        "labels": [
+          "endpoint",
+          "status"
+        ],
+        "max_cardinality": 15,
+        "is_bounded": true,
+        "has_high_cardinality_risk": false
+      }
+    ],
+    "forbidden_labels_found": false,
+    "multi_process_metrics_risk": "HIGH. Prometheus Python client does not aggregate across worker processes unless PROMETHEUS_MULTIPROC_DIR environment variable is configured."
+  },
+  "part_2_timestamp_manipulation": {
+    "future_timestamp_accepted": true,
+    "future_timestamp_age_calculated": 0.0,
+    "demonstrated_vulnerability": "max(0.0, delta_seconds/3600.0) converts negative future deltas to 0.0 hours. Telemetry timestamped in the future is classified as maximally fresh (age=0.0h) and valid.",
+    "epoch_zero_correctly_rejected_as_stale": true,
+    "malformed_string_flagged": true
+  },
+  "part_3_trust_boundaries": {
+    "unauthenticated_endpoints": [
+      "/forecast/day-ahead",
+      "/forecast/resilient"
+    ],
+    "authentication_mechanism": "NONE (Open API boundary)",
+    "authorization_mechanism": "NONE",
+    "replay_protection_scope": "Payload fingerprinting is duplicate detection, NOT message integrity or authentication.",
+    "risk_classification": "REAL. Any network client can submit synthetic weather payloads to trigger fallback or forge recovery."
+  },
+  "part_4_request_size_limits": {
+    "installed_middlewares": [
+      "CORSMiddleware"
+    ],
+    "request_size_limit_enforced": false,
+    "risk_classification": "REAL. Starlette / FastAPI default allows arbitrarily large request payloads, creating memory exhaustion vulnerability under malicious large JSON payloads."
+  }
+}

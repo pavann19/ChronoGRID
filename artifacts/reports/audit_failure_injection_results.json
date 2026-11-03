@@ -1,0 +1,32 @@
+{
+  "test_4_1_and_4_2_model_loading_failures": {
+    "missing_primary_fast_fails": true,
+    "missing_fallback_fast_fails": true,
+    "corrupted_binary_fast_fails": true,
+    "architectural_finding": "Both ONNX models are eagerly loaded during router initialization. If either binary is missing or corrupted, the service refuses to boot (cannot degrade to fallback-only mode if primary is missing)."
+  },
+  "test_4_3_inflight_primary_failover": {
+    "hypothesis": "Runtime errors during primary ONNX execution are intercepted by try-except in router, executing immediate failover to fallback head.",
+    "active_head_after_crash": "FALLBACK_LOAD_ONLY",
+    "failover_successful": true
+  },
+  "test_4_4_validator_crash_blast_radius": {
+    "hypothesis": "router.route_and_predict does not wrap validator.validate in try-except; unhandled validator exceptions crash the entire inference pipeline.",
+    "pipeline_crashed": true,
+    "blast_radius": "HIGH. A bug or unexpected type in validator causes complete request failure instead of safe demotion to load-only fallback."
+  },
+  "test_4_5_state_machine_crash_blast_radius": {
+    "pipeline_crashed": true,
+    "blast_radius": "HIGH. Unhandled exceptions in state transition logic crash the pipeline."
+  },
+  "test_4_6_observability_failure_impact": {
+    "hypothesis": "Prometheus metric increments in app.py are unshielded; a failure in observability raises an unhandled exception, dropping valid forecasts.",
+    "forecast_crashed_on_metric_error": true,
+    "blast_radius": "CRITICAL. Monitoring failure directly aborts grid load forecasting."
+  },
+  "test_4_7_request_parsing": {
+    "negative_horizon_rejected": true,
+    "malformed_payload_rejected": true,
+    "schema_validation_intact": true
+  }
+}
