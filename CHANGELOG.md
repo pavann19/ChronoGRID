@@ -27,3 +27,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed skl2onnx boolean attribute coercion for modern ONNX 1.17+ runtime compatibility.
 - Fixed rolling window off-by-one boundary leaks by shifting all target rolling statistics by $\ge 24\text{h}$ with `closed='left'`.
 - Fixed German DST 23-hour Spring and 25-hour Autumn transition indexing via timezone-aware local grids.
+
