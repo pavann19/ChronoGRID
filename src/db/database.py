@@ -67,3 +67,4 @@ def get_session(db_url: str = None) -> Session:
         raise
     finally:
         session.close()
+

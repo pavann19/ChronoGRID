@@ -32,3 +32,4 @@ def test_smard_client_instance():
 def test_dwd_client_instance():
     client = DwdClient()
     assert client.DEFAULT_LAT == 50.1109
+

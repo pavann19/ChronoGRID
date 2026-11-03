@@ -32,3 +32,4 @@ def test_cleaner_deduplicates_and_interpolates():
     assert stats["duplicates_removed"] == 1
     assert stats["missing_hours_inserted"] == 1
     assert not cleaned["grid_load_mw"].isnull().any()
+

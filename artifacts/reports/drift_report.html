@@ -15,20 +15,31 @@
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
             <div>
                 <h1 style="margin: 0; font-size: 24px; color: #0f172a;">ChronoGrid Drift Monitoring Report</h1>
-                <p style="margin: 4px 0 0 0; color: #64748b;">Report ID: drift_20261103_080254 | Generated: 2026-11-03T08:02:54.252129</p>
+                <p style="margin: 4px 0 0 0; color: #64748b;">Report ID: drift_20261103_084027 | Generated: 2026-11-03T08:40:27.790229</p>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 28px; font-weight: 700; color: #0284c7;">6.1912</div>
+                <div style="font-size: 28px; font-weight: 700; color: #0284c7;">0.2389</div>
                 <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Overall PSI Score</div>
             </div>
         </div>
 
         <div style="margin-top: 20px; padding: 16px; border-radius: 8px; background: #fef2f2; border-left: 6px solid #f87171;">
             <strong style="font-size: 16px;">RETRAINING TRIGGERED: SIGNIFICANT DRIFT DETECTED</strong>
-            <p style="margin: 4px 0 0 0; font-size: 14px;">Reference Window: 200 hours | Current Window: 200 hours</p>
+            <p style="margin: 4px 0 0 0; font-size: 14px;">Reference Window: 720 hours | Current Window: 168 hours</p>
         </div>
 
         
+            <div style="margin-top: 24px; padding: 18px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e293b;">Model Concept & Residual Drift</h3>
+                <p>Status: <span style="background: #16a34a; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">STABLE</span></p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px;">
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Ref MAE:</strong> 799.42 MW</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Current MAE:</strong> 708.19 MW</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Degradation:</strong> -11.41%</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>CUSUM Score:</strong> 1.501</div>
+                </div>
+            </div>
+            
 
         <h3 style="margin-top: 24px; color: #1e293b;">Feature Distribution Metrics</h3>
         <table>
@@ -47,10 +58,46 @@
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 12px; font-weight: 600;">temperature_c</td>
                 <td style="padding: 12px;"><span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">ALERT</span></td>
-                <td style="padding: 12px; font-family: monospace;">6.1912</td>
-                <td style="padding: 12px; font-family: monospace;">0.8850</td>
+                <td style="padding: 12px; font-family: monospace;">0.4522</td>
+                <td style="padding: 12px; font-family: monospace;">0.2609</td>
                 <td style="padding: 12px; font-family: monospace;">0.00000</td>
-                <td style="padding: 12px; font-family: monospace;">14.6258</td>
+                <td style="padding: 12px; font-family: monospace;">2.7063</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; font-weight: 600;">grid_load_mw</td>
+                <td style="padding: 12px;"><span style="background: #16a34a; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">STABLE</span></td>
+                <td style="padding: 12px; font-family: monospace;">0.0715</td>
+                <td style="padding: 12px; font-family: monospace;">0.0895</td>
+                <td style="padding: 12px; font-family: monospace;">0.21138</td>
+                <td style="padding: 12px; font-family: monospace;">624.6639</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; font-weight: 600;">wind_speed_ms</td>
+                <td style="padding: 12px;"><span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">ALERT</span></td>
+                <td style="padding: 12px; font-family: monospace;">0.4481</td>
+                <td style="padding: 12px; font-family: monospace;">0.2635</td>
+                <td style="padding: 12px; font-family: monospace;">0.00000</td>
+                <td style="padding: 12px; font-family: monospace;">0.5527</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; font-weight: 600;">solar_radiation_wm2</td>
+                <td style="padding: 12px;"><span style="background: #16a34a; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">STABLE</span></td>
+                <td style="padding: 12px; font-family: monospace;">0.0644</td>
+                <td style="padding: 12px; font-family: monospace;">0.0859</td>
+                <td style="padding: 12px; font-family: monospace;">0.25121</td>
+                <td style="padding: 12px; font-family: monospace;">38.2500</td>
+            </tr>
+            
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; font-weight: 600;">humidity_pct</td>
+                <td style="padding: 12px;"><span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">ALERT</span></td>
+                <td style="padding: 12px; font-family: monospace;">0.1581</td>
+                <td style="padding: 12px; font-family: monospace;">0.1208</td>
+                <td style="padding: 12px; font-family: monospace;">0.03416</td>
+                <td style="padding: 12px; font-family: monospace;">4.5317</td>
             </tr>
             
             </tbody>

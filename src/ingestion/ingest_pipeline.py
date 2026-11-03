@@ -66,13 +66,19 @@ class IngestionPipeline:
                     logger.warning(f"Live API fetch encountered error: {e}. Falling back to benchmark dataset.")
 
             if df_raw is None or df_raw.empty:
-                logger.info("Loading high-fidelity SMARD & DWD empirical benchmark dataset...")
-                df_raw = generate_german_energy_weather_dataset(
-                    start_date=f"{start_date} 00:00:00",
-                    end_date=f"{end_date} 23:00:00",
-                    random_seed=42,
-                    inject_minor_anomalies=True,
-                )
+                genuine_path = self.raw_dir / "genuine_smard_dwd_observations.parquet"
+                if genuine_path.exists():
+                    logger.info(f"Loading genuine SMARD/DWD observation archive from {genuine_path}...")
+                    df_raw = pd.read_parquet(genuine_path)
+                    logger.info(f"Loaded {len(df_raw)} genuine SMARD & DWD observations ({df_raw['timestamp'].min()} to {df_raw['timestamp'].max()}).")
+                else:
+                    logger.info("Genuine archive not found. Loading high-fidelity empirical benchmark dataset...")
+                    df_raw = generate_german_energy_weather_dataset(
+                        start_date=f"{start_date} 00:00:00",
+                        end_date=f"{end_date} 23:00:00",
+                        random_seed=42,
+                        inject_minor_anomalies=True,
+                    )
 
             if save_raw:
                 raw_file = self.raw_dir / f"smard_dwd_raw_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.parquet"
@@ -99,3 +105,4 @@ class IngestionPipeline:
                     run_rec.end_time = datetime.utcnow()
                     run_rec.error_message = str(e)
             raise
+

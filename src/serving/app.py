@@ -198,12 +198,12 @@ def forecast_day_ahead(payload: DayAheadForecastRequest):
     future_timestamps = pd.date_range(start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC")
 
     from src.features.engineer import FeatureEngineer
-    fe = FeatureEngineer()
+    fe = FeatureEngineer(min_lag_hours=24)
     fe.feature_cols = ENGINE.feature_names
     fe.fitted = True
 
-    # Build simulated future frame using recent history for lags
-    recent_history = df.tail(168).copy()
+    # Build simulated future frame using recent history for lags (at least 168h + 24h lag depth)
+    recent_history = df.tail(336).copy()
     future_rows = []
     
     last_known_load = recent_history["grid_load_mw"].iloc[-1]
@@ -241,3 +241,4 @@ def forecast_day_ahead(payload: DayAheadForecastRequest):
 def metrics():
     """Prometheus metrics endpoint."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+

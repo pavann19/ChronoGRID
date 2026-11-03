@@ -33,3 +33,4 @@ def test_drift_report_generation():
     assert report.drift_detected is True
     assert "temperature_c" in report.feature_metrics
     assert report.feature_metrics["temperature_c"].status == "ALERT"
+

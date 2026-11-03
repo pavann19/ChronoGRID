@@ -93,3 +93,4 @@ class DriftReportRecord(Base):
     retraining_triggered = Column(Boolean, default=False, nullable=False)
     feature_metrics_json = Column(Text, nullable=False)
     evidently_report_path = Column(String(255), nullable=True)
+

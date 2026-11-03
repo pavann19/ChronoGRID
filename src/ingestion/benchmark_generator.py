@@ -156,3 +156,4 @@ def generate_german_energy_weather_dataset(
         df = df.sample(frac=1.0, random_state=random_seed).reset_index(drop=True)
 
     return df
+

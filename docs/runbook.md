@@ -108,3 +108,4 @@ airflow dags trigger chronogrid_production_forecasting_pipeline
 .\.venv\Scripts\python -m pytest tests/ -v
 ```
 All 18 tests cover data ingestion, validation ranges, gap interpolation, leak-free lags, model training, ONNX serving, drift detection, and champion-challenger promotion gates.
+

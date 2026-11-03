@@ -125,3 +125,4 @@ class ModelBenchmarkTrainer:
         champion_model.fit(clean_df[feature_cols], clean_df[self.target_col].values)
 
         return summary_df, all_results, champion_model
+

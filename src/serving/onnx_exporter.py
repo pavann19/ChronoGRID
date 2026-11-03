@@ -69,6 +69,14 @@ def export_to_onnx(
     # 3. Scikit-learn / General conversion
     if onnx_model is None:
         try:
+            # Patch onnx make_attribute for skl2onnx boolean array compatibility in newer ONNX versions
+            orig_make_attr = onnx.helper.make_attribute
+            def safe_make_attribute(key, value, doc_string=None):
+                if isinstance(value, (list, tuple)) and any(isinstance(x, (bool, np.bool_)) for x in value):
+                    value = [int(x) if isinstance(x, (bool, np.bool_)) else x for x in value]
+                return orig_make_attr(key, value, doc_string=doc_string)
+            onnx.helper.make_attribute = safe_make_attribute
+
             from skl2onnx import convert_sklearn
             onnx_model = convert_sklearn(
                 underlying_model,
@@ -79,6 +87,8 @@ def export_to_onnx(
         except Exception as e:
             logger.error(f"skl2onnx conversion failed: {e}")
             raise
+        finally:
+            onnx.helper.make_attribute = orig_make_attr
 
     # Save ONNX binary
     with open(out_file, "wb") as f:

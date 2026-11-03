@@ -25,3 +25,4 @@ def update_drift_prometheus_metrics(psi: float, drift_detected: bool, mape: floa
     DRIFT_DETECTED_FLAG.set(1.0 if drift_detected else 0.0)
     if mape is not None:
         RESIDUAL_MAPE.set(float(mape))
+
