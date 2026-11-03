@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ChronoGrid Drift Detection Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; margin: 0; padding: 24px; color: #0f172a; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; max-width: 1000px; margin: 0 auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; text-align: left; }
+        th { background: #f8fafc; padding: 12px; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+            <div>
+                <h1 style="margin: 0; font-size: 24px; color: #0f172a;">ChronoGrid Drift Monitoring Report</h1>
+                <p style="margin: 4px 0 0 0; color: #64748b;">Report ID: drift_20261103_080254 | Generated: 2026-11-03T08:02:54.252129</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 28px; font-weight: 700; color: #0284c7;">6.1912</div>
+                <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Overall PSI Score</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 16px; border-radius: 8px; background: #fef2f2; border-left: 6px solid #f87171;">
+            <strong style="font-size: 16px;">RETRAINING TRIGGERED: SIGNIFICANT DRIFT DETECTED</strong>
+            <p style="margin: 4px 0 0 0; font-size: 14px;">Reference Window: 200 hours | Current Window: 200 hours</p>
+        </div>
+
+        
+
+        <h3 style="margin-top: 24px; color: #1e293b;">Feature Distribution Metrics</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Drift Status</th>
+                    <th>PSI</th>
+                    <th>KS Statistic</th>
+                    <th>KS p-value</th>
+                    <th>Wasserstein Dist</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; font-weight: 600;">temperature_c</td>
+                <td style="padding: 12px;"><span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;">ALERT</span></td>
+                <td style="padding: 12px; font-family: monospace;">6.1912</td>
+                <td style="padding: 12px; font-family: monospace;">0.8850</td>
+                <td style="padding: 12px; font-family: monospace;">0.00000</td>
+                <td style="padding: 12px; font-family: monospace;">14.6258</td>
+            </tr>
+            
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
