@@ -2,7 +2,7 @@
 
 **Auditor Role**: Senior Machine Learning Infrastructure Engineer, MLOps Architect, Time-Series Specialist, & Reliability Engineer  
 **Date**: November 3, 2026  
-**Repository**: `D:\ChronoGrid`  
+**Repository**: `https://github.com/pavann19/ChronoGRID`  
 **Dataset**: 13,607 genuine hourly records (`data/raw/genuine_smard_dwd_observations.parquet`, SHA-256: `d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817`)  
 **Scope**: End-to-end audit of data provenance, day-ahead market timing, information boundaries, leakage safeguards, cross-validation fairness, statistical rigor, ONNX serving benchmarks, drift telemetry, and model promotion/rollback governance.
 
@@ -77,16 +77,16 @@ Prior to this audit, the repository reported an impressive 5-fold cross-validati
 
 | File / Component | Key Changes | Purpose |
 | :--- | :--- | :--- |
-| [`src/features/autoregressive.py`](file:///d:/ChronoGrid/src/features/autoregressive.py) | Guaranteed all lags $\ge 24\text{h}$; shifted rolling stats by 24h. | Zero-leakage day-ahead featurization. |
-| [`src/features/weather_features.py`](file:///d:/ChronoGrid/src/features/weather_features.py) | Deprecated synthetic AR(1) noise; implemented persistence & load-only modes. | Authentic data governance. |
-| [`src/features/engineer.py`](file:///d:/ChronoGrid/src/features/engineer.py) | Added `build_day_ahead_market_frame` and 10-point `run_adversarial_leakage_suite`. | Market timing & adversarial verification. |
-| [`src/models/evaluation.py`](file:///d:/ChronoGrid/src/models/evaluation.py) | Added HLN (1997) $h=24$ Diebold-Mariano test and Holm-Bonferroni pairwise matrix. | Statistically defensible model comparisons. |
-| [`src/models/trainer.py`](file:///d:/ChronoGrid/src/models/trainer.py) | Enforced $h=24$ DM tests; added pairwise comparison matrix and champion policy. | Formalized champion selection. |
-| [`src/retraining/promotion_engine.py`](file:///d:/ChronoGrid/src/retraining/promotion_engine.py) | Added staging verification, atomic swap, and `rollback_to_previous_champion()`. | Production reliability and rollback. |
-| [`src/serving/onnx_exporter.py`](file:///d:/ChronoGrid/src/serving/onnx_exporter.py) | Patched `onnx.helper.make_attribute` for boolean array compatibility in ONNX 1.17+. | Universal ONNX export for scikit-learn trees. |
-| [`scripts/benchmark_onnx_and_parity.py`](file:///d:/ChronoGrid/scripts/benchmark_onnx_and_parity.py) | 1,000 warmups, 10,000 single iterations, batch sizes 1–128, numerical parity suite. | Rigorous production serving benchmarks. |
-| [`scripts/generate_provenance_and_vintage_audits.py`](file:///d:/ChronoGrid/scripts/generate_provenance_and_vintage_audits.py) | Generated data provenance & weather vintage audit reports. | Provenance and transparency evidence. |
-| [`scripts/run_full_audit_verification.py`](file:///d:/ChronoGrid/scripts/run_full_audit_verification.py) | Automated master runner reproducing all audits and generating JSON reports. | Independent reproducibility. |
+| [`src/features/autoregressive.py`](../src/features/autoregressive.py) | Guaranteed all lags $\ge 24\text{h}$; shifted rolling stats by 24h. | Zero-leakage day-ahead featurization. |
+| [`src/features/weather_features.py`](../src/features/weather_features.py) | Deprecated synthetic AR(1) noise; implemented persistence & load-only modes. | Authentic data governance. |
+| [`src/features/engineer.py`](../src/features/engineer.py) | Added `build_day_ahead_market_frame` and 10-point `run_adversarial_leakage_suite`. | Market timing & adversarial verification. |
+| [`src/models/evaluation.py`](../src/models/evaluation.py) | Added HLN (1997) $h=24$ Diebold-Mariano test and Holm-Bonferroni pairwise matrix. | Statistically defensible model comparisons. |
+| [`src/models/trainer.py`](../src/models/trainer.py) | Enforced $h=24$ DM tests; added pairwise comparison matrix and champion policy. | Formalized champion selection. |
+| [`src/retraining/promotion_engine.py`](../src/retraining/promotion_engine.py) | Added staging verification, atomic swap, and `rollback_to_previous_champion()`. | Production reliability and rollback. |
+| [`src/serving/onnx_exporter.py`](../src/serving/onnx_exporter.py) | Patched `onnx.helper.make_attribute` for boolean array compatibility in ONNX 1.17+. | Universal ONNX export for scikit-learn trees. |
+| [`scripts/benchmark_onnx_and_parity.py`](../scripts/benchmark_onnx_and_parity.py) | 1,000 warmups, 10,000 single iterations, batch sizes 1–128, numerical parity suite. | Rigorous production serving benchmarks. |
+| [`scripts/generate_provenance_and_vintage_audits.py`](../scripts/generate_provenance_and_vintage_audits.py) | Generated data provenance & weather vintage audit reports. | Provenance and transparency evidence. |
+| [`scripts/run_full_audit_verification.py`](../scripts/run_full_audit_verification.py) | Automated master runner reproducing all audits and generating JSON reports. | Independent reproducibility. |
 
 ---
 

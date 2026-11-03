@@ -61,3 +61,4 @@ jobs:
           engine = OnnxInferenceEngine('artifacts/models/champion_model.onnx')
           print('ONNX Engine loaded successfully in CI environment')
           "
+

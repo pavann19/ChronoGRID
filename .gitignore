@@ -1,11 +1,51 @@
-.venv/
+# ==============================================================================
+# ChronoGrid — Production .gitignore
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+
+# Caches and runtime metadata
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Machine-specific logs
 *.log
+mlruns/.trash/
+nohup.out
+
+# OS specific files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Runtime transient ingestion outputs (canonical dataset is data/raw/genuine_smard_dwd_observations.parquet)
+data/raw/smard_dwd_raw_*.parquet
+
+# Dynamic model promotion backups & staging scratch
 artifacts/models/backup/
-
-
+artifacts/models/staging/
+*.tmp

@@ -67,3 +67,4 @@
 ### 3.4 Day-Ahead Horizon Lead Time Variations
 - **Lead Time Spread**: Because Day-Ahead bidding takes place at 12:00 CET on $D-1$ for delivery throughout Day $D$, the forecast lead time varies from $H = 12\text{h}$ (Hour 00:00) to $H = 35\text{h}$ (Hour 23:00).
 - **DST Edge Cases**: On Spring DST transition days (last Sunday of March), the German delivery profile contains 23 local hours; on Autumn DST days (last Sunday of October), the delivery profile contains 25 local hours. The pipeline handles this seamlessly using timezone-aware `Europe/Berlin` calendar grids converted to monotonic UTC timestamps.
+
