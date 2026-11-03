@@ -67,3 +67,4 @@ def test_atomic_promotion_and_rollback(dummy_train_eval_data):
     res = engine.rollback_to_previous_champion()
     assert res["status"] == "ROLLBACK_SUCCESSFUL"
     assert res["restored_backup"] is not None
+

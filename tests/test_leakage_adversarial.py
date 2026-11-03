@@ -97,3 +97,4 @@ def test_block_day_ahead_market_frame_generator(clean_sample_data):
     assert meta["lead_time_min_hours"] >= 12.0
     assert meta["lead_time_max_hours"] <= 36.0
     assert "grid_load_mw" not in features_df.columns or "forecast_temperature_c" in features_df.columns
+
