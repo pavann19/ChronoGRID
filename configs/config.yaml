@@ -1,0 +1,105 @@
+system:
+  project_name: "ChronoGrid"
+  environment: "production"
+  random_seed: 42
+  timezone: "UTC"
+
+database:
+  url: "sqlite:///data/chronogrid.db"
+  pool_size: 5
+  max_overflow: 10
+  echo: false
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  benchmark_path: "data/processed/smard_dwd_hourly.parquet"
+  start_date: "2023-01-01"
+  end_date: "2024-06-30"
+  target_col: "grid_load_mw"
+  timestamp_col: "timestamp"
+  granularity: "1h"
+  smard:
+    base_url: "https://www.smard.de/app/chart_data"
+    filter: 410 # Total electricity grid load (Stromverbrauch)
+    region: "DE"
+    resolution: "hour"
+  dwd:
+    stations: ["10382", "01420", "03379"] # Berlin, Frankfurt, Munich representative stations
+    parameters: ["TT_TU", "RF_TU", "FF_10", "FD_10"]
+
+features:
+  lags: [1, 2, 3, 24, 48, 168]
+  rolling_windows: [6, 12, 24, 168]
+  cyclical_encodings:
+    - hour
+    - dayofweek
+    - month
+    - dayofyear
+  weather:
+    heating_base_temp: 18.0
+    cooling_base_temp: 22.0
+    include_wind_chill: true
+    include_solar_interaction: true
+
+models:
+  target: "grid_load_mw"
+  horizon_hours: 24
+  purge_gap_hours: 24
+  walk_forward:
+    n_splits: 5
+    test_size_hours: 168 # 1 week per fold
+    min_train_size_hours: 2160 # 90 days minimum training
+    window_type: "expanding"
+  hyperparameters:
+    xgboost:
+      n_estimators: 250
+      learning_rate: 0.05
+      max_depth: 6
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+    lightgbm:
+      n_estimators: 250
+      learning_rate: 0.05
+      num_leaves: 31
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      verbose: -1
+    random_forest:
+      n_estimators: 150
+      max_depth: 14
+      min_samples_split: 5
+      random_state: 42
+      n_jobs: -1
+    ridge:
+      alpha: 10.0
+
+tracking:
+  tracking_uri: "sqlite:///mlruns/mlflow.db"
+  experiment_name: "ChronoGrid_Electricity_Load_Forecasting"
+  model_name: "ChronoGrid_LoadForecaster"
+  artifact_location: "artifacts/mlflow"
+
+serving:
+  host: "0.0.0.0"
+  port: 8000
+  model_path: "artifacts/models/champion_model.onnx"
+  metadata_path: "artifacts/models/champion_metadata.json"
+  batch_max_size: 1000
+
+monitoring:
+  reference_days: 30
+  current_days: 7
+  psi_threshold_warning: 0.10
+  psi_threshold_alert: 0.25
+  ks_pvalue_threshold: 0.05
+  mape_degradation_threshold: 0.20 # 20% degradation triggers retraining
+  evidently_report_path: "artifacts/reports/drift_report.html"
+
+retraining:
+  challenger_improvement_pct: 0.02 # Must beat champion MAE by >= 2%
+  statistical_significance_alpha: 0.05
+  auto_promote: true
+  backup_dir: "artifacts/models/backup"
