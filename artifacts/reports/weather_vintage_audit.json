@@ -1,0 +1,32 @@
+{
+  "audit_title": "Historical Weather Forecast Availability & Vintage Integrity Audit",
+  "current_repository_state": {
+    "contains_historical_dwd_observations": true,
+    "contains_archived_dwd_icon_nwp_vintages": false,
+    "archived_nwp_blocker": "Archived DWD ICON GRIB2 NWP model runs (vintaged by model_initialization_time and forecast_lead_time) require multi-terabyte CDC/ECCODES binary storage or unauthenticated external API egress (historical-forecast-api.open-meteo.com) which is blocked in isolated sandbox environments (WinError 10013).",
+    "synthetic_nwp_status": "DEPRECATED & REMOVED. Prior synthetic Gaussian AR(1) perturbation has been removed from production paths per senior data governance mandate (Rule 5 & Rule 15: Never fabricate NWP data)."
+  },
+  "weather_feature_modes": {
+    "mode_1_persistence_weather": {
+      "description": "Uses weather observations strictly known at forecast issuance time (T <= forecast_origin, e.g. T - 24h).",
+      "leakage_risk": "ZERO LEAKAGE. No contemporaneous or future weather enters model inputs.",
+      "status": "ACTIVE_PRODUCTION_MODE"
+    },
+    "mode_2_load_only": {
+      "description": "Completely excludes meteorological inputs, relying exclusively on calendar/temporal and issuance-bounded load lags.",
+      "leakage_risk": "ZERO LEAKAGE.",
+      "status": "SUPPORTED_ABLATION_MODE"
+    },
+    "mode_3_archived_nwp": {
+      "description": "Genuine archived DWD ICON 00z/06z/12z NWP runs matched by valid_time = delivery_time and issue_time <= forecast_origin.",
+      "status": "BLOCKED_PENDING_EXTERNAL_NWP_DATASET"
+    }
+  },
+  "vintage_integrity_rules": {
+    "rule_1_gate_closure_constraint": "weather_issue_time <= forecast_origin (12:00 CET on Day D-1)",
+    "rule_2_valid_time_matching": "weather_valid_time == delivery_hour_t",
+    "rule_3_fallback_transparency": "When archived NWP vintages are unavailable, the system transparently logs persistence weather and does not misrepresent it as NWP performance."
+  },
+  "audit_timestamp": "2026-11-03T08:58:08.349057+00:00",
+  "status": "AUDIT_VERIFIED"
+}

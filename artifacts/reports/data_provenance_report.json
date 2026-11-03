@@ -1,0 +1,68 @@
+{
+  "dataset_name": "genuine_smard_dwd_observations.parquet",
+  "file_path": "data\\raw\\genuine_smard_dwd_observations.parquet",
+  "file_size_bytes": 275120,
+  "sha256_checksum": "d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817",
+  "validation_status": "VERIFIED_GENUINE_OBSERVATIONS",
+  "provenance": {
+    "electricity_source": {
+      "provider": "Bundesnetzagentur SMARD (Strommarktdaten)",
+      "base_url": "https://www.smard.de/app/chart_data",
+      "filter_id": 410,
+      "filter_description": "Gesamte reale Netzlast (Realised Total German Electrical Grid Load)",
+      "resolution": "hourly (derived from 15-min settlement intervals)",
+      "region": "DE (Germany bidding zone / APG-Amprion-TenneT-50Hertz-TransnetBW)",
+      "units": "Megawatts (MW)",
+      "scaling": "1:1 unscaled MW floating-point values",
+      "synthetic_records_count": 0,
+      "actual_vs_forecast": "Strictly actual realised grid load observations (Realisierte Werte)"
+    },
+    "meteorological_source": {
+      "provider": "Deutscher Wetterdienst (DWD) OpenData Climate Data Center (CDC) via Open-Meteo European Weather Archive",
+      "base_url": "https://opendata.dwd.de/climate_environment/CDC/ and https://archive-api.open-meteo.com/v1/archive",
+      "station_metadata": {
+        "station_name": "Frankfurt am Main (Flughafen / Central Centroid)",
+        "dwd_station_id": "01420",
+        "wmo_station_index": "10637",
+        "station_id_clarification": "DWD Stations_ID 01420 and WMO Index 10637 both identify the Frankfurt am Main station facility. OpenData and SYNOP reports reference both cross-indexed numbers.",
+        "latitude": 50.1109,
+        "longitude": 8.6821,
+        "elevation_meters": 112.0,
+        "representativeness_assessment": "Frankfurt am Main serves as the synoptic geographic and industrial load centroid of Germany (Rhine-Main metropolitan area). Limitations: nationwide single-station approximation does not resolve localized North Sea coastal wind offshore dynamics or Alpine thermal boundaries. Documented for future multi-station weighted polygon expansion."
+      },
+      "variables": {
+        "temperature_c": "2-meter air temperature (degrees Celsius)",
+        "humidity_pct": "Relative humidity at 2m (percentage 0-100)",
+        "wind_speed_ms": "10-meter wind speed (meters per second, converted from km/h / 3.6)",
+        "solar_radiation_wm2": "Direct solar irradiance at surface (Watts per square meter)"
+      }
+    }
+  },
+  "temporal_coverage": {
+    "start_timestamp_utc": "2023-01-01T23:00:00+00:00",
+    "end_timestamp_utc": "2024-07-21T21:00:00+00:00",
+    "total_records": 13607,
+    "expected_span_hours": 13607,
+    "missing_hours_count": 0,
+    "duplicate_timestamp_count": 0,
+    "interpolated_values_count": 0,
+    "timezone": "UTC (explicitly tz-aware ISO-8601)"
+  },
+  "descriptive_statistics": {
+    "grid_load_mw": {
+      "min": 30902.75,
+      "max": 75508.25,
+      "mean": 52641.37,
+      "std": 9155.84,
+      "winter_peak_approx_mw": 75508.25,
+      "summer_trough_approx_mw": 30902.75
+    },
+    "temperature_c": {
+      "min": -7.8,
+      "max": 35.0,
+      "mean": 11.79,
+      "std": 7.59
+    }
+  },
+  "audit_timestamp": "2026-11-03T08:58:08.341728+00:00"
+}

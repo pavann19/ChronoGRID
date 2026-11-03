@@ -1,0 +1,53 @@
+{
+  "suite_status": "ALL_TESTS_PASSED",
+  "tests_passed": 10,
+  "total_tests": 10,
+  "audit_timestamp": "2026-11-03T09:01:14.635969+00:00",
+  "details": {
+    "1_future_target_perturbation": {
+      "passed": true,
+      "max_difference_in_prior_rows": 0.0,
+      "description": "Features before perturbed timestamp remained bitwise invariant"
+    },
+    "2_future_weather_perturbation": {
+      "passed": true,
+      "max_difference_in_prior_rows": 0.0,
+      "description": "Prior rows unaffected by future weather spikes"
+    },
+    "3_future_load_perturbation": {
+      "passed": true,
+      "description": "Verified no future grid load values leak into past features"
+    },
+    "4_timezone_continuity": {
+      "passed": true,
+      "timezone": "UTC",
+      "description": "UTC timestamps explicitly serialized with timezone metadata"
+    },
+    "5_dst_spring_continuity": {
+      "passed": true,
+      "description": "UTC time series preserves 24 continuous hours across German 23h spring DST transition"
+    },
+    "6_dst_autumn_monotonicity": {
+      "passed": true,
+      "description": "UTC timeline remains strictly monotonic during German 25h autumn DST fallback"
+    },
+    "7_forecast_horizon_validity": {
+      "passed": true,
+      "description": "Block market frame correctly generates complete 24h delivery profile"
+    },
+    "8_zero_target_contamination": {
+      "passed": true,
+      "description": "Target variable is strictly excluded from input feature columns"
+    },
+    "9_rolling_window_shifted": {
+      "passed": true,
+      "min_lag_hours": 24,
+      "description": "Rolling stats computed on target shifted by >= 24h"
+    },
+    "10_feature_schema_parity": {
+      "passed": true,
+      "n_features": 43,
+      "description": "Training and inference feature schema are identical"
+    }
+  }
+}

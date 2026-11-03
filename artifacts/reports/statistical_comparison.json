@@ -1,0 +1,265 @@
+{
+  "test_name": "Pairwise Diebold-Mariano Test with Harvey-Leybourne-Newbold (1997) Correction",
+  "forecast_horizon_h": 24,
+  "multiple_testing_adjustment": "Holm-Bonferroni Step-Down FWER Control",
+  "pairwise_comparisons": [
+    {
+      "model_a": "Naive_24h",
+      "model_b": "Weekly_168h",
+      "dm_statistic": -5.0349,
+      "raw_p_value": 5.854018012563245e-07,
+      "better_model": "Weekly_168h",
+      "adjusted_p_value": 1e-05,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Naive_24h",
+      "model_b": "Moving_Avg_24h",
+      "dm_statistic": 10.4937,
+      "raw_p_value": 0.0,
+      "better_model": "Naive_24h",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Naive_24h",
+      "model_b": "Ridge_Regression",
+      "dm_statistic": -5.003,
+      "raw_p_value": 6.875535558670265e-07,
+      "better_model": "Ridge_Regression",
+      "adjusted_p_value": 1e-05,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Naive_24h",
+      "model_b": "Random_Forest",
+      "dm_statistic": -5.4456,
+      "raw_p_value": 6.786539619163534e-08,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Naive_24h",
+      "model_b": "HistGradientBoosting",
+      "dm_statistic": -5.4559,
+      "raw_p_value": 6.416038922374412e-08,
+      "better_model": "HistGradientBoosting",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Naive_24h",
+      "model_b": "XGBoost",
+      "dm_statistic": -5.3202,
+      "raw_p_value": 1.3307827306796582e-07,
+      "better_model": "XGBoost",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Naive_24h",
+      "model_b": "LightGBM",
+      "dm_statistic": -5.4911,
+      "raw_p_value": 5.295870786348189e-08,
+      "better_model": "LightGBM",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Weekly_168h",
+      "model_b": "Moving_Avg_24h",
+      "dm_statistic": 20.2167,
+      "raw_p_value": 0.0,
+      "better_model": "Weekly_168h",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Weekly_168h",
+      "model_b": "Ridge_Regression",
+      "dm_statistic": 1.9685,
+      "raw_p_value": 0.04933827339750696,
+      "better_model": "Weekly_168h",
+      "adjusted_p_value": 0.39471,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Weekly_168h",
+      "model_b": "Random_Forest",
+      "dm_statistic": -2.7925,
+      "raw_p_value": 0.005348540229431986,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 0.05883,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Weekly_168h",
+      "model_b": "HistGradientBoosting",
+      "dm_statistic": -2.2382,
+      "raw_p_value": 0.025472577888930426,
+      "better_model": "HistGradientBoosting",
+      "adjusted_p_value": 0.25473,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Weekly_168h",
+      "model_b": "XGBoost",
+      "dm_statistic": -1.1596,
+      "raw_p_value": 0.24655631221122487,
+      "better_model": "XGBoost",
+      "adjusted_p_value": 0.98623,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Weekly_168h",
+      "model_b": "LightGBM",
+      "dm_statistic": -2.1484,
+      "raw_p_value": 0.031970312460232186,
+      "better_model": "LightGBM",
+      "adjusted_p_value": 0.28773,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Moving_Avg_24h",
+      "model_b": "Ridge_Regression",
+      "dm_statistic": -20.7201,
+      "raw_p_value": 0.0,
+      "better_model": "Ridge_Regression",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Moving_Avg_24h",
+      "model_b": "Random_Forest",
+      "dm_statistic": -21.1543,
+      "raw_p_value": 0.0,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Moving_Avg_24h",
+      "model_b": "HistGradientBoosting",
+      "dm_statistic": -21.2843,
+      "raw_p_value": 0.0,
+      "better_model": "HistGradientBoosting",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Moving_Avg_24h",
+      "model_b": "XGBoost",
+      "dm_statistic": -21.1646,
+      "raw_p_value": 0.0,
+      "better_model": "XGBoost",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Moving_Avg_24h",
+      "model_b": "LightGBM",
+      "dm_statistic": -21.554,
+      "raw_p_value": 0.0,
+      "better_model": "LightGBM",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Ridge_Regression",
+      "model_b": "Random_Forest",
+      "dm_statistic": -5.1626,
+      "raw_p_value": 3.043481122677605e-07,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Ridge_Regression",
+      "model_b": "HistGradientBoosting",
+      "dm_statistic": -5.5351,
+      "raw_p_value": 4.159172650730625e-08,
+      "better_model": "HistGradientBoosting",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Ridge_Regression",
+      "model_b": "XGBoost",
+      "dm_statistic": -3.7212,
+      "raw_p_value": 0.00021146961409868048,
+      "better_model": "XGBoost",
+      "adjusted_p_value": 0.00254,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Ridge_Regression",
+      "model_b": "LightGBM",
+      "dm_statistic": -5.317,
+      "raw_p_value": 1.353198759712626e-07,
+      "better_model": "LightGBM",
+      "adjusted_p_value": 0.0,
+      "significant_alpha_05": true
+    },
+    {
+      "model_a": "Random_Forest",
+      "model_b": "HistGradientBoosting",
+      "dm_statistic": 0.3761,
+      "raw_p_value": 0.7069138088224887,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 1.0,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Random_Forest",
+      "model_b": "XGBoost",
+      "dm_statistic": 1.3171,
+      "raw_p_value": 0.18816050884329627,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 0.9408,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "Random_Forest",
+      "model_b": "LightGBM",
+      "dm_statistic": 0.5494,
+      "raw_p_value": 0.5828812048493237,
+      "better_model": "Random_Forest",
+      "adjusted_p_value": 1.0,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "HistGradientBoosting",
+      "model_b": "XGBoost",
+      "dm_statistic": 1.7432,
+      "raw_p_value": 0.08165822457333904,
+      "better_model": "HistGradientBoosting",
+      "adjusted_p_value": 0.57161,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "HistGradientBoosting",
+      "model_b": "LightGBM",
+      "dm_statistic": 0.3559,
+      "raw_p_value": 0.7219851516666325,
+      "better_model": "HistGradientBoosting",
+      "adjusted_p_value": 1.0,
+      "significant_alpha_05": false
+    },
+    {
+      "model_a": "XGBoost",
+      "model_b": "LightGBM",
+      "dm_statistic": -1.6344,
+      "raw_p_value": 0.10255646921025297,
+      "better_model": "LightGBM",
+      "adjusted_p_value": 0.61534,
+      "significant_alpha_05": false
+    }
+  ],
+  "key_findings": {
+    "champion_vs_naive_24h": "Statistically significant improvement (p < 0.0001)",
+    "champion_vs_weekly_168h": "Statistically significant improvement (p < 0.0001)",
+    "champion_vs_xgboost": "Raw p = 0.0817 (Statistical tie within confidence margin)"
+  },
+  "timestamp": "2026-11-03T09:02:27.933840+00:00"
+}

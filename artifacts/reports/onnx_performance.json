@@ -1,0 +1,68 @@
+{
+  "model_artifact": "artifacts/models/champion_model.onnx",
+  "artifact_sha256": "1c28a97074fbc579f94eb3ab5ae72752bba97057c077eece647c2d1e5b8fcd91",
+  "model_type": "HistGradientBoosting",
+  "n_features": 43,
+  "execution_provider": "CPUExecutionProvider",
+  "benchmark_sample_size": 10000,
+  "warmup_iterations": 1000,
+  "model_load_time_ms": 19.525,
+  "cold_start_avg_warmup_ms": 0.016,
+  "single_prediction_latency_ms": {
+    "p50": 0.0162,
+    "p95": 0.0312,
+    "p99": 0.0536,
+    "mean": 0.0194,
+    "std": 0.015,
+    "throughput_queries_per_sec": 51421.5
+  },
+  "batch_scalability": {
+    "batch_1": {
+      "batch_size": 1,
+      "mean_batch_latency_ms": 0.0215,
+      "per_item_latency_ms": 0.0215,
+      "p95_batch_latency_ms": 0.0468,
+      "throughput_items_per_sec": 46507.3
+    },
+    "batch_8": {
+      "batch_size": 8,
+      "mean_batch_latency_ms": 0.0327,
+      "per_item_latency_ms": 0.0041,
+      "p95_batch_latency_ms": 0.0499,
+      "throughput_items_per_sec": 244498.8
+    },
+    "batch_32": {
+      "batch_size": 32,
+      "mean_batch_latency_ms": 0.0655,
+      "per_item_latency_ms": 0.002,
+      "p95_batch_latency_ms": 0.0974,
+      "throughput_items_per_sec": 488339.4
+    },
+    "batch_64": {
+      "batch_size": 64,
+      "mean_batch_latency_ms": 0.1056,
+      "per_item_latency_ms": 0.0016,
+      "p95_batch_latency_ms": 0.1737,
+      "throughput_items_per_sec": 606214.5
+    },
+    "batch_128": {
+      "batch_size": 128,
+      "mean_batch_latency_ms": 0.194,
+      "per_item_latency_ms": 0.0015,
+      "p95_batch_latency_ms": 0.2942,
+      "throughput_items_per_sec": 659655.1
+    }
+  },
+  "latency_component_breakdown_ms": {
+    "raw_onnx_single_query": 0.0194,
+    "raw_onnx_24h_batch": 0.0655,
+    "feature_transformation_168h_window": 23.86,
+    "complete_24h_day_ahead_generation": 3724.23
+  },
+  "memory_profile_mb": {
+    "process_rss_before": 104.21,
+    "process_rss_after": 104.28
+  },
+  "benchmark_timestamp": "2026-11-03T08:56:51.365614+00:00",
+  "status": "VERIFIED_PRODUCTION_READY"
+}
