@@ -203,3 +203,4 @@ Evaluated on standard CPU Execution Provider:
 
 ### Final Certification
 ChronoGrid is hereby certified as a **Verified Production-Ready Portfolio Project** under strict zero-leakage Day-Ahead Market constraints.
+

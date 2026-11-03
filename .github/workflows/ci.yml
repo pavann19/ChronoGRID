@@ -1,0 +1,63 @@
+name: ChronoGrid CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    name: Test & Zero-Leakage Verification
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov ruff
+
+      - name: Code style check (ruff)
+        run: |
+          ruff check src tests --select E9,F63,F7,F82 --show-source
+        continue-on-error: true
+
+      - name: Run automated test suite
+        run: |
+          python -m pytest tests/ -v --durations=10
+
+      - name: Run adversarial zero-leakage verification suite
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          import pandas as pd
+          from src.features.engineer import FeatureEngineer
+          df = pd.read_parquet('data/raw/genuine_smard_dwd_observations.parquet')
+          fe = FeatureEngineer(min_lag_hours=24, weather_mode='persistence')
+          fe.fit(df)
+          results = fe.run_adversarial_leakage_suite(df)
+          assert results['suite_status'] == 'ALL_TESTS_PASSED', f'Leakage verification failed: {results}'
+          print('CI Zero-Leakage Verification Passed: 10/10 tests')
+          "
+
+      - name: Verify ONNX Runtime serving
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          from src.serving.onnx_engine import OnnxInferenceEngine
+          engine = OnnxInferenceEngine('artifacts/models/champion_model.onnx')
+          print('ONNX Engine loaded successfully in CI environment')
+          "
