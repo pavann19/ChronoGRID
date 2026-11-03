@@ -14,3 +14,4 @@ for pkg in packages:
         print(f"[OK] {pkg}: {ver}")
     except Exception as e:
         print(f"[MISSING] {pkg}: {e}")
+

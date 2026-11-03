@@ -85,3 +85,4 @@ class OnnxInferenceEngine:
         outputs = self.session.run([self.output_name], {self.input_name: X})
         preds = np.asarray(outputs[0]).flatten()
         return preds
+

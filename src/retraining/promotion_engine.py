@@ -227,3 +227,4 @@ class PromotionEngine:
             )
             session.add(challenger_rec)
             logger.info(f"Challenger model v{next_version} logged in Staging (Rejected: did not satisfy gate).")
+

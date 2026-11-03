@@ -351,3 +351,4 @@ class DriftDetector:
         with open(out_p, "w", encoding="utf-8") as f:
             f.write(html_content)
         logger.info(f"Drift report exported to {out_p}")
+

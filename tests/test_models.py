@@ -44,3 +44,4 @@ def test_tree_models_fit_predict():
     xgb_m.fit(X, y)
     p_xgb = xgb_m.predict(X)
     assert len(p_xgb) == 50
+

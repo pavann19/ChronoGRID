@@ -69,3 +69,4 @@ def add_temporal_features(df: pd.DataFrame, timestamp_col: str = "timestamp") ->
     out["is_working_day"] = ((out["is_weekend"] == 0) & (out["is_holiday"] == 0)).astype(int)
 
     return out
+

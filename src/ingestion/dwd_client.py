@@ -66,3 +66,4 @@ class DwdClient:
             return pd.DataFrame(columns=[
                 "timestamp", "temperature_c", "humidity_pct", "wind_speed_ms", "solar_radiation_wm2"
             ])
+

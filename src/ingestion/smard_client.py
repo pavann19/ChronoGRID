@@ -75,3 +75,4 @@ class SmardClient:
         except Exception as e:
             logger.warning(f"Failed to fetch data slice {timestamp_ms} from SMARD: {e}")
             return pd.DataFrame(columns=["timestamp", "value"])
+

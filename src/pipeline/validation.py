@@ -114,3 +114,4 @@ class DataValidator:
                 report["warnings"].append(f"Found {gap_count} temporal gaps (largest gap: {max_gap}).")
 
         return report
+

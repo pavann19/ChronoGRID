@@ -118,3 +118,4 @@ class TimeSeriesWalkForwardValidator:
             "oof_predictions": oof_pred,
             "oof_timestamps": oof_timestamps,
         }
+

@@ -133,3 +133,4 @@ class DataPipeline:
                 logger.info("Database bulk sync completed successfully.")
             else:
                 logger.info(f"Database already contains {existing_count} records. Skipping initial bulk re-insert.")
+

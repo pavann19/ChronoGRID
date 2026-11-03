@@ -10,3 +10,4 @@ __all__ = [
     "generate_german_energy_weather_dataset",
     "IngestionPipeline",
 ]
+

@@ -174,3 +174,4 @@ class MLflowTracker:
                     "promoted_at": str(rec.promoted_at),
                 }
             return None
+

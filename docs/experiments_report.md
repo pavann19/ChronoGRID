@@ -2,76 +2,63 @@
 
 **Project**: Production ML Forecasting & MLOps Platform  
 **Target Variable**: German Electricity Grid Load (`grid_load_mw` in Megawatts)  
-**Evaluation Dataset**: 13,128 hours (2023-01-01 00:00:00 UTC to 2024-06-30 23:00:00 UTC)  
-**Evaluation Scheme**: 5-Fold Expanding-Window Walk-Forward Validation with 24-hour Purge Embargo  
+**Evaluation Dataset**: 13,607 genuine SMARD/DWD observation hours (2023-01-01 23:00 UTC to 2024-07-21 21:00 UTC)  
+**Information Constraint**: Strict Day-Ahead Gate Closure ($t - 24\text{h}$ embargo; zero future weather/load leakage)  
+**Evaluation Scheme**: 5-Fold Expanding-Window Walk-Forward Validation with 24-hour Purge Embargo (840 out-of-fold test hours)  
 
 ---
 
 ## 1. Executive Summary
 
-Electricity demand forecasting is central to transmission system operations (TSO), intraday scheduling, and reserve dispatch. ChronoGrid fuses SMARD grid telemetry with DWD meteorological parameters to predict hourly German electricity load with sub-1.5% Mean Absolute Percentage Error (MAPE). 
+ChronoGrid is an enterprise production forecasting and MLOps platform engineered to predict German electrical transmission grid load (`grid_load_mw`). Operating under strict day-ahead market (DAM) gate closure constraints ($t - 24\text{h}$ information boundary), all autoregressive features strictly use lags $\ge 24\text{h}$, and contemporaneous realised weather is excluded in favor of day-ahead numerical weather prediction (NWP) simulations and 24h persistence.
 
-Through rigorous walk-forward cross-validation, gradient boosted tree architectures (XGBoost and LightGBM) achieved an **84.7% error reduction** over traditional day-ahead naive baselines, and were deployed via ONNX Runtime delivering **sub-millisecond inference latencies (0.17 ms/query)**.
+Through rigorous 5-fold walk-forward cross-validation on identical test timestamps, tree ensembles achieved a **73.2% error reduction** over traditional day-ahead persistence baselines, with sub-2.1% MAPE and sub-millisecond ONNX Runtime latency (**0.053 ms/query**).
 
 ---
 
 ## 2. Walk-Forward Benchmark Leaderboard
 
-The table below summarizes out-of-fold performance across all 5 test folds (840 out-of-fold test hours with 24h purge gaps):
+The table below summarizes out-of-fold performance across all 5 test folds (840 out-of-fold test hours on identical timestamps with 24h purge embargo):
 
 | Model | MAE (MW) | RMSE (MW) | MAPE (%) | sMAPE (%) | $R^2$ | MAE 95% Bootstrap CI | Diebold-Mariano vs Naive Baseline |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **XGBoost (Champion)** | **640.71** | **836.31** | **1.449%** | **1.450%** | **0.9860** | **[603.67, 677.76]** | **$p < 0.0001$ (\*\*\*)** |
-| **LightGBM** | 646.73 | 848.16 | 1.472% | 1.472% | 0.9856 | [608.61, 686.09] | $p < 0.0001$ (\*\*\*) |
-| **HistGradientBoosting** | 667.39 | 884.89 | 1.514% | 1.513% | 0.9843 | [627.87, 707.06] | $p < 0.0001$ (\*\*\*) |
-| **Random Forest** | 754.54 | 1008.08 | 1.696% | 1.694% | 0.9797 | [709.90, 796.90] | $p < 0.0001$ (\*\*\*) |
-| **Ridge Regression** | 829.31 | 1081.19 | 1.943% | 1.951% | 0.9766 | [782.30, 875.60] | $p < 0.0001$ (\*\*\*) |
-| **Weekly Seasonal (168h)** | 1,783.09 | 2,591.10 | 3.983% | 3.995% | 0.8657 | [1662.26, 1912.72] | $p < 0.0001$ (\*\*\*) |
-| **Naive Persistence (24h)** | 4,180.15 | 5,857.29 | 9.518% | 9.596% | 0.3137 | [3892.80, 4448.77] | *Reference Baseline* |
-| **Moving Average (24h)** | 5,271.68 | 6,340.10 | 12.242% | 11.893% | 0.1959 | [5018.76, 5532.82] | $p < 0.0001$ (\*\*\*) |
+| **HistGradientBoosting (Champion)** | **1,010.06** | **1,326.33** | **2.050%** | **2.059%** | **0.9713** | **[949.45, 1,066.23]** | **$p < 0.0001$ (\*\*\*)** |
+| **XGBoost** | 1,022.87 | 1,321.29 | 2.061% | 2.072% | 0.9716 | [968.15, 1,081.69] | $p < 0.0001$ (\*\*\*) |
+| **Random Forest** | 1,026.91 | 1,359.41 | 2.065% | 2.066% | 0.9699 | [968.87, 1,087.41] | $p < 0.0001$ (\*\*\*) |
+| **LightGBM** | 1,030.42 | 1,315.05 | 2.091% | 2.101% | 0.9718 | [972.97, 1,083.46] | $p < 0.0001$ (\*\*\*) |
+| **Weekly Seasonal (168h)** | 1,225.04 | 1,613.34 | 2.452% | 2.443% | 0.9576 | [1,154.37, 1,299.45] | $p < 0.0001$ (\*\*\*) |
+| **Ridge Regression** | 1,352.05 | 1,701.04 | 2.805% | 2.821% | 0.9529 | [1,278.88, 1,421.57] | $p < 0.0001$ (\*\*\*) |
+| **Naive Persistence (24h)** | 3,771.22 | 5,562.87 | 7.682% | 7.722% | 0.4960 | [3,503.60, 4,027.59] | *Reference Baseline* |
+| **Moving Average (24h)** | 7,443.62 | 8,836.50 | 15.414% | 15.047% | -0.2717 | [7,123.25, 7,758.43] | $p < 0.0001$ (\*\*\*) |
 
 ---
 
-## 3. Key Findings & Insights
+## 3. Strict Day-Ahead Zero-Leakage Verification
 
-### A. Non-Linear Interaction vs Linear Models
-- Standard regularized linear regression (Ridge) achieved an MAE of 829.31 MW.
-- Non-linear tree ensembles (XGBoost, LightGBM) improved MAE to **640.71 MW**, demonstrating that thermodynamic thresholds (Heating Degree Hours $< 18^\circ\text{C}$, Cooling Degree Hours $> 22^\circ\text{C}$) and quadratic solar-temperature interactions exhibit strong non-linear behavior that linear models fail to fully capture.
-
-### B. Statistical Significance
-- The Diebold-Mariano test was computed between out-of-fold loss differentials.
-- The test statistic comparing XGBoost against the standard Naive 24h baseline yielded $DM = -18.42$, $p = 0.0000$, confirming that the accuracy improvement is statistically significant beyond random noise.
-
-### C. Top Feature Importances (Gain-based)
-1. `grid_load_mw_lag_24` (Yesterday same hour load): **38.4%**
-2. `grid_load_mw_lag_168` (Last week same day & hour): **22.1%**
-3. `cos_hour` / `sin_hour` (Diurnal circadian cycle): **14.2%**
-4. `temperature_c` & `heating_degree_hours` (Space heating sensitivity): **11.8%**
-5. `is_working_day` / `is_holiday` (Industrial production drop): **6.5%**
-6. `solar_radiation_wm2` & rooftop self-consumption: **4.2%**
-7. `wind_speed_ms` / `wind_chill_c`: **2.8%**
+In compliance with European day-ahead electricity market dispatch rules (gate closure at 12:00 CET on $D-1$):
+1. **Autoregressive Lags**: The shortest available load lag is `lag_24` (24 hours prior). Intermediate lags (`lag_1` to `lag_23`) are strictly omitted.
+2. **Rolling Statistics**: Rolling mean, standard deviation, min, and max calculations are shifted backward by 24 hours (`closed='left'`, `shift(24)`).
+3. **Meteorological Parameters**: Contemporaneous ground-truth weather measurements (`temperature_c`, `solar_radiation_wm2`, `wind_speed_ms`) are strictly barred from the feature set. Forecasts consume either Numerical Weather Prediction (NWP) simulated day-ahead forecasts or 24-hour persistence weather features.
+4. **Mathematical Verification**: The `FeatureEngineer.verify_zero_future_leakage()` routine executes automated column inspection and correlation checks before training.
 
 ---
 
-## 4. Operational Trade-Offs
+## 4. Robustness & Edge-Case Validation
 
-| Model Engine | Model Format | Size on Disk | Inference Latency (10 queries) | Inference Latency / Query | Memory Footprint |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **XGBoost** | ONNX (`.onnx`) | **16.5 KB** | **1.71 ms** | **0.171 ms** | **~42 MB** |
-| LightGBM | ONNX (`.onnx`) | 3.0 KB | 1.85 ms | 0.185 ms | ~38 MB |
-| Random Forest | Scikit-learn (`.joblib`) | 48.2 MB | 22.40 ms | 2.240 ms | ~180 MB |
+A dedicated test suite (`tests/test_edge_cases_and_robustness.py`) validates the system under severe operating conditions:
 
-**Conclusion**: ONNX conversion reduces model artifact size by $>99\%$ compared to uncompressed pickle/joblib trees, and ONNX Runtime execution provider delivers $>10\times$ speedup over Python interpreter inference loops.
+| Scenario / Stressor | Failure Mode Prevented | Mitigation & Validation Result |
+| :--- | :--- | :--- |
+| **Spring DST Transition** | 23-hour local day causing missing hour or array index misalignment | Timestamps are normalized to UTC (24 continuous hours). Local time conversion explicitly verifies 23 clock hours in Berlin without pipeline disruption. |
+| **Autumn DST Transition** | Duplicate 02:00 hour causing primary key collisions in database | UTC normalization ensures unique timestamps (`fold=0` and `fold=1` disambiguated); database ingestion pipeline deduplicates and monotonically sorts index. |
+| **Missing Weather Observations** | Sensor outages (1h, 3h, 6h, 24h, 72h) crashing feature pipeline | Linear time-weighted interpolation for short gaps ($\le 6\text{h}$) and forward/backward clamping for prolonged dropouts ($\ge 24\text{h}$); pipeline sets `imputed_flag` without crashing. |
+| **Forecast Horizon Boundary Failures** | Negative horizons or excessively distant predictions | Input validators enforce $1 \le H \le 168$ hours; out-of-range requests raise `ValueError` with descriptive remediation messages. |
+| **Insufficient History Depth** | Warmup starvation on cold starts ($< 168\text{h}$ of historical data) | Engine validates that historical context satisfies minimum lag requirement ($\ge 168\text{h}$) before generating predictions. |
 
 ---
 
-## 5. Drift Detection & Retraining Telemetry
+## 5. Operational Deployment & Drift Monitoring
 
-During testing, empirical weather distributions shifted from late spring to high-summer conditions:
-- **Temperature Drift**: Kolmogorov-Smirnov $p = 0.0001$, $\text{PSI} = 0.324$ (Triggered `ALERT`).
-- **Solar Irradiance Drift**: $\text{PSI} = 0.281$ (Triggered `ALERT`).
-- **Overall Population Stability Index**: $\text{PSI} = 0.2926$ ($> 0.25$ alert threshold).
-- **Automated Retraining Gate**:
-  - Challenger model (LightGBM) trained on newest window and evaluated against Champion (XGBoost).
-  - Challenger achieved MAE of 963.8 MW vs Champion MAE of 640.7 MW on holdout evaluation (improvement: $-50.4\%$).
-  - **Promotion Gate Action**: **REJECT_CHALLENGER**. The platform successfully blocked regression, logged the challenger in Staging for auditability, and maintained the production Champion intact.
+- **ONNX Serving**: Top models are compiled to optimized ONNX binaries. ONNX Runtime delivers batch predictions in **0.53 ms** for 10 records (**0.053 ms/query**), a $50\times$ speedup over interpreted Python loops.
+- **Drift Telemetry**: Continuous Kolmogorov-Smirnov test, Population Stability Index (PSI), Wasserstein distance, and CUSUM residual monitoring. Current evaluation window yielded $\text{PSI} = 0.2389$, generating an interactive diagnostic HTML report.
+- **Champion-Challenger Gate**: Automated evaluation on fresh holdout data rejected challenger model v2 due to a $-14.3\%$ relative degradation ($p = 0.0000$), preserving production stability.
