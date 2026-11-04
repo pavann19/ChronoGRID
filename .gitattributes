@@ -58,3 +58,6 @@ src/monitoring/dashboard.py -text
 requirements.txt -text
 .github/workflows/operations.yml -text
 .github/workflows/ci.yml -text
+.gitattributes -text
+OPERATIONS.md -text
+scripts/seal_engineering_checkpoint.py -text
