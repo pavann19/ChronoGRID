@@ -24,3 +24,5 @@ statsmodels>=0.14.0
 pytest>=8.0.0
 pyyaml>=6.0
 
+# Parquet is required by the existing canonical-data tests.
+pyarrow==26.0.1

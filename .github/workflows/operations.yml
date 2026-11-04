@@ -1,0 +1,37 @@
+name: Operations Evidence CI
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  operations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: deployment/requirements-operations.lock
+      - name: Install exact operations runtime and test dependencies
+        run: |
+          python -m pip install --upgrade pip==26.3
+          python -m pip install --require-hashes -r deployment/requirements-operations.lock
+          python -m pip install -r deployment/requirements-operations-dev.txt
+          python -m pip check
+      - name: Preserve frozen baseline and research
+        run: python scripts/preserve_research_evidence.py --verify
+      - name: Transaction, timestamp, source, API, model, routing and worker tests
+        run: python -m pytest tests/test_operations_*.py -q
+      - name: Known dependency advisories
+        run: python -m pip_audit -f json -o operations_dependency_audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operations-security-evidence
+          path: operations_dependency_audit.json

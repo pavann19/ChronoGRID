@@ -56,3 +56,4 @@ data/operations/
 .playwright-cli/
 # Browser outputs are versioned only when explicitly staged as checkpoint evidence.
 output/playwright/*.zip
+deployment/wheelhouse/

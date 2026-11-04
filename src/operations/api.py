@@ -63,10 +63,27 @@ def create_app(database: Path | None=None,root: Path=ROOT):
     def report(run_id: str):
         try: return score_run(store,run_id,store.clock(),replicates=1000)
         except KeyError as exc: raise HTTPException(404,'Unknown registered run') from exc
+    @app.get('/api/forecast/{run_id}/{day}/{arm}')
+    def committed_forecast(run_id: str,day: str,arm: str):
+        store.verify()
+        try: record=store.get(f'forecast:{run_id}:{day}:{arm}')
+        except KeyError as exc: raise HTTPException(404,'Unknown forecast commitment') from exc
+        from src.operations.journal import encode,digest
+        key=digest(encode(record)); actuals={}
+        for row in store.rows('actual'):
+            a=row['payload']
+            if a['prediction_sha256']==key and a['delivery_timestamp'] not in actuals:
+                actuals[a['delivery_timestamp']]=a
+        return dict(forecast=record,actuals=list(actuals.values()),actual_policy='preliminary first-collected vintage; use maturity-aware report for scored outcomes',independent_timestamp=False)
+    @app.get('/api/research/issuance-v2')
+    def issuance_research():
+        path=root/'artifacts/experiments/issuance_v2/report.json'
+        if not path.exists(): raise HTTPException(404,'V2 research artifact unavailable')
+        return json.loads(path.read_text())
     @app.get('/api/models')
     def models():
         metadata=[]
-        for rel in ['artifacts/models/champion_model.onnx','artifacts/models/load_only_model.onnx','artifacts/models/research/research_primary_model_thru_20240331.joblib','artifacts/models/research/research_fallback_model_thru_20240331.joblib']:
+        for rel in ['artifacts/models/champion_model.onnx','artifacts/models/load_only_model.onnx','artifacts/models/research/research_primary_model_thru_20240331.joblib','artifacts/models/research/research_fallback_model_thru_20240331.joblib','artifacts/experiments/issuance_v2/primary.joblib','artifacts/experiments/issuance_v2/fallback.joblib']:
             path=root/rel
             metadata.append(dict(path=rel,present=path.exists(),sha256=hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None))
         return dict(artifacts=metadata,compatibility='Research calibration belongs to research joblib identities, not production ONNX. No validated full-day prospective model calibration is deployed.')
