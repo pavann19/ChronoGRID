@@ -56,6 +56,10 @@ scripts/lock_operations_dependencies.py -text
 scripts/build_container_image_refresh_audit.py -text
 scripts/write_container_refresh_manifest.py -text
 tests/test_container_image_refresh_audit.py -text
+scripts/build_container_image_rootfs_refresh_audit.py -text
+scripts/verify_p20_full_suite.py -text
+scripts/write_rootfs_refresh_manifest.py -text
+tests/test_container_image_rootfs_refresh_audit.py -text
 src/serving/__init__.py -text
 src/monitoring/dashboard.py -text
 requirements.txt -text
