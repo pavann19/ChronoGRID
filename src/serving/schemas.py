@@ -2,35 +2,28 @@
 Pydantic Request and Response Schemas for FastAPI Serving (P5.8).
 """
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional, Literal
+from pydantic import BaseModel, Field, FiniteFloat
 
 
 class PredictRequest(BaseModel):
     """Payload containing feature inputs for inference."""
-    features: List[Dict[str, float]] = Field(
+    features: List[Dict[str, FiniteFloat]] = Field(
         ...,
-        description="List of feature dictionaries or a single observation.",
-        example=[{
-            "temperature_c": 14.5,
-            "humidity_pct": 68.0,
-            "wind_speed_ms": 4.2,
-            "solar_radiation_wm2": 320.0,
-            "sin_hour": 0.5,
-            "cos_hour": 0.866,
-            "grid_load_mw_lag_24": 58400.0,
-            "grid_load_mw_lag_168": 59100.0
-        }]
+        min_length=1, max_length=1024,
+        description="Complete finite model feature dictionaries; consult /model/info. No implicit padding.",
+
     )
 
 
 class PredictResponse(BaseModel):
     """Inference response."""
     predictions: List[float]
-    model_version: int
+    model_version: Optional[int]
     model_type: str
     inference_time_ms: float
     unit: str = "MW"
+    evidence_kind: Literal["caller_supplied_features"] = "caller_supplied_features"
 
     model_config = {"protected_namespaces": ()}
 
@@ -48,7 +41,7 @@ class DayAheadForecastResponse(BaseModel):
     """Day-ahead hourly forecast sequence."""
     timestamps: List[str]
     forecast_load_mw: List[float]
-    model_version: int
+    model_version: Optional[int]
     model_type: str
     generated_at: str
 
@@ -59,7 +52,7 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     onnx_loaded: bool
-    version: str = "1.0.0"
+    version: str = "2.0-research-diagnostics"
 
 
 class ResilientForecastRequest(BaseModel):
@@ -88,7 +81,7 @@ class ResilientForecastResponse(BaseModel):
     validation_time_ms: float
     total_time_ms: float
     features_used_count: int
-    model_version: int
+    model_version: Optional[int]
     model_type: str
     generated_at: str
 
@@ -134,10 +127,10 @@ class DQCPForecastResponse(BaseModel):
 class DQCPFeedbackRequest(BaseModel):
     """Request payload for delayed-feedback settlement submission."""
     forecast_origin: str = Field(..., description="Forecast origin date (e.g. '2024-04-02')")
-    actual_load_mw: List[float] = Field(..., description="24-hour verified ground-truth load in MW")
+    actual_load_mw: List[FiniteFloat] = Field(...,min_length=24,max_length=24,description="Legacy 24-hour replay actuals in MW, not independently verified source records")
     settlement_timestamp: str = Field(..., description="UTC timestamp of settlement publication")
     effective_delay_days: int = Field(2, description="Observed settlement delay in days (must be >= 2)")
-    head: Optional[str] = Field(None, description="Optional target head ('primary' or 'fallback')")
+    head: Optional[Literal["primary", "fallback"]] = Field(None, description="Optional target head ('primary' or 'fallback')")
 
     model_config = {"protected_namespaces": ()}
 

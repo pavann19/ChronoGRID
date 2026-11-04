@@ -1,0 +1,24 @@
+services:
+  model-diagnostics:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    ports:
+      - "127.0.0.1:8767:8000"
+    environment:
+      DATABASE_URL: sqlite:////state/registry.sqlite
+      DDIR_STATE_FILE: /state/ddir_state.json
+      DQCP_STATE_FILE: /state/dqcp_aci_state.json
+      # Replay remains disabled. Never commit a real bearer token here.
+    volumes:
+      - chronogrid-diagnostics:/state
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    mem_limit: 1024m
+    cpus: 2
+volumes:
+  chronogrid-diagnostics:

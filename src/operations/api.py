@@ -58,7 +58,7 @@ def create_app(database: Path | None=None,root: Path=ROOT):
         snapshots=[]
         for x in store.rows('snapshot'):
             p=x['payload']; snapshots.append({k:v for k,v in p.items() if k!='content_base64'})
-        return dict(forecasts=forecasts,snapshots=snapshots,receipts=[{k:v for k,v in x['payload'].items() if not k.endswith('_base64')} for x in store.rows('receipt')],failures=[x['payload'] for x in store.rows('failure')])
+        return dict(forecasts=forecasts,snapshots=snapshots,receipts=[{k:v for k,v in x['payload'].items() if not k.endswith('_base64')} for x in store.rows('receipt')],failures=[x['payload'] for x in store.rows('failure')],worker_errors=[x['payload'] for x in store.rows('worker_error')])
     @app.get('/api/report/{run_id}')
     def report(run_id: str):
         try: return score_run(store,run_id,store.clock(),replicates=1000)
@@ -80,6 +80,12 @@ def create_app(database: Path | None=None,root: Path=ROOT):
         path=root/'artifacts/experiments/issuance_v2/report.json'
         if not path.exists(): raise HTTPException(404,'V2 research artifact unavailable')
         return json.loads(path.read_text())
+    @app.get('/api/adaptive')
+    def adaptive_streams():
+        store.verify()
+        from src.operations.adaptive import AdaptiveStreams
+        configs=[r['payload'] for r in store.rows('aci_config')]
+        return dict(configurations=configs,states=[AdaptiveStreams(store).state(c['run_id'],c['arm']) for c in configs],transitions=[r['payload'] for r in store.rows('aci_step')],scope='daily-batch delayed research adaptation; no unconditional guarantee')
     @app.get('/api/models')
     def models():
         metadata=[]

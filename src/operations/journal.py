@@ -82,7 +82,7 @@ class Journal:
 
     def rows(self,kind):
         with self.connection() as db:
-            return [dict(row) | {'payload':json.loads(row['payload'])} for row in db.execute('SELECT * FROM objects WHERE kind=? ORDER BY recorded_at,key',(kind,))]
+            return [dict(row) | {'payload':json.loads(row['payload'])} for row in db.execute('SELECT o.*,e.seq FROM objects o JOIN events e ON e.object_key=o.key WHERE o.kind=? ORDER BY e.seq',(kind,))]
 
     def register(self,run: Run):
         run=Run.model_validate_json(canonical(run))
@@ -145,6 +145,8 @@ class Journal:
                     raise ValueError('calibration state belongs to another model')
                 if utc(datetime.fromisoformat(state['captured_at']))>utc(p.issued_at):
                     raise ValueError('calibration state captured after issuance')
+                from src.operations.adaptive import validate_forecast_basis
+                validate_forecast_basis(self,db,p,content)
             return self._add(db,'forecast:'+slot,'forecast',json.loads(canonical(p)))
 
     def actual(self,run_id,day,arm,actual: ActualObservation):
@@ -169,42 +171,49 @@ class Journal:
     def verify(self):
         with self.connection() as db:
             db.execute('BEGIN')
-            if db.execute('PRAGMA integrity_check').fetchone()[0]!='ok': raise IntegrityFailure('SQLite integrity')
-            previous='0'*64; count=0
-            for row in db.execute('SELECT e.*,o.kind,o.payload,o.sha256 AS content_hash,o.recorded_at FROM events e JOIN objects o ON o.key=e.object_key ORDER BY seq'):
-                count+=1
-                if row['seq']!=count or row['previous']!=previous: raise IntegrityFailure('event chain gap')
-                if digest(row['payload'].encode())!=row['content_hash']: raise IntegrityFailure('payload modified')
-                h=digest(encode(dict(seq=count,key=row['object_key'],kind=row['kind'],payload_sha256=row['content_hash'],recorded_at=row['recorded_at'],previous=previous)))
-                if h!=row['sha256']: raise IntegrityFailure('event hash mismatch')
-                obj=json.loads(row['payload'])
-                if row['kind']=='snapshot':
-                    raw=base64.b64decode(obj['content_base64'],validate=True)
-                    if digest(raw)!=obj['content_sha256'] or row['object_key']!='snapshot:'+digest(raw): raise IntegrityFailure('snapshot mismatch')
-                elif row['kind']=='forecast': Forecast.model_validate(obj)
-                elif row['kind']=='actual': ActualObservation.model_validate(obj)
-                previous=h
-            if count!=db.execute('SELECT count(*) FROM objects').fetchone()[0]: raise IntegrityFailure('unjournaled object')
-            # Validate referential meaning as well as byte hashes.
-            objects={r['key']:(json.loads(r['payload']),r) for r in db.execute('SELECT * FROM objects')}
-            forecasts={r['sha256']:obj for obj,r in objects.values() if r['kind']=='forecast'}
-            for key,(obj,row) in objects.items():
-                if row['kind']=='forecast':
-                    run=Run.model_validate(objects['run:'+obj['run_id']][0])
-                    slot=f"slot:{obj['run_id']}:{obj['delivery_date']}:{obj['arm']}"
-                    if slot not in objects or obj['experiment_kind']!=run.experiment_kind or obj['protocol_sha256']!=run.protocol_sha256 or obj['model_sha256'] not in run.allowed_model_sha256:
-                        raise IntegrityFailure('forecast/run registry mismatch')
-                    if run.arm_models and next((x.model_sha256 for x in run.arm_models if x.arm==obj['arm']),None)!=obj['model_sha256']:
-                        raise IntegrityFailure('forecast/arm model mismatch')
-                    for item in obj['inputs']:
-                        if 'snapshot:'+item['snapshot_sha256'] not in objects: raise IntegrityFailure('missing input snapshot')
-                elif row['kind']=='actual':
-                    forecast=forecasts.get(obj['prediction_sha256'])
-                    if not forecast or utc(datetime.fromisoformat(obj['delivery_timestamp'])) not in {utc(datetime.fromisoformat(d['timestamp'])) for d in forecast['deliveries']}:
-                        raise IntegrityFailure('actual linkage mismatch')
-                    if 'snapshot:'+obj['source_snapshot_sha256'] not in objects: raise IntegrityFailure('missing actual source snapshot')
+            result=self._verify_db(db)
             db.execute('COMMIT')
-            return dict(objects=count,head_sha256=previous,sqlite_integrity='ok',independent_timestamp=False,sqlite_version=sqlite3.sqlite_version,journal_mode=self.journal_mode)
+            return result
+
+    def _verify_db(self,db):
+        if db.execute('PRAGMA integrity_check').fetchone()[0]!='ok': raise IntegrityFailure('SQLite integrity')
+        previous='0'*64; count=0
+        for row in db.execute('SELECT e.*,o.kind,o.payload,o.sha256 AS content_hash,o.recorded_at FROM events e JOIN objects o ON o.key=e.object_key ORDER BY seq'):
+            count+=1
+            if row['seq']!=count or row['previous']!=previous: raise IntegrityFailure('event chain gap')
+            if digest(row['payload'].encode())!=row['content_hash']: raise IntegrityFailure('payload modified')
+            h=digest(encode(dict(seq=count,key=row['object_key'],kind=row['kind'],payload_sha256=row['content_hash'],recorded_at=row['recorded_at'],previous=previous)))
+            if h!=row['sha256']: raise IntegrityFailure('event hash mismatch')
+            obj=json.loads(row['payload'])
+            if row['kind']=='snapshot':
+                raw=base64.b64decode(obj['content_base64'],validate=True)
+                if digest(raw)!=obj['content_sha256'] or row['object_key']!='snapshot:'+digest(raw): raise IntegrityFailure('snapshot mismatch')
+            elif row['kind']=='forecast': Forecast.model_validate(obj)
+            elif row['kind']=='actual': ActualObservation.model_validate(obj)
+            previous=h
+        if count!=db.execute('SELECT count(*) FROM objects').fetchone()[0]: raise IntegrityFailure('unjournaled object')
+        # Validate referential meaning as well as byte hashes.
+        objects={r['key']:(json.loads(r['payload']),r) for r in db.execute('SELECT * FROM objects')}
+        forecasts={r['sha256']:obj for obj,r in objects.values() if r['kind']=='forecast'}
+        for key,(obj,row) in objects.items():
+            if row['kind']=='forecast':
+                run=Run.model_validate(objects['run:'+obj['run_id']][0])
+                slot=f"slot:{obj['run_id']}:{obj['delivery_date']}:{obj['arm']}"
+                if slot not in objects or obj['experiment_kind']!=run.experiment_kind or obj['protocol_sha256']!=run.protocol_sha256 or obj['model_sha256'] not in run.allowed_model_sha256:
+                    raise IntegrityFailure('forecast/run registry mismatch')
+                if run.arm_models and next((x.model_sha256 for x in run.arm_models if x.arm==obj['arm']),None)!=obj['model_sha256']:
+                    raise IntegrityFailure('forecast/arm model mismatch')
+                for item in obj['inputs']:
+                    if 'snapshot:'+item['snapshot_sha256'] not in objects: raise IntegrityFailure('missing input snapshot')
+            elif row['kind']=='actual':
+                forecast=forecasts.get(obj['prediction_sha256'])
+                if not forecast or utc(datetime.fromisoformat(obj['delivery_timestamp'])) not in {utc(datetime.fromisoformat(d['timestamp'])) for d in forecast['deliveries']}:
+                    raise IntegrityFailure('actual linkage mismatch')
+                if 'snapshot:'+obj['source_snapshot_sha256'] not in objects: raise IntegrityFailure('missing actual source snapshot')
+        from src.operations.adaptive import verify_adaptive_ledger
+        verify_adaptive_ledger(self,db,objects)
+        return dict(objects=count,head_sha256=previous,sqlite_integrity='ok',independent_timestamp=False,sqlite_version=sqlite3.sqlite_version,journal_mode=self.journal_mode)
+
 
     def export(self,path: Path):
         self.verify()
@@ -234,6 +243,7 @@ class Journal:
                 if x['seq']!=i or x['previous']!=previous or x['sha256']!=expected: raise IntegrityFailure('invalid imported chain')
                 previous=expected
             if len(payload['objects'])!=len(payload['events']): raise IntegrityFailure('imported orphan objects')
+            store._verify_db(db) # semantic validation before the import transaction can commit
         store.verify(); return store
 
     def backup(self,target: Path):

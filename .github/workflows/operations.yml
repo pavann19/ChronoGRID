@@ -1,4 +1,4 @@
-name: Operations Evidence CI
+name: Operations and Diagnostics Evidence CI
 on:
   push:
     branches: [master, main]
@@ -7,8 +7,11 @@ on:
 permissions:
   contents: read
 jobs:
-  operations:
+  runtime:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile: [operations, service]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,21 +20,27 @@ jobs:
         with:
           python-version: '3.13'
           cache: pip
-          cache-dependency-path: deployment/requirements-operations.lock
-      - name: Install exact operations runtime and test dependencies
+          cache-dependency-path: deployment/requirements-${{ matrix.profile }}.lock
+      - name: Install exact selected runtime and test dependencies
         run: |
           python -m pip install --upgrade pip==26.3
-          python -m pip install --require-hashes -r deployment/requirements-operations.lock
+          python -m pip install --require-hashes -r deployment/requirements-${{ matrix.profile }}.lock
           python -m pip install -r deployment/requirements-operations-dev.txt
           python -m pip check
       - name: Preserve frozen baseline and research
-        run: python scripts/preserve_research_evidence.py --verify
-      - name: Transaction, timestamp, source, API, model, routing and worker tests
+        run: |
+          python scripts/preserve_research_evidence.py --verify
+          python scripts/seal_engineering_checkpoint.py engineering_v1 --verify
+      - name: Transaction, feedback, source, API, model, routing and worker tests
+        if: matrix.profile == 'operations'
         run: python -m pytest tests/test_operations_*.py -q
+      - name: Strict inference and legacy HTTP boundaries
+        if: matrix.profile == 'service'
+        run: python -m pytest tests/test_legacy_service_boundary.py -q
       - name: Known dependency advisories
-        run: python -m pip_audit -f json -o operations_dependency_audit.json
+        run: python -m pip_audit -f json -o dependency_audit.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: operations-security-evidence
-          path: operations_dependency_audit.json
+          name: ${{ matrix.profile }}-security-evidence
+          path: dependency_audit.json

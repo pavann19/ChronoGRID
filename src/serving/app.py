@@ -4,6 +4,9 @@ Ultra-low latency inference via ONNX Runtime with Prometheus metrics integration
 """
 
 import os
+import secrets
+import hashlib
+import json
 import time
 import logging
 from contextlib import asynccontextmanager
@@ -14,6 +17,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from prometheus_client import (
     Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 )
@@ -107,12 +111,14 @@ DQCP_CALIBRATION_VERSION_INFO = Gauge(
 ENGINE: Optional[OnnxInferenceEngine] = None
 ROUTER: Optional[Any] = None
 DQCP_ENGINE: Optional[DQCPUncertaintyEngine] = None
-CHAMPION_META = {"version": 1, "model_type": "Unknown", "promoted_at": None}
+CHAMPION_META = {"version": None, "model_type": "Unknown", "promoted_at": None, "registry_identity_verified": False}
 
 
 def load_engine():
     """Initializes ONNX engine, DDIR router, and registry metadata."""
     global ENGINE, ROUTER, CHAMPION_META, DQCP_ENGINE
+    CHAMPION_META = {"version": None, "model_type": "Unknown", "promoted_at": None, "registry_identity_verified": False}
+    CHAMPION_VERSION.set(0) # zero is the unverified registry-version sentinel, not a model release
     onnx_file = Path("artifacts/models/champion_model.onnx")
     meta_file = Path("artifacts/models/champion_metadata.json")
     fallback_onnx = Path("artifacts/models/load_only_model.onnx")
@@ -123,6 +129,8 @@ def load_engine():
             onnx_model_path=str(onnx_file),
             metadata_path=str(meta_file),
         )
+        actual_sha = hashlib.sha256(onnx_file.read_bytes()).hexdigest()
+        CHAMPION_META = {"version": None, "model_type": ENGINE.metadata.get("model_type", "Unknown"), "promoted_at": None, "artifact_sha256": actual_sha, "registry_identity_verified": False}
         if fallback_onnx.exists():
             try:
                 from src.reliability.router import DualHeadInferenceRouter
@@ -144,12 +152,11 @@ def load_engine():
             with get_session() as session:
                 rec = session.query(ModelRegistryRecord).filter_by(is_champion=True).first()
                 if rec:
-                    CHAMPION_META = {
-                        "version": rec.version,
-                        "model_type": rec.model_type,
-                        "promoted_at": str(rec.promoted_at),
-                    }
-                    CHAMPION_VERSION.set(rec.version)
+                    CHAMPION_META["registry_record"] = {"version": rec.version, "model_type": rec.model_type, "onnx_uri": rec.onnx_uri}
+                    registry_metadata = json.loads(rec.metadata_json or "{}")
+                    if registry_metadata.get("onnx_sha256") == actual_sha:
+                        CHAMPION_META.update(version=rec.version, promoted_at=str(rec.promoted_at), registry_identity_verified=True)
+                        CHAMPION_VERSION.set(rec.version)
         except Exception:
             pass
     else:
@@ -157,7 +164,7 @@ def load_engine():
 
     # Load DQ-CP research uncertainty engine
     try:
-        DQCP_ENGINE = load_dqcp_engine()
+        DQCP_ENGINE = load_dqcp_engine(aci_state_file=Path(os.environ.get("DQCP_STATE_FILE", "data/dqcp_aci_state.json")))
         if DQCP_ENGINE:
             try:
                 n_prim = DQCP_ENGINE.primary_pool.n_origins if DQCP_ENGINE.primary_pool else 0
@@ -183,19 +190,44 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="ChronoGrid Production ML Forecasting API",
-    description="High-Throughput Electricity Demand Forecasting Engine (SMARD & DWD) with ONNX Runtime.",
-    version="1.0.0",
+    title="ChronoGrid Legacy Model Diagnostics",
+    description="Caller-feature ONNX inference and explicitly authorized research replay/simulation. Prospective evidence uses the registered operations worker.",
+    version="2.0-research-diagnostics",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[origin.strip() for origin in os.getenv("CHRONOGRID_CORS_ORIGINS", "http://127.0.0.1:8765,http://localhost:8765").split(",") if origin.strip() and origin.strip()!="*"],
+    allow_credentials=False,
+    allow_methods=["GET","POST"],
+    allow_headers=["Authorization","Content-Type"],
 )
+
+
+LEGACY_REPLAY_ROUTES = {"/forecast/day-ahead", "/forecast/resilient", "/forecast/dqcp", "/forecast/dqcp/feedback"}
+
+@app.middleware("http")
+async def research_boundary(request: Request, call_next):
+    legacy = request.url.path in LEGACY_REPLAY_ROUTES and request.method == "POST"
+    if legacy:
+        if os.getenv("CHRONOGRID_ENABLE_LEGACY_REPLAY") != "1":
+            return JSONResponse(status_code=410, content={"detail":"Legacy simulated/replay forecasting is retired by default. Use the registered prospective capture worker."})
+        expected = os.getenv("CHRONOGRID_LEGACY_REPLAY_TOKEN", "")
+        if not expected:
+            return JSONResponse(status_code=503, content={"detail":"Legacy replay requires an explicitly configured authorization token."})
+        supplied = request.headers.get("Authorization", "")
+        if not secrets.compare_digest(supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8")):
+            return JSONResponse(status_code=401, content={"detail":"Replay authorization required."},headers={"WWW-Authenticate":"Bearer"})
+    response = await call_next(request)
+    if legacy:
+        response.headers["X-ChronoGrid-Evidence-Kind"] = "legacy_replay_or_synthetic"
+        response.headers["X-ChronoGrid-Research-Only"] = "true"
+        if request.url.path.startswith("/forecast/dqcp"):
+            response.headers["X-ChronoGrid-Calibration-Compatibility"] = "not-validated"
+    elif request.url.path == "/predict":
+        response.headers["X-ChronoGrid-Evidence-Kind"] = "caller_supplied_features"
+    return response
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -213,7 +245,7 @@ def ready():
     """Readiness probe."""
     if ENGINE is None:
         raise HTTPException(status_code=503, detail="ONNX model is not loaded yet.")
-    return {"ready": True}
+    return {"ready": True, "scope": "ONNX engine loaded; not prospective forecast validity or production readiness"}
 
 
 @app.get("/model/info")
@@ -255,7 +287,7 @@ def predict(payload: PredictRequest, response: Response):
 
         # Response headers
         response.headers["X-Inference-Time-Ms"] = f"{latency_ms:.2f}"
-        response.headers["X-Model-Version"] = str(CHAMPION_META["version"])
+        response.headers["X-Model-Version"] = str(CHAMPION_META["version"]) if CHAMPION_META["version"] is not None else "unverified"
 
         return PredictResponse(
             predictions=[round(float(p), 1) for p in preds],
@@ -542,7 +574,8 @@ def forecast_dqcp(payload: DQCPForecastRequest):
 def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
     """
     Submits verified ground-truth settlement data for delayed-feedback ACI adaptation.
-    Enforces the mandatory 48-hour settlement delay guard.
+    Legacy declared-delay compatibility only; this does not verify actual source availability.
+    The registered journal worker supplies the prospective feedback path.
     """
     if DQCP_ENGINE is None:
         raise HTTPException(status_code=503, detail="DQ-CP Uncertainty Engine is not initialized.")

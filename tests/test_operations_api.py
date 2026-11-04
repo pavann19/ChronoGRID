@@ -8,6 +8,7 @@ def test_readonly_console_and_historical_counts(tmp_path):
     data=response.json(); assert data['prospective_forecasts']==0 and not data['live_collector_running']
     assert data['historical_metrics'][0]['covered']==814
     assert client.get('/api/evidence').json()['forecasts']==[]
+    assert client.get('/api/adaptive').json()['states']==[]
     assert client.get('/api/historical/forecast?origin=36').status_code==422
     assert client.get('/api/historical/forecast?head=unknown').status_code==422
     rows=client.get('/api/historical/forecast?origin=2').json()

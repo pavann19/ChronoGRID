@@ -89,7 +89,7 @@ def capture_weekly(store: Journal,run_id: str,day: date,arm: str,snapshot_sha256
     p=Forecast(run_id=run_id,arm=arm,experiment_kind=run['experiment_kind'],record_id=f'{run_id}_{day}_{arm}',protocol_sha256=run['protocol_sha256'],issued_at=issued,issuance_timezone='UTC',delivery_date=day,model_id='weekly-persistence-168h-v2',model_sha256=code_sha,feature_code_sha256=code_sha,feature_policy='exact_utc_weekly_lag_168h_no_imputation',route='fallback',routing_reason='predeclared load-only baseline; primary issuance-safe feature policy not validated',data_quality_flags=('uncalibrated_baseline',),outage=False,inputs=(InputSnapshot(source=source['source'],snapshot_sha256=snapshot_sha256,event_time_start=min(rows),event_time_end=max(rows),available_at=datetime.fromisoformat(source['available_at']),captured_at=datetime.fromisoformat(source['captured_at']),quality_flags=(),outage=False),),calibration_method='unavailable',calibration_state_version='not-calibrated',calibration_state_sha256=None,nominal_coverage=.9,effective_alpha=None,deliveries=tuple(points))
     return p,store.commit(p)
 
-def capture_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha256: str,experiment_dir: Path):
+def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha256: str,experiment_dir: Path):
     """Frozen V2 load-only model with source availability and exact calibration identity."""
     import pandas as pd
     import numpy as np
@@ -102,6 +102,10 @@ def capture_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sh
     cal_bytes=(experiment_dir/'fallback_calibration.json').read_bytes()
     if digest(model_bytes)!=metadata['model_sha256'] or digest(cal_bytes)!=metadata['calibration_sha256']:
         raise ValueError('V2 artifact identity mismatch')
+    from src.operations.contracts import Run
+    registered=Run.model_validate(store.get('run:'+run_id))
+    if not registered.arm_models or next((a.model_sha256 for a in registered.arm_models if a.arm==arm),None)!=metadata['model_sha256']:
+        raise ValueError('registered arm/model mismatch before loading model artifact')
     if metadata['feature_policy']!='fixed_gate_lag48_weather48_rolling48_v2' or metadata['min_lag_hours']!=48:
         raise ValueError('unregistered V2 feature policy')
     table=CalibrationTable.model_validate_json(cal_bytes)
@@ -134,4 +138,9 @@ def capture_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sh
     points=tuple(Delivery(timestamp=t,point_mw=float(p),lower_mw=intervals['lower'][i] if intervals['lower'] is not None else None,upper_mw=intervals['upper'][i] if intervals['upper'] is not None else None,interval_status=intervals['status'],quality_flags=('research_calibration_temporal_assumptions_unverified',)) for i,(t,p) in enumerate(zip(grid,predictions)))
     run=store.get('run:'+run_id)
     p=Forecast(run_id=run_id,arm=arm,experiment_kind=run['experiment_kind'],record_id=f'{run_id}_{day}_{arm}',protocol_sha256=run['protocol_sha256'],issued_at=issued,issuance_timezone='UTC',delivery_date=day,model_id=metadata['model_id'],model_sha256=metadata['model_sha256'],feature_code_sha256=digest(Path(__file__).read_bytes()),feature_policy=metadata['feature_policy'],route='fallback',routing_reason='load-only V2 arm; no genuine prospective weather-vintage integration',data_quality_flags=('research_calibration_temporal_assumptions_unverified',),outage=False,inputs=(InputSnapshot(source=source['source'],snapshot_sha256=snapshot_sha256,event_time_start=history.timestamp.iloc[0].to_pydatetime(),event_time_end=history.timestamp.iloc[-1].to_pydatetime(),available_at=datetime.fromisoformat(source['available_at']),captured_at=datetime.fromisoformat(source['captured_at']),quality_flags=(),outage=False),),calibration_method='pooled_marginal_mad',calibration_state_version=table.version,calibration_state_sha256=state_hash,nominal_coverage=.9,effective_alpha=.1,deliveries=points)
+    return p
+
+
+def capture_fallback48(store,run_id,day,arm,snapshot_sha256,experiment_dir):
+    p=build_fallback48(store,run_id,day,arm,snapshot_sha256,experiment_dir)
     return p,store.commit(p)

@@ -61,3 +61,10 @@ requirements.txt -text
 .gitattributes -text
 OPERATIONS.md -text
 scripts/seal_engineering_checkpoint.py -text
+src/serving/*.py -text
+src/reliability/router.py -text
+tests/test_legacy_service_boundary.py -text
+deployment/Dockerfile -text
+deployment/docker-compose.yml -text
+deployment/compose.diagnostics.yml -text
+deployment/requirements-service* -text

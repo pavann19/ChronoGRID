@@ -239,30 +239,26 @@ class DualHeadInferenceRouter:
     def _predict_engine(self, engine: OnnxInferenceEngine, features: Union[pd.DataFrame, List[Dict[str, Any]], np.ndarray]) -> np.ndarray:
         """Extracts required schema subset for target engine and runs prediction."""
         if isinstance(features, pd.DataFrame):
-            # Extract only the columns required by this engine
-            missing_cols = [c for c in engine.feature_names if c not in features.columns]
+            if features.columns.duplicated().any():
+                raise ValueError('Duplicate feature columns are not allowed.')
+            missing_cols=[c for c in engine.feature_names if c not in features.columns]
             if missing_cols:
-                # If features dataframe is missing some columns, fill with 0.0 only if fallback
-                matrix = np.empty((len(features), len(engine.feature_names)), dtype=np.float32)
-                for j, f in enumerate(engine.feature_names):
-                    if f in features.columns:
-                        matrix[:, j] = features[f].values.astype(np.float32)
-                    else:
-                        matrix[:, j] = 0.0
-                X = matrix
-            else:
-                X = features[engine.feature_names].values.astype(np.float32)
+                raise ValueError(f'Missing required model features: {missing_cols}')
+            X=features[engine.feature_names].values.astype(np.float32)
             return engine.predict(X)
 
         elif isinstance(features, list):
             # List of dicts
-            return engine.predict(features)
+            missing=[name for row in features for name in engine.feature_names if name not in row]
+            if missing:raise ValueError(f'Missing required model features: {sorted(set(missing))}')
+            return engine.predict([{name:row[name] for name in engine.feature_names} for row in features])
         else:
             # Direct numpy array
             X = np.asarray(features, dtype=np.float32)
             if X.ndim == 1:
                 X = X.reshape(1, -1)
-            # If shape doesn't match engine, slice or adapt
-            if X.shape[1] > len(engine.feature_names):
-                X = X[:, :len(engine.feature_names)]
+            if X.ndim!=2:raise ValueError('Expected a one- or two-dimensional feature array.')
+            if engine is self.fallback_engine and X.shape[1]==len(self.primary_engine.feature_names):
+                indices=[self.primary_engine.feature_names.index(name) for name in engine.feature_names]
+                X=X[:,indices]
             return engine.predict(X)

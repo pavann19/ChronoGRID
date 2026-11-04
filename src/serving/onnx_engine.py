@@ -36,6 +36,9 @@ class OnnxInferenceEngine:
         if not self.onnx_model_path.exists():
             raise FileNotFoundError(f"ONNX model not found at {self.onnx_model_path}")
 
+        if not self.metadata_path.exists():
+            raise FileNotFoundError(f'Model feature metadata not found at {self.metadata_path}')
+
         # Optimize ONNX Runtime session options
         so = ort.SessionOptions()
         so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -55,6 +58,11 @@ class OnnxInferenceEngine:
             with open(self.metadata_path, "r") as f:
                 self.metadata = json.load(f)
                 self.feature_names = self.metadata.get("feature_names", [])
+        shape = self.session.get_inputs()[0].shape
+        if not isinstance(self.feature_names, list) or not self.feature_names or any(not isinstance(name,str) or not name for name in self.feature_names) or len(set(self.feature_names))!=len(self.feature_names):
+            raise ValueError('Model metadata must contain unique non-empty feature names.')
+        if len(shape)!=2 or not isinstance(shape[1],int) or len(self.feature_names)!=shape[1]:
+            raise ValueError('Model metadata feature count does not match ONNX input shape.')
 
         logger.info(
             f"ONNX Inference Engine initialized. Input: {self.input_name}, "
@@ -70,10 +78,15 @@ class OnnxInferenceEngine:
             # Convert list of dicts to 2D numpy float32 array
             if not self.feature_names:
                 raise ValueError("Metadata feature names required when passing list of dicts.")
+            if not features:
+                raise ValueError('At least one feature row is required.')
+            required=set(self.feature_names)
+            if any(set(row)!=required for row in features):
+                raise ValueError('Exact model feature schema required; missing or extra fields are not zero-filled.')
             matrix = np.empty((len(features), len(self.feature_names)), dtype=np.float32)
             for i, row in enumerate(features):
                 for j, f in enumerate(self.feature_names):
-                    matrix[i, j] = float(row.get(f, 0.0))
+                    matrix[i, j] = float(row[f])
             X = matrix
         else:
             X = np.asarray(features, dtype=np.float32)
@@ -81,8 +94,16 @@ class OnnxInferenceEngine:
         if X.ndim == 1:
             X = X.reshape(1, -1)
 
+        expected_width=len(self.feature_names) or self.session.get_inputs()[0].shape[-1]
+        if X.ndim!=2 or X.shape[0]==0 or X.shape[1]!=expected_width:
+            raise ValueError(f'Expected non-empty (N, {expected_width}) feature matrix.')
+        if not np.isfinite(X).all():
+            raise ValueError('Model features must be finite.')
+
         # Run ONNX inference
         outputs = self.session.run([self.output_name], {self.input_name: X})
         preds = np.asarray(outputs[0]).flatten()
+        if len(preds)!=X.shape[0] or not np.isfinite(preds).all():
+            raise ValueError('Invalid model output shape or non-finite predictions.')
         return preds
 
