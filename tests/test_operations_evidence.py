@@ -153,6 +153,8 @@ def test_multi_model_runs_pin_each_arm(tmp_path):
     configured=future.model_copy(update={'arm_models':(ArmModel(arm='a',model_sha256=D),ArmModel(arm='b',model_sha256='b'*64))})
     j.register(configured)
     assert j.get('run:pinned')['arm_models'][1]['model_sha256']=='b'*64
+    swapped=forecast(j,clock,snapshot).model_copy(update={'run_id':'pinned','arm':'b'})
+    with pytest.raises(ValueError,match='arm/model'):j.commit(swapped)
 
 def test_future_registered_days_are_not_bootstrap_samples(tmp_path):
     store,clock,_,snapshot=setup(tmp_path,end='2027-02-28');p=forecast(store,clock,snapshot);h=store.commit(p);link(store,clock,p,h)
