@@ -26,10 +26,15 @@ from src.serving.schemas import (
     HealthResponse,
     ResilientForecastRequest,
     ResilientForecastResponse,
+    DQCPForecastRequest,
+    DQCPForecastResponse,
+    DQCPFeedbackRequest,
+    DQCPFeedbackResponse,
 )
 from src.serving.onnx_engine import OnnxInferenceEngine
 from src.db.database import get_session, init_db
 from src.db.models import ModelRegistryRecord
+from src.uncertainty import load_dqcp_engine, DQCPUncertaintyEngine
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +69,50 @@ DDIR_QUALITY_GAUGE = Gauge(
     "Current weather telemetry quality score (0.0 to 1.0)"
 )
 
+# DQ-CP Research Uncertainty Metrics
+DQCP_CALIBRATION_POOL_SIZE = Gauge(
+    "chronogrid_dqcp_calibration_pool_size",
+    "Number of calibration samples in the active pool",
+    ["head"]
+)
+DQCP_INTERVAL_WIDTH = Histogram(
+    "chronogrid_dqcp_interval_width_mw",
+    "Distribution of prediction interval widths in MW",
+    buckets=[500, 1000, 2000, 3000, 4000, 5000, 7500, 10000]
+)
+DQCP_ACI_ALPHA = Gauge(
+    "chronogrid_dqcp_aci_alpha",
+    "Current active ACI miscoverage parameter alpha"
+)
+DQCP_FEEDBACK_COUNT = Counter(
+    "chronogrid_dqcp_coverage_feedback_total",
+    "Total ground-truth feedback settlements received",
+    ["status"]
+)
+DQCP_FALLBACK_INTERVAL_COUNT = Counter(
+    "chronogrid_dqcp_fallback_interval_total",
+    "Total intervals generated using fallback calibration pool"
+)
+DQCP_UNBOUNDED_INTERVAL_COUNT = Counter(
+    "chronogrid_dqcp_unbounded_interval_total",
+    "Total unbounded prediction intervals generated when k exceeds pool size"
+)
+DQCP_CALIBRATION_VERSION_INFO = Gauge(
+    "chronogrid_dqcp_calibration_version_info",
+    "Version indicator of the active DQ-CP calibration table",
+    ["version"]
+)
+
 # Global engine and router instances
 ENGINE: Optional[OnnxInferenceEngine] = None
 ROUTER: Optional[Any] = None
+DQCP_ENGINE: Optional[DQCPUncertaintyEngine] = None
 CHAMPION_META = {"version": 1, "model_type": "Unknown", "promoted_at": None}
 
 
 def load_engine():
     """Initializes ONNX engine, DDIR router, and registry metadata."""
-    global ENGINE, ROUTER, CHAMPION_META
+    global ENGINE, ROUTER, CHAMPION_META, DQCP_ENGINE
     onnx_file = Path("artifacts/models/champion_model.onnx")
     meta_file = Path("artifacts/models/champion_metadata.json")
     fallback_onnx = Path("artifacts/models/load_only_model.onnx")
@@ -114,6 +154,23 @@ def load_engine():
             pass
     else:
         ENGINE = None
+
+    # Load DQ-CP research uncertainty engine
+    try:
+        DQCP_ENGINE = load_dqcp_engine()
+        if DQCP_ENGINE:
+            try:
+                n_prim = DQCP_ENGINE.primary_pool.n_origins if DQCP_ENGINE.primary_pool else 0
+                n_fall = DQCP_ENGINE.fallback_pool.n_origins if DQCP_ENGINE.fallback_pool else 0
+                DQCP_CALIBRATION_POOL_SIZE.labels(head="primary").set(n_prim)
+                DQCP_CALIBRATION_POOL_SIZE.labels(head="fallback").set(n_fall)
+                DQCP_ACI_ALPHA.set(DQCP_ENGINE.aci_manager.get_current_alpha())
+                DQCP_CALIBRATION_VERSION_INFO.labels(version=DQCP_ENGINE.version).set(1.0)
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.warning(f"Could not initialize DQ-CP engine: {exc}")
+        DQCP_ENGINE = None
 
 
 @asynccontextmanager
@@ -357,6 +414,207 @@ def forecast_resilient(payload: ResilientForecastRequest):
         model_version=CHAMPION_META["version"],
         model_type=CHAMPION_META["model_type"],
         generated_at=datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+    )
+
+
+@app.post("/forecast/dqcp", response_model=DQCPForecastResponse)
+def forecast_dqcp(payload: DQCPForecastRequest):
+    """
+    Research-only endpoint generating Data-Quality-Conditioned Conformal Prediction (DQ-CP) intervals.
+    Conditioned dynamically on DDIR reliability states without altering the frozen v1.0.0 champion.
+    """
+    t_start = time.perf_counter()
+    if ROUTER is None:
+        raise HTTPException(status_code=503, detail="DDIR dual-head router is not initialized.")
+    if DQCP_ENGINE is None:
+        raise HTTPException(status_code=503, detail="DQ-CP Uncertainty Engine is not initialized.")
+
+    raw_path = Path("data/raw/genuine_smard_dwd_observations.parquet")
+    if not raw_path.exists():
+        raise HTTPException(status_code=500, detail="Historical reference dataset missing.")
+
+    df = pd.read_parquet(raw_path)
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+        df = df.sort_values("timestamp").reset_index(drop=True)
+
+    horizon = 24
+    if payload.start_timestamp:
+        try:
+            start_ts = pd.to_datetime(payload.start_timestamp, utc=True)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid start_timestamp: {exc}")
+    else:
+        start_ts = df["timestamp"].iloc[-1] + pd.Timedelta(hours=1)
+
+    future_timestamps = [start_ts + pd.Timedelta(hours=i) for i in range(horizon)]
+
+    from src.features.engineer import FeatureEngineer
+    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    recent_history = df.tail(336).copy()
+    last_known_load = recent_history["grid_load_mw"].iloc[-1]
+
+    future_rows = []
+    weather_by_ts = {}
+    if payload.weather_payload:
+        for w in payload.weather_payload:
+            if "timestamp" in w:
+                try:
+                    w_ts = pd.to_datetime(w["timestamp"], utc=True)
+                    weather_by_ts[w_ts] = w
+                except Exception:
+                    pass
+
+    for ts in future_timestamps:
+        w_dict = weather_by_ts.get(ts, {})
+        future_rows.append({
+            "timestamp": ts,
+            "grid_load_mw": last_known_load,
+            "temperature_c": w_dict.get("temperature_c", 15.0),
+            "solar_radiation_wm2": w_dict.get("solar_radiation_wm2", 0.0),
+            "wind_speed_ms": w_dict.get("wind_speed_ms", 4.0),
+            "humidity_pct": w_dict.get("humidity_pct", 65.0),
+        })
+
+    future_df = pd.DataFrame(future_rows)
+    combined = pd.concat([recent_history, future_df], ignore_index=True)
+    combined_feats = fe._generate_raw_features(combined)
+    eval_feats = combined_feats.iloc[-horizon:].copy()
+
+    # Route point forecast through DDIR
+    res = ROUTER.route_and_predict(
+        features=eval_feats,
+        weather_payload=payload.weather_payload,
+        current_time=start_ts.to_pydatetime() if hasattr(start_ts, "to_pydatetime") else None,
+    )
+
+    delivery_hours = np.array([ts.hour for ts in future_timestamps], dtype=np.int64)
+    forecast_origin = payload.forecast_origin or future_timestamps[0].date().isoformat()
+
+    # Generate DQ-CP uncertainty envelope
+    unc_res = DQCP_ENGINE.generate_interval(
+        point_predictions=np.array(res.predictions, dtype=np.float64),
+        delivery_hours=delivery_hours,
+        reliability_state=res.routing_state,
+        forecast_head=res.active_head,
+        calibration_method=payload.calibration_method,
+        target_coverage=payload.target_coverage,
+        forecast_origin=forecast_origin
+    )
+
+    t_total_ms = (time.perf_counter() - t_start) * 1000.0
+
+    # Record Prometheus metrics safely
+    try:
+        if unc_res.uncertainty_available and unc_res.mean_interval_width_mw and not unc_res.is_unbounded:
+            DQCP_INTERVAL_WIDTH.observe(unc_res.mean_interval_width_mw)
+        if unc_res.is_unbounded:
+            DQCP_UNBOUNDED_INTERVAL_COUNT.inc()
+        DQCP_ACI_ALPHA.set(unc_res.current_alpha)
+        if unc_res.model_id == "research_fallback":
+            DQCP_FALLBACK_INTERVAL_COUNT.inc()
+    except Exception as exc:
+        logger.warning(f"Failed to record Prometheus metrics in /forecast/dqcp: {exc}")
+
+    return DQCPForecastResponse(
+        timestamps=[ts.isoformat() for ts in future_timestamps],
+        forecast_mw=unc_res.forecast_mw,
+        lower_bound_mw=unc_res.lower_bound_mw,
+        upper_bound_mw=unc_res.upper_bound_mw,
+        target_coverage=unc_res.target_coverage,
+        calibration_method=unc_res.calibration_method,
+        model_id=unc_res.model_id,
+        calibration_version=unc_res.calibration_version,
+        reliability_state=unc_res.reliability_state,
+        forecast_origin=unc_res.forecast_origin,
+        uncertainty_available=unc_res.uncertainty_available,
+        is_unbounded=unc_res.is_unbounded,
+        mean_interval_width_mw=unc_res.mean_interval_width_mw,
+        current_alpha=unc_res.current_alpha,
+        degradation_flag=unc_res.degradation_flag,
+        inference_time_ms=res.inference_time_ms,
+        total_time_ms=t_total_ms,
+        generated_at=datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+    )
+
+
+@app.post("/forecast/dqcp/feedback", response_model=DQCPFeedbackResponse)
+def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
+    """
+    Submits verified ground-truth settlement data for delayed-feedback ACI adaptation.
+    Enforces the mandatory 48-hour settlement delay guard.
+    """
+    if DQCP_ENGINE is None:
+        raise HTTPException(status_code=503, detail="DQ-CP Uncertainty Engine is not initialized.")
+
+    actuals = np.array(payload.actual_load_mw, dtype=np.float64)
+    if len(actuals) != 24:
+        raise HTTPException(status_code=400, detail=f"Expected 24 hourly load actuals, got {len(actuals)}.")
+
+    try:
+        rec = DQCP_ENGINE.submit_feedback(
+            forecast_origin=payload.forecast_origin,
+            actuals=actuals,
+            settlement_timestamp=payload.settlement_timestamp,
+            effective_delay_days=payload.effective_delay_days,
+            head=payload.head
+        )
+    except ValueError as val_err:
+        raise HTTPException(status_code=422, detail=str(val_err))
+    except KeyError as key_err:
+        raise HTTPException(status_code=404, detail=str(key_err))
+
+    if rec is None or rec.status == "DUPLICATE_IGNORED":
+        alpha_curr = DQCP_ENGINE.primary_aci_manager.get_current_alpha()
+        try:
+            DQCP_FEEDBACK_COUNT.labels(status="duplicate").inc()
+        except Exception:
+            pass
+        return DQCPFeedbackResponse(
+            forecast_origin=payload.forecast_origin,
+            settlement_timestamp=payload.settlement_timestamp,
+            effective_delay_hours=int(payload.effective_delay_days * 24),
+            miscoverage_occurred=False,
+            empirical_coverage=1.0,
+            alpha_before=alpha_curr,
+            alpha_after=alpha_curr,
+            gamma=DQCP_ENGINE.primary_aci_manager.gamma,
+            status="duplicate_ignored"
+        )
+    elif rec.status == "REJECTED_REVISION":
+        try:
+            DQCP_FEEDBACK_COUNT.labels(status="rejected_revision").inc()
+        except Exception:
+            pass
+        return DQCPFeedbackResponse(
+            forecast_origin=payload.forecast_origin,
+            settlement_timestamp=payload.settlement_timestamp,
+            effective_delay_hours=int(payload.effective_delay_days * 24),
+            miscoverage_occurred=False,
+            empirical_coverage=1.0,
+            alpha_before=rec.alpha_before,
+            alpha_after=rec.alpha_after,
+            gamma=rec.gamma,
+            status="rejected_revision"
+        )
+
+    try:
+        status_label = "miscovered" if rec.miscoverage_occurred else "covered"
+        DQCP_FEEDBACK_COUNT.labels(status=status_label).inc()
+        DQCP_ACI_ALPHA.set(rec.alpha_after)
+    except Exception as exc:
+        logger.warning(f"Failed to record Prometheus metrics in /forecast/dqcp/feedback: {exc}")
+
+    return DQCPFeedbackResponse(
+        forecast_origin=rec.forecast_origin,
+        settlement_timestamp=rec.settlement_timestamp,
+        effective_delay_hours=rec.effective_delay_hours,
+        miscoverage_occurred=rec.miscoverage_occurred,
+        empirical_coverage=rec.empirical_coverage,
+        alpha_before=rec.alpha_before,
+        alpha_after=rec.alpha_after,
+        gamma=rec.gamma,
+        status="processed"
     )
 
 

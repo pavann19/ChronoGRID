@@ -44,6 +44,7 @@ desktop.ini
 
 # Runtime transient ingestion outputs (canonical dataset is data/raw/genuine_smard_dwd_observations.parquet)
 data/raw/smard_dwd_raw_*.parquet
+data/dqcp_aci_state*.json
 
 # Dynamic model promotion backups & staging scratch
 artifacts/models/backup/

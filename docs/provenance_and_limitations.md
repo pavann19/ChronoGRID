@@ -68,3 +68,8 @@
 - **Lead Time Spread**: Because Day-Ahead bidding takes place at 12:00 CET on $D-1$ for delivery throughout Day $D$, the forecast lead time varies from $H = 12\text{h}$ (Hour 00:00) to $H = 35\text{h}$ (Hour 23:00).
 - **DST Edge Cases**: On Spring DST transition days (last Sunday of March), the German delivery profile contains 23 local hours; on Autumn DST days (last Sunday of October), the delivery profile contains 25 local hours. The pipeline handles this seamlessly using timezone-aware `Europe/Berlin` calendar grids converted to monotonic UTC timestamps.
 
+
+
+## Post-Historical evaluation research evidence boundary
+
+The [research closure addendum](research/research_closure_addendum.md) is authoritative for corrected Historical evaluation interpretation: 814/840 = 96.9048% marginal coverage, minimum daily coverage 15/24 = 62.5%, inconclusive weather MAE benefit (two-day-block 95% interval [-24.00, 81.58] MW), and degenerate simultaneous [100%,100%] bootstrap intervals. Decision: conditional research use. The 35 origins are chronological, without demonstrated independence/exchangeability. Original hourly archived evaluation records were unavailable; reconstructed hourly rows are not originally archived predictions. All historical Historical evaluation/3.3.1 files are preserved and hashed in the closure manifest. No prospective validation or production-readiness claim follows.
