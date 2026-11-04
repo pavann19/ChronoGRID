@@ -232,13 +232,15 @@ class DQCPUncertaintyEngine:
 
 def load_dqcp_engine(
     calibration_dir: Optional[Path] = None,
-    aci_state_file: Optional[Path] = None
+    aci_state_file: Optional[Path] = None,
+    model_paths: Optional[Dict[str, Path]] = None,
 ) -> Optional[DQCPUncertaintyEngine]:
     """
     Factory to load and initialize DQCPUncertaintyEngine from serialized calibration tables.
     Maintains isolated persistence files for primary and fallback ACI managers.
     """
     import json
+    import hashlib
     from pathlib import Path
 
     calib_path = Path(calibration_dir) if calibration_dir else Path("artifacts/calibration")
@@ -256,6 +258,18 @@ def load_dqcp_engine(
 
         table_prim = CalibrationTable(**prim_data)
         table_fall = CalibrationTable(**fall_data)
+
+        # Verify identity before constructing pools or touching adaptive state.
+        paths = model_paths if model_paths is not None else {
+            "primary": Path("artifacts/models/champion_model.onnx"),
+            "fallback": Path("artifacts/models/load_only_model.onnx"),
+        }
+        if set(paths) != {"primary", "fallback"}:
+            raise ValueError("Both primary and fallback model artifact paths are required")
+        for head, table in (("primary", table_prim), ("fallback", table_fall)):
+            actual_hash = hashlib.sha256(Path(paths[head]).read_bytes()).hexdigest()
+            if table.model_sha256 != actual_hash:
+                raise ValueError(f"Calibration model identity mismatch for {head}")
 
         pool_prim = ConformalCalibrationPool.from_calibration_table(table_prim)
         pool_fall = ConformalCalibrationPool.from_calibration_table(table_fall)

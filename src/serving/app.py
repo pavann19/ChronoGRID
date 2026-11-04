@@ -164,7 +164,10 @@ def load_engine():
 
     # Load DQ-CP research uncertainty engine
     try:
-        DQCP_ENGINE = load_dqcp_engine(aci_state_file=Path(os.environ.get("DQCP_STATE_FILE", "data/dqcp_aci_state.json")))
+        DQCP_ENGINE = load_dqcp_engine(
+            aci_state_file=Path(os.environ.get("DQCP_STATE_FILE", "data/dqcp_aci_state.json")),
+            model_paths={"primary": onnx_file, "fallback": fallback_onnx},
+        )
         if DQCP_ENGINE:
             try:
                 n_prim = DQCP_ENGINE.primary_pool.n_origins if DQCP_ENGINE.primary_pool else 0

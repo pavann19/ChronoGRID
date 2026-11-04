@@ -500,26 +500,29 @@ def test_api_forecast_dqcp_endpoint():
         ]
     )
 
-    data = forecast_dqcp(req_payload)
-
-    assert len(data.timestamps) == 24
-    assert len(data.forecast_mw) == 24
-    assert len(data.lower_bound_mw) == 24
-    assert len(data.upper_bound_mw) == 24
-    assert data.uncertainty_available is True
-    assert data.is_unbounded is False
-    assert data.target_coverage == 0.90
-    assert data.mean_interval_width_mw > 0
-    assert all(l <= u for l, u in zip(data.lower_bound_mw, data.upper_bound_mw))
+    # Frozen research tables identify joblib artifacts, not the served ONNX files.
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as excinfo:
+        forecast_dqcp(req_payload)
+    assert excinfo.value.status_code == 503
 
 
-def test_api_feedback_settlement_endpoint():
+def test_api_feedback_settlement_endpoint(monkeypatch):
     """Verify submit_dqcp_feedback route handler processes delayed feedback and enforces 2-day lag."""
     from src.serving.app import load_engine, submit_dqcp_feedback
     from src.serving.schemas import DQCPFeedbackRequest
     from fastapi import HTTPException
 
     load_engine()
+
+    # Exercise feedback mechanics using an isolated synthetic engine. Startup
+    # correctly rejects the incompatible frozen serving/calibration pair.
+    from src.serving import app as service
+    synthetic = DQCPUncertaintyEngine()
+    synthetic.primary_aci_manager.register_forecast(
+        '2024-06-16', np.full(24, 50000.0), np.full(24, 54000.0)
+    )
+    monkeypatch.setattr(service, 'DQCP_ENGINE', synthetic)
 
     # Premature feedback (< 2 days) must raise HTTPException 422
     premature_payload = DQCPFeedbackRequest(
