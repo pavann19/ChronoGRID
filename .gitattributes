@@ -34,6 +34,7 @@ src/features/engineer.py -text
 src/uncertainty/conformal.py -text
 src/uncertainty/normalization.py -text
 tests/test_prospective_evidence.py -text
+tests/test_legacy_artifact_binding_audit.py -text
 tests/test_sprint_3_3_evaluation.py -text
 artifacts/reports/research_closure_evidence_manifest.json -text
 artifacts/reports/research_closure_evidence_manifest.sha256 -text
@@ -61,6 +62,7 @@ scripts/build_container_image_rootfs_refresh_audit.py -text
 scripts/verify_p20_full_suite.py -text
 scripts/build_v1_production_readiness_gate.py -text
 scripts/write_v1_readiness_evidence_manifest.py -text
+scripts/audit_legacy_artifact_binding.py -text
 scripts/write_rootfs_refresh_manifest.py -text
 tests/test_container_image_rootfs_refresh_audit.py -text
 src/serving/__init__.py -text
