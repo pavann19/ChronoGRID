@@ -1,13 +1,10 @@
 """Bounded once/cycle worker; no scheduler installed and no missed-origin backfill."""
 from datetime import timedelta
 from zoneinfo import ZoneInfo
-from pathlib import Path
 from src.operations.capture import capture_smard,capture_weekly,capture_fallback48
 from src.operations.journal import Conflict,IntegrityFailure
 
-ROOT=Path(__file__).resolve().parents[2]
-
-def run_once(store,run_id,arm,model='weekly',fetch=capture_smard):
+def run_once(store,run_id,arm,model='weekly',fetch=capture_smard,workspace=None):
     from src.operations.adaptive import capture_adaptive48,StaleAdaptiveState
     if model not in ('weekly','fallback48','adaptive48','local48'):raise ValueError('unrecognized worker model')
     run=store.get('run:'+run_id);now=store.clock().astimezone(ZoneInfo('Europe/Berlin'));day=now.date()+timedelta(days=1)
@@ -27,7 +24,8 @@ def run_once(store,run_id,arm,model='weekly',fetch=capture_smard):
             args=(store,run_id,day,arm,snapshot)
             try:
                 experiment='local_calendar_v3' if model=='local48' else 'issuance_v2'
-                _,h=capture(*args) if model=='weekly' else capture(*args,ROOT/'artifacts/experiments'/experiment)
+                from src.operations.paths import workspace as resolve_workspace
+                _,h=capture(*args) if model=='weekly' else capture(*args,resolve_workspace(workspace)/'artifacts/experiments'/experiment)
                 return dict(status='committed_local_only',prediction_sha256=h,adaptive_retries=attempt)
             except StaleAdaptiveState:
                 if attempt==2:raise
@@ -37,7 +35,7 @@ def run_once(store,run_id,arm,model='weekly',fetch=capture_smard):
     except Exception as exc:
         store.failure(run_id,day,arm,str(exc));raise
 
-def run_cycle(store,run_id,models,fetch=capture_smard,max_feedback_origins=16):
+def run_cycle(store,run_id,models,fetch=capture_smard,max_feedback_origins=16,workspace=None):
     """Fetch once, append actuals, settle eligible feedback, then issue tomorrow's vectors."""
     from src.operations.adaptive import AdaptiveStreams
     from src.operations.observations import link_smard
@@ -58,7 +56,7 @@ def run_cycle(store,run_id,models,fetch=capture_smard,max_feedback_origins=16):
                     if result['status'] not in ('processed','skipped'):break
                 feedback[arm]=rows
             operation='forecast'
-            forecasts[arm]=run_once(store,run_id,arm,model,fetch=lambda _:snapshot)
+            forecasts[arm]=run_once(store,run_id,arm,model,fetch=lambda _:snapshot,workspace=workspace)
         except IntegrityFailure:
             raise # corruption is a journal-wide safety failure, not an isolated arm outage
         except Exception as exc:
