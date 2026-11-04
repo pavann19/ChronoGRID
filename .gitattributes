@@ -22,6 +22,7 @@ docs/research/ddir_sprint_3_3_evaluation_report.md -text
 docs/research/prospective_evaluation_protocol.md -text
 docs/research/research_closure_addendum.md -text
 README.md -text
+docs/reviews/** -text
 schemas/prospective_actual_observation.schema.json -text
 schemas/prospective_prediction_record.schema.json -text
 scripts/preserve_research_evidence.py -text
@@ -58,6 +59,8 @@ scripts/write_container_refresh_manifest.py -text
 tests/test_container_image_refresh_audit.py -text
 scripts/build_container_image_rootfs_refresh_audit.py -text
 scripts/verify_p20_full_suite.py -text
+scripts/build_v1_production_readiness_gate.py -text
+scripts/write_v1_readiness_evidence_manifest.py -text
 scripts/write_rootfs_refresh_manifest.py -text
 tests/test_container_image_rootfs_refresh_audit.py -text
 src/serving/__init__.py -text
