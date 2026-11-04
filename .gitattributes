@@ -68,3 +68,6 @@ deployment/Dockerfile -text
 deployment/docker-compose.yml -text
 deployment/compose.diagnostics.yml -text
 deployment/requirements-service* -text
+scripts/run_local_calendar_v3_research.py -text
+scripts/audit_local_calendar_v3.py -text
+src/features/*.py -text

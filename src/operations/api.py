@@ -86,6 +86,11 @@ def create_app(database: Path | None=None,root: Path=ROOT):
         from src.operations.adaptive import AdaptiveStreams
         configs=[r['payload'] for r in store.rows('aci_config')]
         return dict(configurations=configs,states=[AdaptiveStreams(store).state(c['run_id'],c['arm']) for c in configs],transitions=[r['payload'] for r in store.rows('aci_step')],scope='daily-batch delayed research adaptation; no unconditional guarantee')
+    @app.get('/api/research/local-calendar-v3')
+    def calendar_research():
+        path=root/'artifacts/experiments/local_calendar_v3/report.json'
+        if not path.exists():raise HTTPException(404,'V3 research artifact unavailable')
+        return json.loads(path.read_text())
     @app.get('/api/models')
     def models():
         metadata=[]

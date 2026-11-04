@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[2]
 
 def run_once(store,run_id,arm,model='weekly',fetch=capture_smard):
     from src.operations.adaptive import capture_adaptive48,StaleAdaptiveState
-    if model not in ('weekly','fallback48','adaptive48'):raise ValueError('unrecognized worker model')
+    if model not in ('weekly','fallback48','adaptive48','local48'):raise ValueError('unrecognized worker model')
     run=store.get('run:'+run_id);now=store.clock().astimezone(ZoneInfo('Europe/Berlin'));day=now.date()+timedelta(days=1)
     if arm not in run['arms']:raise ValueError('unregistered arm')
     if run['experiment_kind']!='prospective':raise ValueError('worker requires prospective run')
@@ -22,11 +22,12 @@ def run_once(store,run_id,arm,model='weekly',fetch=capture_smard):
         store.failure(run_id,day,arm,'missed issuance gate; no backfill');return dict(status='missed_gate')
     try:
         snapshot=fetch(store)
-        capture={'weekly':capture_weekly,'fallback48':capture_fallback48,'adaptive48':capture_adaptive48}[model]
+        capture={'weekly':capture_weekly,'fallback48':capture_fallback48,'adaptive48':capture_adaptive48,'local48':capture_fallback48}[model]
         for attempt in range(3):
             args=(store,run_id,day,arm,snapshot)
             try:
-                _,h=capture(*args) if model=='weekly' else capture(*args,ROOT/'artifacts/experiments/issuance_v2')
+                experiment='local_calendar_v3' if model=='local48' else 'issuance_v2'
+                _,h=capture(*args) if model=='weekly' else capture(*args,ROOT/'artifacts/experiments'/experiment)
                 return dict(status='committed_local_only',prediction_sha256=h,adaptive_retries=attempt)
             except StaleAdaptiveState:
                 if attempt==2:raise
@@ -43,7 +44,7 @@ def run_cycle(store,run_id,models,fetch=capture_smard,max_feedback_origins=16):
     store.verify()
     run=store.get('run:'+run_id)
     if run['experiment_kind']!='prospective':raise ValueError('cycle worker requires prospective run')
-    if not isinstance(models,dict) or set(models)!=set(run['arms']) or any(m not in ('weekly','fallback48','adaptive48') for m in models.values()):raise ValueError('explicit model choice required for every registered arm')
+    if not isinstance(models,dict) or set(models)!=set(run['arms']) or any(m not in ('weekly','fallback48','adaptive48','local48') for m in models.values()):raise ValueError('explicit model choice required for every registered arm')
     if not 1<=max_feedback_origins<=367:raise ValueError('invalid feedback batch budget')
     snapshot=fetch(store)
     actuals=link_smard(store,run_id,snapshot);feedback={};forecasts={}

@@ -106,8 +106,16 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     registered=Run.model_validate(store.get('run:'+run_id))
     if not registered.arm_models or next((a.model_sha256 for a in registered.arm_models if a.arm==arm),None)!=metadata['model_sha256']:
         raise ValueError('registered arm/model mismatch before loading model artifact')
-    if metadata['feature_policy']!='fixed_gate_lag48_weather48_rolling48_v2' or metadata['min_lag_hours']!=48:
-        raise ValueError('unregistered V2 feature policy')
+    from src.operations.local_calendar import POLICY,LocalCalendarFeatures
+    policy=metadata['feature_policy']
+    if policy not in ('fixed_gate_lag48_weather48_rolling48_v2',POLICY) or metadata['min_lag_hours']!=48:
+        raise ValueError('unregistered feature policy')
+    if policy==POLICY:
+        expected={'src/operations/local_calendar.py','src/features/engineer.py','src/features/autoregressive.py','src/features/weather_features.py'}
+        sources=metadata.get('feature_sources',{})
+        root=Path(__file__).resolve().parents[2]
+        if set(sources)!=expected or any(digest((root/p).read_bytes())!=h for p,h in sources.items()):
+            raise ValueError('V3 feature implementation checksum mismatch')
     table=CalibrationTable.model_validate_json(cal_bytes)
     if table.model_sha256!=metadata['model_sha256']: raise ValueError('V2 model/calibration mismatch')
     state_hash=store.snapshot(cal_bytes,'issuance-v2-static-calibration',utc(store.clock()))
@@ -117,7 +125,7 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
         raise ValueError('source contract mismatch')
     issued=utc(store.clock()); grid=delivery_grid(day)
     from src.operations.calendar_support import assert_frozen_calendar_supported
-    assert_frozen_calendar_supported(grid)
+    if policy!=POLICY:assert_frozen_calendar_supported(grid)
     history=pd.DataFrame(data['rows']).rename(columns={'load_mw':'grid_load_mw'})
     history['timestamp']=pd.to_datetime(history.timestamp,utc=True)
     if history.timestamp.duplicated().any() or not np.isfinite(history.grid_load_mw).all(): raise ValueError('invalid source rows')
@@ -130,7 +138,7 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     index=pd.date_range(earliest,grid[-1],freq='h')
     full=history.set_index('timestamp').reindex(index).rename_axis('timestamp').reset_index()
     if full.loc[full.timestamp<=pd.Timestamp(last_needed),'grid_load_mw'].isna().any(): raise ValueError('missing source history; no interpolation allowed')
-    fe=FeatureEngineer(min_lag_hours=48,lags=[48,72,168],weather_mode='load_only')
+    fe=LocalCalendarFeatures() if policy==POLICY else FeatureEngineer(min_lag_hours=48,lags=[48,72,168],weather_mode='load_only')
     features=fe._generate_raw_features(full).set_index('timestamp').loc[pd.DatetimeIndex(grid),metadata['feature_names']]
     if not np.isfinite(features.values).all(): raise ValueError('missing issuance-safe features')
     model=joblib.load(experiment_dir/'fallback.joblib'); predictions=model.predict(features.values)
