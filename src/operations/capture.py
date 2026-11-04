@@ -112,6 +112,8 @@ def capture_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sh
     if data.get('format')!='smard-hourly-mw-v1' or data.get('unit')!='MW' or source['source']!='smard-normalized-hourly':
         raise ValueError('source contract mismatch')
     issued=utc(store.clock()); grid=delivery_grid(day)
+    from src.operations.calendar_support import assert_frozen_calendar_supported
+    assert_frozen_calendar_supported(grid)
     history=pd.DataFrame(data['rows']).rename(columns={'load_mw':'grid_load_mw'})
     history['timestamp']=pd.to_datetime(history.timestamp,utc=True)
     if history.timestamp.duplicated().any() or not np.isfinite(history.grid_load_mw).all(): raise ValueError('invalid source rows')

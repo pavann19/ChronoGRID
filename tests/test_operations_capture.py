@@ -64,3 +64,11 @@ def test_fallback48_capture_uses_model_bound_calibration(tmp_path):
     assert p.model_sha256==modelsha and p.calibration_state_sha256 is not None
     assert all(d.interval_status=='bounded' and d.lower_mw<=d.point_mw<=d.upper_mw for d in p.deliveries)
     assert store.verify()['objects']>=5
+
+def test_future_holiday_calendar_fails_closed_without_changing_model_features():
+    from src.operations.calendar_support import assert_frozen_calendar_supported,nationwide_holidays
+    from src.features.temporal import GERMAN_HOLIDAYS
+    for year in (2023,2024,2025):
+        assert {(d.year,d.month,d.day) for d in nationwide_holidays(year)}=={d for d in GERMAN_HOLIDAYS if d[0]==year}
+    assert_frozen_calendar_supported(delivery_grid(date(2026,11,5)))
+    with pytest.raises(ValueError,match='calendar'):assert_frozen_calendar_supported(delivery_grid(date(2026,12,25)))
