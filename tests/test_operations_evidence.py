@@ -136,3 +136,29 @@ def test_actual_processes_compete_for_same_registered_slot(tmp_path):
     assert sum('committed' in out for out,err in outputs)==1
     assert sum('duplicate' in out for out,err in outputs)==3
     assert len(store.rows('forecast'))==1
+
+def test_wal_reset_version_policy_and_conservative_fallback(tmp_path):
+    from src.operations.journal import wal_reset_safe
+    assert not wal_reset_safe((3,49,1)) and not wal_reset_safe((3,46,1))
+    assert not wal_reset_safe((3,51,2)) and not wal_reset_safe((3,50,6))
+    assert wal_reset_safe((3,51,3)) and wal_reset_safe((3,44,6)) and wal_reset_safe((3,50,7))
+    j=Journal(tmp_path/'j.sqlite')
+    assert j.journal_mode==('wal' if wal_reset_safe(sqlite3.sqlite_version_info) else 'delete')
+
+def test_multi_model_runs_pin_each_arm(tmp_path):
+    from src.operations.contracts import ArmModel
+    j,clock,run,snapshot=setup(tmp_path)
+    future=run.model_copy(update={'run_id':'pinned','arms':('a','b'),'allowed_model_sha256':(D,'b'*64),'arm_models':()})
+    with pytest.raises(ValueError,match='per-arm'):j.register(future)
+    configured=future.model_copy(update={'arm_models':(ArmModel(arm='a',model_sha256=D),ArmModel(arm='b',model_sha256='b'*64))})
+    j.register(configured)
+    assert j.get('run:pinned')['arm_models'][1]['model_sha256']=='b'*64
+
+def test_future_registered_days_are_not_bootstrap_samples(tmp_path):
+    store,clock,_,snapshot=setup(tmp_path,end='2027-02-28');p=forecast(store,clock,snapshot);h=store.commit(p);link(store,clock,p,h)
+    clock.t=datetime(2027,1,24,tzinfo=timezone.utc)
+    report=score_run(store,'run1',clock(),100)['arms']['main']
+    assert report['scheduled_origins']==45
+    assert report['bootstrap_calendar_origins']==2
+    assert report['missing_forecast_hours']==24+1 # Jan17 first hour matures at this cutoff
+    assert report['overall']['point_observations']==24

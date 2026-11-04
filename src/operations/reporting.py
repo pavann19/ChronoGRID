@@ -27,7 +27,7 @@ def score_run(store,run_id,cutoff: datetime,replicates=10000):
             a=row['payload']; actuals[(a['prediction_sha256'],utc(datetime.fromisoformat(a['delivery_timestamp'])))].append(row)
     results={}
     for arm in run.arms:
-        vectors=[]; origins=[]; strata=defaultdict(lambda:np.zeros(len(FIELDS)))
+        vectors=[]; bootstrap_vectors=[]; origins=[]; strata=defaultdict(lambda:np.zeros(len(FIELDS)))
         scheduled_hours=missing_predictions=missing_actuals=not_mature=unavailable_intervals=0
         day=run.start_date
         while day<=run.end_date:
@@ -63,8 +63,10 @@ def score_run(store,run_id,cutoff: datetime,replicates=10000):
             complete=all_mature and eligible_intervals==len(grid)
             v[9:11]=[int(complete),int(complete and covered==len(grid))]
             origins.append(dict(delivery_date=str(day),hours=len(grid),forecast_present=p is not None,interval_eligible_hours=eligible_intervals,daily_coverage=covered/eligible_intervals if eligible_intervals else None,complete=complete,**summarize(v)))
-            vectors.append(v); day+=timedelta(days=1)
-        arr=np.asarray(vectors); overall=summarize(arr.sum(axis=0)); ci=[]
+            vectors.append(v)
+            if grid[-1]+timedelta(hours=1,days=run.maturity_days)<=cutoff: bootstrap_vectors.append(v)
+            day+=timedelta(days=1)
+        overall=summarize(np.asarray(vectors).sum(axis=0)); arr=np.asarray(bootstrap_vectors); ci=[]
         # Every scheduled calendar day is retained; missing days contribute zero counts,
         # so blocks never silently join non-adjacent available days.
         complete_count=sum(x['complete'] for x in origins)
@@ -88,5 +90,5 @@ def score_run(store,run_id,cutoff: datetime,replicates=10000):
                 low,high=np.percentile(samples,[2.5,97.5])
                 ci.append(dict(block_days=b,statistic=key,status='empirical',ci_low=float(low),ci_high=float(high),std_err=float(samples.std()),degenerate=bool(low==high),replicates=replicates))
         daily=[x['daily_coverage'] for x in origins if x['complete']]
-        results[arm]=dict(overall=overall,scheduled_origins=len(origins),scheduled_hours=scheduled_hours,missing_forecast_hours=missing_predictions,missing_actual_hours=missing_actuals,not_mature_hours=not_mature,unavailable_interval_hours=unavailable_intervals,complete_origins=complete_count,minimum_complete_daily_coverage=min(daily) if daily else None,daily_coverage_quantiles=dict(zip(('p05','p50','p95'),np.percentile(daily,[5,50,95]).tolist())) if daily else None,worst_origins=sorted((x for x in origins if x['daily_coverage'] is not None),key=lambda x:(x['daily_coverage'],x['delivery_date']))[:10],per_origin=origins,strata={k:summarize(v) for k,v in sorted(strata.items())},bootstrap=ci)
-    return dict(schema_version='1.0',run_id=run_id,experiment_kind=run.experiment_kind,report_cutoff=cutoff.isoformat(),actual_policy='first_collected_vintage_by_7_day_maturity' if run.maturity_days==7 else f'first_collected_vintage_by_{run.maturity_days}_day_maturity',integrity=integrity,arms=results,limitations=['Local commitment is not an independent timestamp receipt.','Calendar days including missing days are resampled; dependence beyond tested block lengths remains unknown.','Intervals and strata are empirical, not guarantees; unbounded widths are null with explicit counts.','No counterfactual head comparison without genuinely issued paired records.'])
+        results[arm]=dict(overall=overall,scheduled_origins=len(origins),scheduled_hours=scheduled_hours,missing_forecast_hours=missing_predictions,missing_actual_hours=missing_actuals,not_mature_hours=not_mature,unavailable_interval_hours=unavailable_intervals,complete_origins=complete_count,bootstrap_calendar_origins=len(bootstrap_vectors),bootstrap_scope='fully_mature_scheduled_calendar_days_only; missing past days retained',minimum_complete_daily_coverage=min(daily) if daily else None,daily_coverage_quantiles=dict(zip(('p05','p50','p95'),np.percentile(daily,[5,50,95]).tolist())) if daily else None,worst_origins=sorted((x for x in origins if x['daily_coverage'] is not None),key=lambda x:(x['daily_coverage'],x['delivery_date']))[:10],per_origin=origins,strata={k:summarize(v) for k,v in sorted(strata.items())},bootstrap=ci)
+    return dict(schema_version='1.0',run_id=run_id,experiment_kind=run.experiment_kind,arm_identity_policy='per_arm_model_pin' if run.arm_models else 'legacy_run_allowed_model_set_only',report_cutoff=cutoff.isoformat(),actual_policy='first_collected_vintage_by_7_day_maturity' if run.maturity_days==7 else f'first_collected_vintage_by_{run.maturity_days}_day_maturity',integrity=integrity,arms=results,limitations=['Local commitment is not an independent timestamp receipt.','Calendar days including missing days are resampled; dependence beyond tested block lengths remains unknown.','Intervals and strata are empirical, not guarantees; unbounded widths are null with explicit counts.','No counterfactual head comparison without genuinely issued paired records.'])

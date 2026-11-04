@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "ArmModel": {
+      "additionalProperties": false,
+      "properties": {
+        "arm": {
+          "pattern": "^[A-Za-z0-9_-]{1,100}$",
+          "title": "Arm",
+          "type": "string"
+        },
+        "model_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "arm",
+        "model_sha256"
+      ],
+      "title": "ArmModel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,100}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "experiment_kind": {
+      "enum": [
+        "prospective",
+        "historical_replay",
+        "synthetic_fault"
+      ],
+      "title": "Experiment Kind",
+      "type": "string"
+    },
+    "protocol_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Sha256",
+      "type": "string"
+    },
+    "start_date": {
+      "format": "date",
+      "title": "Start Date",
+      "type": "string"
+    },
+    "end_date": {
+      "format": "date",
+      "title": "End Date",
+      "type": "string"
+    },
+    "arms": {
+      "items": {
+        "pattern": "^[A-Za-z0-9_-]{1,100}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Arms",
+      "type": "array"
+    },
+    "allowed_model_sha256": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Model Sha256",
+      "type": "array"
+    },
+    "arm_models": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ArmModel"
+      },
+      "title": "Arm Models",
+      "type": "array"
+    },
+    "demand_low_mw": {
+      "exclusiveMinimum": 0,
+      "title": "Demand Low Mw",
+      "type": "number"
+    },
+    "demand_high_mw": {
+      "exclusiveMinimum": 0,
+      "title": "Demand High Mw",
+      "type": "number"
+    },
+    "maturity_days": {
+      "default": 7,
+      "maximum": 90,
+      "minimum": 1,
+      "title": "Maturity Days",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "run_id",
+    "experiment_kind",
+    "protocol_sha256",
+    "start_date",
+    "end_date",
+    "arms",
+    "allowed_model_sha256",
+    "demand_low_mw",
+    "demand_high_mw"
+  ],
+  "title": "Run",
+  "type": "object"
+}

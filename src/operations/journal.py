@@ -18,13 +18,18 @@ def encode(value):
 def digest(value: bytes): return hashlib.sha256(value).hexdigest()
 def now_utc(): return datetime.now(timezone.utc)
 
+def wal_reset_safe(version):
+    return version >= (3,51,3) or (3,44,6) <= version < (3,45,0) or (3,50,7) <= version < (3,51,0)
+
 class Journal:
     def __init__(self, path: Path, clock: Callable = now_utc):
         self.path=Path(path); self.clock=clock
         self.path.parent.mkdir(parents=True,exist_ok=True)
         with self.connection() as db:
+            # Upstream WAL-reset fix: 3.51.3+, or documented 3.44.6/3.50.7 backports.
+            mode='WAL' if wal_reset_safe(sqlite3.sqlite_version_info) else 'DELETE'
+            self.journal_mode=db.execute('PRAGMA journal_mode='+mode).fetchone()[0]
             db.executescript('''
-            PRAGMA journal_mode=WAL;
             CREATE TABLE IF NOT EXISTS objects (
               key TEXT PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL,
               sha256 TEXT NOT NULL, recorded_at TEXT NOT NULL);
@@ -80,6 +85,8 @@ class Journal:
             return [dict(row) | {'payload':json.loads(row['payload'])} for row in db.execute('SELECT * FROM objects WHERE kind=? ORDER BY recorded_at,key',(kind,))]
 
     def register(self,run: Run):
+        run=Run.model_validate_json(canonical(run))
+        if not run.arm_models: raise ValueError('new multi-model runs require explicit per-arm model identities')
         data=json.loads(canonical(run))
         with self.transaction() as db:
             h=self._add(db,'run:'+run.run_id,'run',data)
@@ -114,6 +121,8 @@ class Journal:
         if utc(p.issued_at)>now: raise ValueError('future issuance')
         with self.transaction() as db:
             data,meta=self._get(db,'run:'+p.run_id); run=Run.model_validate(data)
+            if not run.arm_models or next((x.model_sha256 for x in run.arm_models if x.arm==p.arm),None)!=p.model_sha256:
+                raise ValueError('arm/model identity mismatch; legacy unpinned runs cannot receive new forecasts')
             slot=f'{p.run_id}:{p.delivery_date}:{p.arm}'
             self._get(db,'slot:'+slot)
             if p.experiment_kind != run.experiment_kind or p.protocol_sha256 != run.protocol_sha256 or p.model_sha256 not in run.allowed_model_sha256:
@@ -185,6 +194,8 @@ class Journal:
                     slot=f"slot:{obj['run_id']}:{obj['delivery_date']}:{obj['arm']}"
                     if slot not in objects or obj['experiment_kind']!=run.experiment_kind or obj['protocol_sha256']!=run.protocol_sha256 or obj['model_sha256'] not in run.allowed_model_sha256:
                         raise IntegrityFailure('forecast/run registry mismatch')
+                    if run.arm_models and next((x.model_sha256 for x in run.arm_models if x.arm==obj['arm']),None)!=obj['model_sha256']:
+                        raise IntegrityFailure('forecast/arm model mismatch')
                     for item in obj['inputs']:
                         if 'snapshot:'+item['snapshot_sha256'] not in objects: raise IntegrityFailure('missing input snapshot')
                 elif row['kind']=='actual':
@@ -193,7 +204,7 @@ class Journal:
                         raise IntegrityFailure('actual linkage mismatch')
                     if 'snapshot:'+obj['source_snapshot_sha256'] not in objects: raise IntegrityFailure('missing actual source snapshot')
             db.execute('COMMIT')
-            return dict(objects=count,head_sha256=previous,sqlite_integrity='ok',independent_timestamp=False)
+            return dict(objects=count,head_sha256=previous,sqlite_integrity='ok',independent_timestamp=False,sqlite_version=sqlite3.sqlite_version,journal_mode=self.journal_mode)
 
     def export(self,path: Path):
         self.verify()
