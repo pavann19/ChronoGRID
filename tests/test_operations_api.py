@@ -13,6 +13,9 @@ def test_readonly_console_and_historical_counts(tmp_path):
     calendar=client.get('/api/research/local-calendar-v3').json()
     assert calendar['experiment_kind']=='historical_replay' and calendar['evaluation_observations']==840
     assert calendar['metadata']['feature_policy']=='fixed_gate_load48_local_calendar_v3'
+    weather=client.get('/api/research/matched-weather-v4').json()
+    assert weather['decision']=='NO_GO_FOR_PROMOTION' and weather['report']['models']['primary']['observations']==817
+    assert weather['report']['models']['weekly168']['mae_mw']<weather['report']['models']['primary']['mae_mw']
     assert client.get('/api/historical/forecast?origin=36').status_code==422
     assert client.get('/api/historical/forecast?head=unknown').status_code==422
     rows=client.get('/api/historical/forecast?origin=2').json()

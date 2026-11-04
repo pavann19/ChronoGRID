@@ -1,0 +1,15 @@
+# ADR 0010 — Predeclared matched forecast-weather replay
+
+Status: accepted before data collection and model fitting.
+
+Question: does a model trained on explicit ICON-EU forecasts improve load errors over a comparable load-only model? Existing persistence-weather training cannot answer that question. Build a new dataset from 00 UTC D−1 weather runs and hourly SMARD demand, retaining exact public responses and first retrieval times. This is historical replay, not proof of historical availability or prospective recording.
+
+Predeclare German delivery dates: train April 15–August 31, 2026; calibrate September 1–30; evaluate October 1–November 3. End dates precede collection. Keep the same fixed HGB settings as prior structural experiments (200 iterations, 31 leaves, learning rate 0.1, no early stopping, seed 42); no hyperparameter search or selection from evaluation results. Compare matched primary/fallback models with exact 168-hour persistence. Keep all original experiments unchanged.
+
+Use the V3 local calendar and elapsed UTC load lags 48/72/168 plus rolling48 features. Add four run-specific Frankfurt weather features to primary only; align preceding-hour radiation at t+1h. First create weather-independent load features, then join weather by each registered local day. Evaluate matched complete origins, disclose all missing/excluded origins, and separately report fallback and a weather-missing routing policy on all load-complete evaluation origins. Do not silently count a fallback as primary success. All DST vector lengths are real.
+
+Fit MAD scales on training residuals only, group daily calibration scores by local origin, freeze static marginal/simultaneous 90/95% tables. Report hourly counts, daily minima, interval width/Winkler, MAE/RMSE and paired circular calendar-block sensitivity for 1/2/3/5 days. No tuning ACI or selecting a winner for deployment. Reused statistical tools do not establish exchangeability or future guarantees. The evaluation dates are newly designated for this experiment, but broader project work may have inspected adjacent/source data; never claim independently blinded validation.
+
+Acquisition is bounded and resumable; preserve raw HTTP errors and missing days, do not retry indefinitely or overwrite successful snapshots. Respect free noncommercial request limits, send no credentials, create no paid resources. Open-Meteo/DWD and SMARD attribution accompany the dataset. The single grid point and summer-dominated training are material limitations. Prospective validation and a more defensible national spatial representation remain separate requirements.
+
+Pre-fit correction: analysis_addendum.json preserves the original collection protocol and excludes August 30–31 and September 29–30 to separate final labels from the next issuance gate by 36 hours. No model or evaluation metric existed before this correction. The implemented embargo guard rejects the original overlapping boundaries. Collection still retains every planned origin.

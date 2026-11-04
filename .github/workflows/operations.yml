@@ -33,7 +33,7 @@ jobs:
           python scripts/seal_engineering_checkpoint.py engineering_v1 --verify
       - name: Transaction, feedback, source, API, model, routing and worker tests
         if: matrix.profile == 'operations'
-        run: python -m pytest tests/test_operations_*.py -q
+        run: python -m pytest tests/test_operations_*.py tests/test_weather_study_*.py -q
       - name: Strict inference and legacy HTTP boundaries
         if: matrix.profile == 'service'
         run: python -m pytest tests/test_legacy_service_boundary.py -q

@@ -67,6 +67,17 @@ def capture_single_run(store,request: RunRequest,fetch=fetch_json):
     content=dict(format=FORMAT,request_sha256=request_sha,raw_sha256=raw_sha,source_model_initialization_time=utc(request.initialization).isoformat(),model=MODEL,identity_evidence='requested_run_via_provider_contract; model/initialization not echoed in response',source_publication_time=None,availability='first_seen_local_capture_only',radiation_semantics='direct_radiation at t is mean over [t-1h,t); other fields instantaneous at t',**normalized)
     return store.snapshot(encode(content),SOURCE,utc(store.clock()))
 
+def aligned_features(request,rows,day):
+    """Shared variable/time alignment; caller separately establishes availability."""
+    indexed={datetime.fromisoformat(r['timestamp']):r for r in rows};features=[]
+    for t in delivery_grid(day):
+        start=indexed.get(t);end=indexed.get(t+timedelta(hours=1))
+        if start is None or end is None:raise ValueError('weather run does not span delivery day')
+        values=dict(temperature_instant_c=start['temperature_2m'],humidity_instant_pct=start['relative_humidity_2m'],wind_instant_ms=start['wind_speed_10m'],direct_radiation_delivery_mean_wm2=end['direct_radiation'])
+        if any(v is None for v in values.values()):raise ValueError('missing delivery weather; no imputation')
+        features.append(dict(timestamp=t.isoformat(),radiation_valid_at=(t+timedelta(hours=1)).isoformat(),lead_hours=int((t-utc(request.initialization)).total_seconds()/3600),**values))
+    return features
+
 def delivery_weather(store,snapshot_sha256,day: date,issued_at: datetime):
     """Assemble future features only from actually captured evidence; no forecast issued."""
     issued=utc(issued_at);now=utc(store.clock());grid=delivery_grid(day)
@@ -89,11 +100,5 @@ def delivery_weather(store,snapshot_sha256,day: date,issued_at: datetime):
         inputs.append(InputSnapshot(source=source,snapshot_sha256=h,event_time_start=request.initialization,event_time_end=request.initialization,available_at=item['available_at'],captured_at=item['captured_at'],quality_flags=('provider_run_identity_not_independently_attested','single_grid_point_not_national_aggregate'),outage=False))
     age=issued-utc(request.initialization)
     if not timedelta(0)<=age<=timedelta(hours=36):raise ValueError('stale weather run')
-    rows={datetime.fromisoformat(r['timestamp']):r for r in reconstructed['rows']};features=[]
-    for t in grid:
-        start=rows.get(t);end=rows.get(t+timedelta(hours=1))
-        if start is None or end is None:raise ValueError('weather run does not span delivery day')
-        values=dict(temperature_instant_c=start['temperature_2m'],humidity_instant_pct=start['relative_humidity_2m'],wind_instant_ms=start['wind_speed_10m'],direct_radiation_delivery_mean_wm2=end['direct_radiation'])
-        if any(v is None for v in values.values()):raise ValueError('missing delivery weather; no imputation')
-        features.append(dict(timestamp=t.isoformat(),radiation_valid_at=(t+timedelta(hours=1)).isoformat(),lead_hours=int((t-utc(request.initialization)).total_seconds()/3600),**values))
+    features=aligned_features(request,reconstructed['rows'],day)
     return dict(format='chronogrid-delivery-weather-input-v1',delivery_date=day.isoformat(),snapshot_sha256=snapshot_sha256,initialization=utc(request.initialization).isoformat(),model=MODEL,issued_at=issued.isoformat(),features=features,inputs=[json.loads(x.model_dump_json()) for x in inputs],scope='input evidence only; no trained weather primary, calibration, prediction or independent timestamp proof')
