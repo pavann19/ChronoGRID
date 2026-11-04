@@ -50,3 +50,9 @@ data/dqcp_aci_state*.json
 artifacts/models/backup/
 artifacts/models/staging/
 *.tmp
+# Operations runtime data and local tooling
+.tools/
+data/operations/
+.playwright-cli/
+# Browser outputs are versioned only when explicitly staged as checkpoint evidence.
+output/playwright/*.zip

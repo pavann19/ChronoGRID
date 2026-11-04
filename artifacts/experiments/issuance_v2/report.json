@@ -1,0 +1,172 @@
+{
+  "experiment_kind": "historical_replay",
+  "version": "issuance_v2",
+  "created_at": "2026-11-04T06:19:22.687966+00:00",
+  "dataset_sha256": "d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817",
+  "script_sha256": "66b40ecbb10814d0bc06322d0673c20ac7d377a2623523ed16073ce4156201d3",
+  "feature_policy": "fixed_gate_lag48_weather48_rolling48_v2",
+  "training_cutoff": "2024-03-31T23:00:00Z",
+  "calibration_local_dates": [
+    "2024-04-03",
+    "2024-06-15"
+  ],
+  "evaluation_local_dates": [
+    "2024-06-17",
+    "2024-07-21"
+  ],
+  "selection_policy": "Structural issuance fix, two predeclared HGB models with identical hyperparameters; no evaluation-based tuning or winner promotion.",
+  "limitations": [
+    "Previously inspected evaluation dates reused: retrospective research, not a fresh holdout.",
+    "Historical source publication times unavailable; event-time availability is an optimistic information audit, not source-vintage proof.",
+    "Primary weather is 48-hour persistence, not genuine forecast vintages.",
+    "No production readiness or unconditional conformal guarantee."
+  ],
+  "models": {
+    "primary": {
+      "mae_mw": 1234.3326792078333,
+      "rmse_mw": 1556.9531278025595,
+      "training_rows": 10705,
+      "calibration_origins": 74,
+      "fit_seconds_local": 7.288462499999696,
+      "model_sha256": "6c2581bbadfb7570c42114d7db07ed18c544e3ee69e781a4d394ad6402c92c75",
+      "coverage": [
+        {
+          "method": "pooled_marginal_mad",
+          "nominal": 0.9,
+          "hourly_covered": 820,
+          "hourly_total": 840,
+          "marginal_coverage": 0.9761904761904762,
+          "daily_covered": 28,
+          "daily_total": 35,
+          "minimum_daily_coverage": 0.75,
+          "width_mw": 7150.949001360523
+        },
+        {
+          "method": "pooled_marginal_mad",
+          "nominal": 0.95,
+          "hourly_covered": 836,
+          "hourly_total": 840,
+          "marginal_coverage": 0.9952380952380953,
+          "daily_covered": 32,
+          "daily_total": 35,
+          "minimum_daily_coverage": 0.9166666666666666,
+          "width_mw": 9034.598241363203
+        },
+        {
+          "method": "daily_sup_norm",
+          "nominal": 0.9,
+          "hourly_covered": 840,
+          "hourly_total": 840,
+          "marginal_coverage": 1.0,
+          "daily_covered": 35,
+          "daily_total": 35,
+          "minimum_daily_coverage": 1.0,
+          "width_mw": 13123.95626170968
+        },
+        {
+          "method": "daily_sup_norm",
+          "nominal": 0.95,
+          "hourly_covered": 840,
+          "hourly_total": 840,
+          "marginal_coverage": 1.0,
+          "daily_covered": 35,
+          "daily_total": 35,
+          "minimum_daily_coverage": 1.0,
+          "width_mw": 19468.726592848147
+        }
+      ]
+    },
+    "fallback": {
+      "mae_mw": 1236.869729426777,
+      "rmse_mw": 1605.7391248134902,
+      "training_rows": 10705,
+      "calibration_origins": 74,
+      "fit_seconds_local": 2.7624532999998337,
+      "model_sha256": "66a69f67c3d011360edf644b59b8157e11bcd7617ceda74655602dcd28421c4a",
+      "coverage": [
+        {
+          "method": "pooled_marginal_mad",
+          "nominal": 0.9,
+          "hourly_covered": 818,
+          "hourly_total": 840,
+          "marginal_coverage": 0.9738095238095238,
+          "daily_covered": 29,
+          "daily_total": 35,
+          "minimum_daily_coverage": 0.625,
+          "width_mw": 7427.49334987137
+        },
+        {
+          "method": "pooled_marginal_mad",
+          "nominal": 0.95,
+          "hourly_covered": 829,
+          "hourly_total": 840,
+          "marginal_coverage": 0.986904761904762,
+          "daily_covered": 32,
+          "daily_total": 35,
+          "minimum_daily_coverage": 0.75,
+          "width_mw": 9345.576620203277
+        },
+        {
+          "method": "daily_sup_norm",
+          "nominal": 0.9,
+          "hourly_covered": 840,
+          "hourly_total": 840,
+          "marginal_coverage": 1.0,
+          "daily_covered": 35,
+          "daily_total": 35,
+          "minimum_daily_coverage": 1.0,
+          "width_mw": 13857.70793466992
+        },
+        {
+          "method": "daily_sup_norm",
+          "nominal": 0.95,
+          "hourly_covered": 840,
+          "hourly_total": 840,
+          "marginal_coverage": 1.0,
+          "daily_covered": 35,
+          "daily_total": 35,
+          "minimum_daily_coverage": 1.0,
+          "width_mw": 18386.999560625703
+        }
+      ]
+    },
+    "persistence_48h": {
+      "mae_mw": 6268.20119047619,
+      "rmse_mw": 8144.836390534277
+    },
+    "persistence_168h": {
+      "mae_mw": 1225.0375,
+      "rmse_mw": 1613.3419607883743
+    }
+  },
+  "paired_mae_difference_fallback_minus_primary": [
+    {
+      "block_days": 1,
+      "estimate_mw": 2.53705021894375,
+      "ci_low_mw": -68.66609822435368,
+      "ci_high_mw": 77.81280187847442,
+      "classification": "inconclusive"
+    },
+    {
+      "block_days": 2,
+      "estimate_mw": 2.53705021894375,
+      "ci_low_mw": -64.95064932888522,
+      "ci_high_mw": 84.19941600003341,
+      "classification": "inconclusive"
+    },
+    {
+      "block_days": 3,
+      "estimate_mw": 2.53705021894375,
+      "ci_low_mw": -64.2673826363729,
+      "ci_high_mw": 81.14980680437037,
+      "classification": "inconclusive"
+    },
+    {
+      "block_days": 5,
+      "estimate_mw": 2.53705021894375,
+      "ci_low_mw": -56.22026441516812,
+      "ci_high_mw": 67.1506664018282,
+      "classification": "inconclusive"
+    }
+  ]
+}
