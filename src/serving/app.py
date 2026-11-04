@@ -209,6 +209,14 @@ LEGACY_REPLAY_ROUTES = {"/forecast/day-ahead", "/forecast/resilient", "/forecast
 
 @app.middleware("http")
 async def research_boundary(request: Request, call_next):
+    # Protect future diagnostic routes by default; probes reveal only service readiness.
+    if request.method != "OPTIONS" and request.url.path not in {"/health", "/ready"} and request.url.path not in LEGACY_REPLAY_ROUTES:
+        expected = os.getenv("CHRONOGRID_DIAGNOSTICS_TOKEN", "")
+        if not expected.strip():
+            return JSONResponse(status_code=503, content={"detail": "Diagnostic authentication is not configured."})
+        supplied = request.headers.get("Authorization", "")
+        if not secrets.compare_digest(supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8")):
+            return JSONResponse(status_code=401, content={"detail": "Diagnostic authorization required."}, headers={"WWW-Authenticate": "Bearer"})
     legacy = request.url.path in LEGACY_REPLAY_ROUTES and request.method == "POST"
     if legacy:
         if os.getenv("CHRONOGRID_ENABLE_LEGACY_REPLAY") != "1":

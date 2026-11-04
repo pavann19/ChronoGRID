@@ -52,9 +52,10 @@ def test_legacy_http_retired_by_default_and_optin_requires_token(monkeypatch):
     assert 'access-control-allow-origin' not in origin.headers
 
 def test_predict_labels_caller_features_and_validates_complete_schema(monkeypatch):
+    monkeypatch.setenv('CHRONOGRID_DIAGNOSTICS_TOKEN','test-only-diagnostics')
     e=OnnxInferenceEngine();monkeypatch.setattr(service,'ENGINE',e)
     monkeypatch.setattr(service,'CHAMPION_META',{'version':None,'model_type':e.metadata['model_type']})
-    client=TestClient(service.app)
+    client=TestClient(service.app,headers={'Authorization':'Bearer test-only-diagnostics'})
     assert client.post('/predict',json={'features':[]}).status_code==422
     assert client.post('/predict',json={'features':[{'sin_hour':1}]}).status_code==400
     response=client.post('/predict',json={'features':[{n:1 for n in e.feature_names}]})
@@ -87,3 +88,35 @@ def test_model_metadata_missing_duplicate_or_wrong_width_fails_closed(tmp_path):
     for names in [metadata['feature_names'][:-1],metadata['feature_names'][:-1]+[metadata['feature_names'][0]],[]]:
         path=tmp_path/'metadata.json';path.write_text(json.dumps(metadata|{'feature_names':names}))
         with pytest.raises(ValueError):OnnxInferenceEngine(str(model),str(path))
+
+
+@pytest.mark.parametrize('route', ['/predict', '/model/info', '/metrics', '/openapi.json', '/docs', '/future-diagnostic'])
+def test_diagnostics_authentication_fails_closed(monkeypatch, route):
+    client = TestClient(service.app)
+    method = 'POST' if route == '/predict' else 'GET'
+    monkeypatch.delenv('CHRONOGRID_DIAGNOSTICS_TOKEN', raising=False)
+    assert client.request(method, route).status_code == 503
+    monkeypatch.setenv('CHRONOGRID_DIAGNOSTICS_TOKEN', '   ')
+    assert client.request(method, route).status_code == 503
+    monkeypatch.setenv('CHRONOGRID_DIAGNOSTICS_TOKEN', 'test-only-diagnostics')
+    for supplied in ['', 'Bearer wrong', 'Bearer replay-only']:
+        response = client.request(method, route, headers={'Authorization': supplied})
+        assert response.status_code == 401
+        assert response.headers['WWW-Authenticate'] == 'Bearer'
+    authorized = client.request(method, route, headers={'Authorization': 'Bearer test-only-diagnostics'})
+    assert authorized.status_code not in {401, 403}
+    if route == '/predict':
+        assert authorized.status_code == 422
+    if route == '/metrics':
+        assert authorized.status_code == 200
+
+
+def test_probes_remain_accessible_and_replay_token_is_separate(monkeypatch):
+    monkeypatch.setenv('CHRONOGRID_DIAGNOSTICS_TOKEN', 'diagnostics-only')
+    monkeypatch.setenv('CHRONOGRID_ENABLE_LEGACY_REPLAY', '1')
+    monkeypatch.setenv('CHRONOGRID_LEGACY_REPLAY_TOKEN', 'replay-only')
+    client = TestClient(service.app)
+    assert client.get('/health').status_code == 200
+    assert client.get('/ready').status_code in {200, 503}
+    assert client.post('/forecast/day-ahead', headers={'Authorization': 'Bearer diagnostics-only'}, json={}).status_code == 401
+    assert client.get('/metrics', headers={'Authorization': 'Bearer replay-only'}).status_code == 401
