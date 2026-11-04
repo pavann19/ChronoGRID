@@ -91,6 +91,17 @@ def create_app(database: Path | None=None,root: Path=ROOT):
         path=root/'artifacts/experiments/local_calendar_v3/report.json'
         if not path.exists():raise HTTPException(404,'V3 research artifact unavailable')
         return json.loads(path.read_text())
+    @app.get('/api/weather/runs')
+    def weather_runs():
+        store.verify()
+        from src.operations.weather_runs import SOURCE
+        records=[]
+        for row in store.rows('snapshot'):
+            meta=row['payload']
+            if meta['source']==SOURCE:
+                body=json.loads(store.snapshot_bytes(meta['content_sha256']))
+                records.append(dict(sha256=meta['content_sha256'],captured_at=meta['captured_at'],initialization=body['source_model_initialization_time'],model=body['model'],identity_evidence=body['identity_evidence'],location=body['response_grid_point'],valid_hours=len(body['rows']),missing_values=sum(r[k] is None for r in body['rows'] for k in ('temperature_2m','relative_humidity_2m','wind_speed_10m','direct_radiation'))))
+        return dict(runs=records,errors=[r['payload'] for r in store.rows('weather_error')],scope='weather input evidence; no trained primary, load prediction or source publication-time proof')
     @app.get('/api/models')
     def models():
         metadata=[]
