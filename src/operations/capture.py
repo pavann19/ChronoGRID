@@ -141,7 +141,8 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     fe=LocalCalendarFeatures() if policy==POLICY else FeatureEngineer(min_lag_hours=48,lags=[48,72,168],weather_mode='load_only')
     features=fe._generate_raw_features(full).set_index('timestamp').loc[pd.DatetimeIndex(grid),metadata['feature_names']]
     if not np.isfinite(features.values).all(): raise ValueError('missing issuance-safe features')
-    model=joblib.load(experiment_dir/'fallback.joblib'); predictions=model.predict(features.values)
+    from src.operations.model_loading import load_research_model
+    model=load_research_model(experiment_dir/'fallback.joblib'); predictions=model.predict(features.values)
     intervals=static_intervals(predictions,np.array([t.hour for t in grid]),table,metadata['model_sha256'],'pooled_marginal_mad',.9,metadata['feature_policy'],metadata['feature_policy'])
     points=tuple(Delivery(timestamp=t,point_mw=float(p),lower_mw=intervals['lower'][i] if intervals['lower'] is not None else None,upper_mw=intervals['upper'][i] if intervals['upper'] is not None else None,interval_status=intervals['status'],quality_flags=('research_calibration_temporal_assumptions_unverified',)) for i,(t,p) in enumerate(zip(grid,predictions)))
     run=store.get('run:'+run_id)
