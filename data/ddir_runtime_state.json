@@ -1,0 +1,9 @@
+{
+  "effective_state": "UNAVAILABLE",
+  "consecutive_healthy_count": 0,
+  "recovery_threshold": 2,
+  "last_healthy_timestamp": null,
+  "last_healthy_fingerprint": null,
+  "last_healthy_content_fingerprint": null,
+  "updated_at": "2026-11-03T17:12:43.129077+00:00"
+}

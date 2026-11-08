@@ -28,7 +28,8 @@ def run_dashboard():
         initial_sidebar_state="expanded",
     )
 
-    st.title("⚡ ChronoGrid — Production ML Forecasting & MLOps Platform")
+    st.title("⚡ ChronoGrid — Research Platform")
+    st.info("For corrected frozen research and evidence integrity, run the operations console. Missing registry values remain unavailable.")
     st.markdown("Real-world German Electricity Grid Load & DWD Meteorological Forecasting System")
 
     # Load Database state if available
@@ -51,23 +52,23 @@ def run_dashboard():
     with col1:
         st.metric(
             "Champion Model",
-            f"v{champion_rec.version} ({champion_rec.model_type})" if champion_rec else "v1 (LightGBM)",
-            help="Currently serving traffic in production via ONNX"
+            f"v{champion_rec.version} ({champion_rec.model_type})" if champion_rec else "Unavailable",
+            help="Registry identity; production operation is not established by this display"
         )
     with col2:
         st.metric(
             "Champion MAE",
-            f"{champion_rec.mae:.1f} MW" if champion_rec and champion_rec.mae else "1,142 MW",
+            f"{champion_rec.mae:.1f} MW" if champion_rec and champion_rec.mae else "Unavailable",
             help="Mean Absolute Error on holdout evaluation"
         )
     with col3:
         st.metric(
             "Champion MAPE",
-            f"{champion_rec.mape:.2f}%" if champion_rec and champion_rec.mape else "2.14%",
+            f"{champion_rec.mape:.2f}%" if champion_rec and champion_rec.mape else "Unavailable",
             help="Mean Absolute Percentage Error"
         )
     with col4:
-        drift_val = f"{drift_rec.overall_drift_score:.3f}" if drift_rec else "0.042 (Stable)"
+        drift_val = f"{drift_rec.overall_drift_score:.3f}" if drift_rec else "Unavailable"
         st.metric(
             "Overall PSI Drift",
             drift_val,

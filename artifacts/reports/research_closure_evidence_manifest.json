@@ -1,0 +1,227 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-11-04T05:59:50.341631+00:00",
+  "baseline": {
+    "tag": "v1.0.0",
+    "tag_object": "b6d05f6696863a3bd181efbc533e8fa1db1c87ac",
+    "commit": "f047f2e353ebb13b5728452103b4fec46bb70372",
+    "tree": "bb5fdc387a6335006c24de490b5d23d01b681dfa"
+  },
+  "checkout_head": "7f34ab8a765bb8a7f9e9330236b29a9d2bba71ea",
+  "historical_sprint_3_3_and_3_3_1_preserved": true,
+  "hourly_evidence": "Reconstructed because original archived hourly evaluation file was unavailable. Not an originally archived prediction record.",
+  "scope": "Current local bytes; not independent timestamp attestation, remote publication, or immutable backup.",
+  "decision": "CONDITIONAL research use",
+  "files": [
+    {
+      "path": "artifacts/calibration/calibration_provenance.json",
+      "bytes": 2051,
+      "sha256": "838f7c976dc7ec502aa5788d1a2ab282f141e4d5c71ee9830317fd04b9c4c663",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/calibration/fallback_calibration_table.json",
+      "bytes": 47719,
+      "sha256": "a32c99f42984ede619e4eeed40af7a91aba24da0076a606ae1f4af46b48b91c5",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/calibration/primary_calibration_table.json",
+      "bytes": 47676,
+      "sha256": "60cd56227486ae19f7d2dc6128c91b374087af08df564abc7a063ed34e235290",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/models/champion_model.onnx",
+      "bytes": 336992,
+      "sha256": "1c28a97074fbc579f94eb3ab5ae72752bba97057c077eece647c2d1e5b8fcd91",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/models/load_only_model.onnx",
+      "bytes": 453042,
+      "sha256": "fa2913cf584e985e9b23d4e61ec082bb90ba93780d062eb8ed6ed910b45c6e45",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/models/research/research_fallback_model_thru_20240331.joblib",
+      "bytes": 418814,
+      "sha256": "3c12480e7849bf14f44f5e4777dbe6d40edf7b22131f08b9fa19ae80603b21d9",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/models/research/research_primary_model_thru_20240331.joblib",
+      "bytes": 435006,
+      "sha256": "352abc4f302a43163532a222701efb6d2b1bb2d99df3f33d047faa9029ce758b",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_1_bootstrap_sensitivity.csv",
+      "bytes": 23521,
+      "sha256": "4b0754336c555e6b7c88872e1b43e35450712d12a2a7d1b4603f2735489ec836",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_1_numerical_reconciliation.json",
+      "bytes": 68004,
+      "sha256": "a478500be0be8beb062ece3d43286f948ab75335423a2d8174238acdc719357d",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_1_paired_daily_errors.csv",
+      "bytes": 2139,
+      "sha256": "d9316bd048466b2b4bfcb95170eced8f9dc4cac0c80b6cc6481cc8b591da95bd",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_1_per_horizon.csv",
+      "bytes": 22457,
+      "sha256": "7c255872589676dfe9a7bed56e5484766ed26fbd2e9c22f33548aeb0004253f9",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_1_per_origin.csv",
+      "bytes": 52959,
+      "sha256": "4db16db32a89eeff04d20ce889c8b8a735b7da429106ae952e68d01cc24b06c1",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_1_reconstructed_per_hour.csv",
+      "bytes": 1131892,
+      "sha256": "6718d7dc8023721087c302e5fe3e332531ce9fe3c138830f701fe3e50e477022",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/ddir_sprint_3_3_benchmark.json",
+      "bytes": 220353,
+      "sha256": "e5b2377263d06135b992842ddd92694497707e3e7360c3c64525b28a7bd177a9",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "artifacts/reports/research_closure_validation.txt",
+      "bytes": 605,
+      "sha256": "c5e0afeb828dcb6e293bbdcf9105c793ab9e2dd5ca357eb06944ff356aeffdd8",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "data/raw/genuine_smard_dwd_observations.parquet",
+      "bytes": 275120,
+      "sha256": "d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "docs/architecture/dqcp_architecture.md",
+      "bytes": 16122,
+      "sha256": "97fc9fbdb8b74e20d3dd362a1deea54b3f655721647c24ab4b266408348bcd65",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "docs/provenance_and_limitations.md",
+      "bytes": 5467,
+      "sha256": "3d4674775728cdeede8c0fb22501691b4abd8cf43868e5fdc37162f441d4dff4",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "docs/research/ddir_sprint_3_3_1_numerical_reconciliation.md",
+      "bytes": 13383,
+      "sha256": "73ddf284d74c0322f2615386d1149dda3f06bd2ba1b3364663652ebdfd5764f9",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "docs/research/ddir_sprint_3_3_evaluation_report.md",
+      "bytes": 37637,
+      "sha256": "a10fcfcd050b1ccdcb7fee7a2531058b12a3f56dace1f064e8b70b5c593c819f",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "docs/research/prospective_evaluation_protocol.md",
+      "bytes": 8837,
+      "sha256": "6fee4a9b93b8c6e7c7bd20f43073c074fabfc9d016aeefeaf6a8deb9f2ba8555",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "docs/research/research_closure_addendum.md",
+      "bytes": 4945,
+      "sha256": "1cdf21f506782a2d81b1d85e3396919d91eb8a2495f298b8f6ee85fc5c410660",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "README.md",
+      "bytes": 11924,
+      "sha256": "9c60a6cf7fd3b0ce0bff5e55af736c36fb6f7b5642f57e5ef33bc8d16023be04",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "schemas/prospective_actual_observation.schema.json",
+      "bytes": 1685,
+      "sha256": "7c83e864534e99a9057d189dfe33b86758b00e9d28f74ac623402f354d525d51",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "schemas/prospective_prediction_record.schema.json",
+      "bytes": 6610,
+      "sha256": "027c99e960a161b82831a23e351dad1bda68b55f08c8ab394aa808b2dfb05c54",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "scripts/preserve_research_evidence.py",
+      "bytes": 3472,
+      "sha256": "e329c5ffe63a5fa254da3082352a3f44df77b4b7b2e0ed81a264aba246234dc5",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "scripts/reconcile_sprint_3_3_1.py",
+      "bytes": 18619,
+      "sha256": "780702baea67c420746de77fcd682917fe8e1590b732f57d08797fecabe8dc2e",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "scripts/run_sprint_3_3_evaluation.py",
+      "bytes": 38792,
+      "sha256": "aa81d3268748b307e4664fe7af8a3dc9c331ccdf04b444b986cc3f6980751e18",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "src/evaluation/__init__.py",
+      "bytes": 77,
+      "sha256": "14085d7c0312a6619403109797fbe19126b46d78971be23d4b0283581c20e212",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "src/evaluation/prospective.py",
+      "bytes": 8930,
+      "sha256": "83f1fc787a9e932d173aa2506d744a489dc0e8427f52c5b357c2ad81e20ed244",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "src/features/engineer.py",
+      "bytes": 18335,
+      "sha256": "6f392d687f001bbda27cca2ff79f98ef1f9147ee44bbabf5e47259b48a2f165f",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "src/uncertainty/conformal.py",
+      "bytes": 9003,
+      "sha256": "6ff5af5202e74ae2cc2bdf898d4bc01f7ee83cc6f921c766a03634478f94cdb1",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "src/uncertainty/normalization.py",
+      "bytes": 5601,
+      "sha256": "e10aff6de98272e059057831d8e51cb4340faf584f0ff4132650df03dc8545ec",
+      "role": "historical_or_frozen_dependency"
+    },
+    {
+      "path": "tests/test_prospective_evidence.py",
+      "bytes": 5745,
+      "sha256": "85adaeedef0b0d99a3f9b046e132eb10d2db2aca6f25f228a487f31ee39c86c5",
+      "role": "closure_or_prospective_foundation"
+    },
+    {
+      "path": "tests/test_sprint_3_3_evaluation.py",
+      "bytes": 9217,
+      "sha256": "85d2310cd75a762991a73bd061a75c5cf86f21f9d5ae10409214b2b2f5c972c0",
+      "role": "historical_or_frozen_dependency"
+    }
+  ]
+}

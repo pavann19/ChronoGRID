@@ -6,14 +6,13 @@ Verifies rejection of inferior models, atomic promotion, and rollback capabiliti
 import numpy as np
 import pandas as pd
 import pytest
+
+from src.models.tree_models import LightGBMModel, XGBoostModel
 from src.retraining.promotion_engine import PromotionEngine
-from src.models.tree_models import XGBoostModel, LightGBMModel
-from src.db.database import init_db
 
 
 @pytest.fixture
-def dummy_train_eval_data():
-    init_db()
+def dummy_train_eval_data(isolated_application_database):
     rng = np.random.RandomState(42)
     X = pd.DataFrame({f"f_{i}": rng.randn(200) for i in range(10)})
     y = 50000.0 + rng.randn(200) * 1000.0

@@ -44,8 +44,16 @@ desktop.ini
 
 # Runtime transient ingestion outputs (canonical dataset is data/raw/genuine_smard_dwd_observations.parquet)
 data/raw/smard_dwd_raw_*.parquet
+data/dqcp_aci_state*.json
 
 # Dynamic model promotion backups & staging scratch
 artifacts/models/backup/
 artifacts/models/staging/
 *.tmp
+# Operations runtime data and local tooling
+.tools/
+data/operations/
+.playwright-cli/
+# Browser outputs are versioned only when explicitly staged as checkpoint evidence.
+output/playwright/*.zip
+deployment/wheelhouse/

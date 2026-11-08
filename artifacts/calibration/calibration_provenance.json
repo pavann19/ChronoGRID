@@ -1,0 +1,51 @@
+{
+  "calibration_version": "v1.0-research",
+  "created_at": "2026-11-03T17:38:33.944351+00:00",
+  "dataset_source": "data/raw/genuine_smard_dwd_observations.parquet",
+  "training_partition": {
+    "start_timestamp": "2023-01-09 23:00:00+00:00",
+    "end_timestamp": "2024-03-31 23:00:00+00:00",
+    "hours_count": 10729,
+    "purpose": "Model training and Delivery-Hour MAD scale estimation"
+  },
+  "purge_gap_1": {
+    "start_timestamp": "2024-04-01 00:00:00+00:00",
+    "end_timestamp": "2024-04-01 23:00:00+00:00",
+    "hours_count": 24,
+    "purpose": "Eliminates autoregressive lag leakage between training and calibration"
+  },
+  "calibration_partition": {
+    "start_timestamp": "2024-04-02 00:00:00+00:00",
+    "end_timestamp": "2024-06-15 23:00:00+00:00",
+    "hours_count": 1800,
+    "daily_origins_count": 75,
+    "purpose": "Generates out-of-sample non-conformity scores and finite-sample quantiles"
+  },
+  "held_out_evaluation_boundary": {
+    "start_timestamp": "2024-06-16 22:00:00+00:00",
+    "end_timestamp": "2024-07-21 21:00:00+00:00",
+    "hours_count": 840,
+    "daily_origins_count": 35,
+    "status": "STRICTLY_UNTOUCHED_HELD_OUT_SET"
+  },
+  "artifacts": {
+    "primary_calibration_table": "artifacts\\calibration\\primary_calibration_table.json",
+    "fallback_calibration_table": "artifacts\\calibration\\fallback_calibration_table.json",
+    "primary_model_sha256": "352abc4f302a43163532a222701efb6d2b1bb2d99df3f33d047faa9029ce758b",
+    "fallback_model_sha256": "3c12480e7849bf14f44f5e4777dbe6d40edf7b22131f08b9fa19ae80603b21d9"
+  },
+  "quantiles_summary": {
+    "primary": {
+      "marginal_90pct": 5.6510078873467675,
+      "marginal_95pct": 6.9282262179236955,
+      "simultaneous_90pct": 10.264093596297831,
+      "simultaneous_95pct": 14.346689750354365
+    },
+    "fallback": {
+      "marginal_90pct": 5.57027732399968,
+      "marginal_95pct": 6.814566994212309,
+      "simultaneous_90pct": 10.31428178323866,
+      "simultaneous_95pct": 13.517729280763183
+    }
+  }
+}

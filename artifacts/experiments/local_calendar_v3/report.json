@@ -1,0 +1,193 @@
+{
+  "version": "local_calendar_v3",
+  "experiment_kind": "historical_replay",
+  "created_at": "2026-11-04T10:47:42.259324+00:00",
+  "script_sha256": "52b4216a9757e979b5321bbb2300cf42fb448fa67f86b3e5dbc5f3218a4d5083",
+  "metadata": {
+    "model_id": "hgb-fallback-local-calendar-v3",
+    "model_sha256": "ed589cc4bcbcf8990c905b74325edb28ba64d967e24806bb274216eaf4076ca4",
+    "feature_policy": "fixed_gate_load48_local_calendar_v3",
+    "feature_names": [
+      "sin_hour",
+      "cos_hour",
+      "sin_dayofweek",
+      "cos_dayofweek",
+      "sin_month",
+      "cos_month",
+      "sin_dayofyear",
+      "cos_dayofyear",
+      "is_weekend",
+      "is_holiday",
+      "is_working_day",
+      "grid_load_mw_lag_48",
+      "grid_load_mw_lag_72",
+      "grid_load_mw_lag_168",
+      "grid_load_mw_roll_mean_6",
+      "grid_load_mw_roll_std_6",
+      "grid_load_mw_roll_min_6",
+      "grid_load_mw_roll_max_6",
+      "grid_load_mw_roll_mean_12",
+      "grid_load_mw_roll_std_12",
+      "grid_load_mw_roll_min_12",
+      "grid_load_mw_roll_max_12",
+      "grid_load_mw_roll_mean_24",
+      "grid_load_mw_roll_std_24",
+      "grid_load_mw_roll_min_24",
+      "grid_load_mw_roll_max_24",
+      "grid_load_mw_roll_mean_168",
+      "grid_load_mw_roll_std_168",
+      "grid_load_mw_roll_min_168",
+      "grid_load_mw_roll_max_168",
+      "grid_load_mw_diff_24_168"
+    ],
+    "training_cutoff": "2024-03-31T23:00:00Z",
+    "dataset_sha256": "d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817",
+    "calibration_sha256": "082423986abeadb4c939591762367b4df1ab3daf13bf3b66ad437a993beb1d06",
+    "feature_sources": {
+      "src/operations/local_calendar.py": "a654545c7f45307829b5f9b273d352cb6e9bf0fa65c9f815dc174837683c769b",
+      "src/features/engineer.py": "6f392d687f001bbda27cca2ff79f98ef1f9147ee44bbabf5e47259b48a2f165f",
+      "src/features/autoregressive.py": "7662807c365a36277291e43b67abdce7e9169628ff5880cb37ad1637d5bdd80f",
+      "src/features/weather_features.py": "b6842acec7d6cd572712a3825d13f95946593190a1b74ad019b6a926443aa94e"
+    },
+    "min_lag_hours": 48,
+    "mode": "load_only",
+    "calendar_timezone": "Europe/Berlin",
+    "calendar_years": [
+      2023,
+      2030
+    ],
+    "residual_scale_horizon": "UTC delivery hour"
+  },
+  "training_rows": 10705,
+  "calibration_origins": 74,
+  "evaluation_observations": 840,
+  "evaluation_origins": 35,
+  "fit_seconds_local": 1.24605000000156,
+  "mae_mw": 1235.0361058099681,
+  "rmse_mw": 1555.2279698923016,
+  "coverage": [
+    {
+      "method": "pooled_marginal_mad",
+      "nominal": 0.9,
+      "covered": 825,
+      "missed": 15,
+      "total": 840,
+      "origins": 35,
+      "daily_covered": 29,
+      "minimum_daily_coverage": 0.7916666666666666,
+      "mean_width_mw": 7678.047590238446,
+      "winkler_mw": 7832.00980827385
+    },
+    {
+      "method": "pooled_marginal_mad",
+      "nominal": 0.95,
+      "covered": 839,
+      "missed": 1,
+      "total": 840,
+      "origins": 35,
+      "daily_covered": 34,
+      "minimum_daily_coverage": 0.9583333333333334,
+      "mean_width_mw": 9649.532471797935,
+      "winkler_mw": 9668.09763594841
+    },
+    {
+      "method": "daily_sup_norm",
+      "nominal": 0.9,
+      "covered": 840,
+      "missed": 0,
+      "total": 840,
+      "origins": 35,
+      "daily_covered": 35,
+      "minimum_daily_coverage": 1.0,
+      "mean_width_mw": 12617.920595430185,
+      "winkler_mw": 12617.920595430185
+    },
+    {
+      "method": "daily_sup_norm",
+      "nominal": 0.95,
+      "covered": 840,
+      "missed": 0,
+      "total": 840,
+      "origins": 35,
+      "daily_covered": 35,
+      "minimum_daily_coverage": 1.0,
+      "mean_width_mw": 17774.445457911304,
+      "winkler_mw": 17774.445457911304
+    }
+  ],
+  "paired_block_sensitivity": [
+    {
+      "comparison": "v2_minus_v3",
+      "block_days": 1,
+      "estimate_mw": 1.8336236168090798,
+      "ci_low_mw": -77.25672527014268,
+      "ci_high_mw": 81.709728310672,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "v2_minus_v3",
+      "block_days": 2,
+      "estimate_mw": 1.8336236168090798,
+      "ci_low_mw": -83.73971861405576,
+      "ci_high_mw": 88.94334224744044,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "v2_minus_v3",
+      "block_days": 3,
+      "estimate_mw": 1.8336236168090798,
+      "ci_low_mw": -86.43795986562567,
+      "ci_high_mw": 92.14248865337258,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "v2_minus_v3",
+      "block_days": 5,
+      "estimate_mw": 1.8336236168090798,
+      "ci_low_mw": -89.57803307637542,
+      "ci_high_mw": 98.97416791415517,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "weekly168_minus_v3",
+      "block_days": 1,
+      "estimate_mw": -9.998605809968078,
+      "ci_low_mw": -191.70463267126001,
+      "ci_high_mw": 173.0027535096621,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "weekly168_minus_v3",
+      "block_days": 2,
+      "estimate_mw": -9.998605809968078,
+      "ci_low_mw": -204.70919052132234,
+      "ci_high_mw": 180.77160568093734,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "weekly168_minus_v3",
+      "block_days": 3,
+      "estimate_mw": -9.998605809968078,
+      "ci_low_mw": -207.72495508443592,
+      "ci_high_mw": 187.31631784430272,
+      "classification": "inconclusive"
+    },
+    {
+      "comparison": "weekly168_minus_v3",
+      "block_days": 5,
+      "estimate_mw": -9.998605809968078,
+      "ci_low_mw": -184.9519094797289,
+      "ci_high_mw": 169.00552181793654,
+      "classification": "inconclusive"
+    }
+  ],
+  "selection_policy": "Single fixed HGB, calendar migration only; no search or promotion",
+  "limitations": [
+    "Already inspected dates reused; not independent holdout or prospective evidence.",
+    "Source publication/vintage timestamps unavailable.",
+    "Nationwide holidays only; regional and school holidays excluded.",
+    "2023-2030 calendar rule extrapolation is a modelling policy, not a guarantee about future law.",
+    "UTC residual scales retained; calendar features use Europe/Berlin.",
+    "Temporal exchangeability and future coverage not established."
+  ]
+}

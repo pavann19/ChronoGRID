@@ -1,0 +1,3 @@
+# Preferred local research deployment. The v1.0.0 recipe remains in the frozen tag.
+include:
+  - path: compose.operations.yml

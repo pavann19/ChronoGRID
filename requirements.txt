@@ -1,5 +1,7 @@
-# ChronoGrid Production ML Forecasting & MLOps Platform
-# Core Dependencies
+# Legacy broad research compatibility requirements, not the deployment profile.
+# New runtime installs use deployment/requirements-operations.lock or service.lock.
+# Selectable package extras are declared in pyproject.toml; the inherited environment
+# is not repaired merely by changing this file.
 pandas>=2.2.0
 numpy>=1.26.0
 scipy>=1.14.0
@@ -24,3 +26,5 @@ statsmodels>=0.14.0
 pytest>=8.0.0
 pyyaml>=6.0
 
+# Parquet is required by the existing canonical-data tests.
+pyarrow==26.0.1

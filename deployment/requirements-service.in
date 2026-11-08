@@ -1,0 +1,5 @@
+-r requirements-operations.in
+# Minimal compatibility diagnostics service, not the optional training/export stack.
+SQLAlchemy==2.1.8
+prometheus-client==0.26.0
+pyarrow==26.0.1

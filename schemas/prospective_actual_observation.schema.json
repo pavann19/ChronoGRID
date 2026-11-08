@@ -1,0 +1,80 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "prediction_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prediction Sha256",
+      "type": "string"
+    },
+    "delivery_timestamp": {
+      "format": "date-time",
+      "title": "Delivery Timestamp",
+      "type": "string"
+    },
+    "observation_end": {
+      "format": "date-time",
+      "title": "Observation End",
+      "type": "string"
+    },
+    "available_at": {
+      "format": "date-time",
+      "title": "Available At",
+      "type": "string"
+    },
+    "source": {
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "source_snapshot_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Snapshot Sha256",
+      "type": "string"
+    },
+    "revision": {
+      "pattern": "^[A-Za-z0-9_-]{1,100}$",
+      "title": "Revision",
+      "type": "string"
+    },
+    "value_mw": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Value Mw"
+    },
+    "status": {
+      "enum": [
+        "observed",
+        "missing"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "quality_flags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Quality Flags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "prediction_sha256",
+    "delivery_timestamp",
+    "observation_end",
+    "available_at",
+    "source",
+    "source_snapshot_sha256",
+    "revision",
+    "value_mw",
+    "status",
+    "quality_flags"
+  ],
+  "title": "ActualObservation",
+  "type": "object"
+}

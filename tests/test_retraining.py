@@ -4,6 +4,7 @@ Tests for Retraining and Promotion Logic (P5.10).
 
 import numpy as np
 import pandas as pd
+
 from src.retraining.promotion_engine import PromotionEngine
 
 
@@ -15,7 +16,7 @@ class MockModel:
         return np.full(len(X), 50000.0) + self.error_scale
 
 
-def test_promotion_engine_rejects_inferior_challenger():
+def test_promotion_engine_rejects_inferior_challenger(isolated_application_database):
     engine = PromotionEngine(min_improvement_pct=0.02)
     df_eval = pd.DataFrame({
         "target": np.random.normal(50000, 1000, 100),

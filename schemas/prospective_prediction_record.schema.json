@@ -1,0 +1,287 @@
+{
+  "$defs": {
+    "Delivery": {
+      "additionalProperties": false,
+      "properties": {
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "point_mw": {
+          "title": "Point Mw",
+          "type": "number"
+        },
+        "lower_mw": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Lower Mw"
+        },
+        "upper_mw": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Upper Mw"
+        },
+        "interval_status": {
+          "enum": [
+            "bounded",
+            "unbounded",
+            "unavailable"
+          ],
+          "title": "Interval Status",
+          "type": "string"
+        },
+        "quality_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "timestamp",
+        "point_mw",
+        "lower_mw",
+        "upper_mw",
+        "interval_status",
+        "quality_flags"
+      ],
+      "title": "Delivery",
+      "type": "object"
+    },
+    "InputSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "snapshot_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Sha256",
+          "type": "string"
+        },
+        "event_time_start": {
+          "format": "date-time",
+          "title": "Event Time Start",
+          "type": "string"
+        },
+        "event_time_end": {
+          "format": "date-time",
+          "title": "Event Time End",
+          "type": "string"
+        },
+        "available_at": {
+          "format": "date-time",
+          "title": "Available At",
+          "type": "string"
+        },
+        "captured_at": {
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "quality_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
+        },
+        "outage": {
+          "title": "Outage",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "snapshot_sha256",
+        "event_time_start",
+        "event_time_end",
+        "available_at",
+        "captured_at",
+        "quality_flags",
+        "outage"
+      ],
+      "title": "InputSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "enum": [
+        "1.0"
+      ],
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "experiment_kind": {
+      "const": "prospective",
+      "default": "prospective",
+      "enum": [
+        "prospective"
+      ],
+      "title": "Experiment Kind",
+      "type": "string"
+    },
+    "protocol_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Sha256",
+      "type": "string"
+    },
+    "record_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,100}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "issuance_timezone": {
+      "title": "Issuance Timezone",
+      "type": "string"
+    },
+    "delivery_date": {
+      "format": "date",
+      "title": "Delivery Date",
+      "type": "string"
+    },
+    "delivery_timezone": {
+      "const": "Europe/Berlin",
+      "default": "Europe/Berlin",
+      "enum": [
+        "Europe/Berlin"
+      ],
+      "title": "Delivery Timezone",
+      "type": "string"
+    },
+    "model_id": {
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Sha256",
+      "type": "string"
+    },
+    "feature_code_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Feature Code Sha256",
+      "type": "string"
+    },
+    "route": {
+      "enum": [
+        "primary",
+        "fallback"
+      ],
+      "title": "Route",
+      "type": "string"
+    },
+    "routing_reason": {
+      "minLength": 1,
+      "title": "Routing Reason",
+      "type": "string"
+    },
+    "data_quality_flags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Data Quality Flags",
+      "type": "array"
+    },
+    "outage": {
+      "title": "Outage",
+      "type": "boolean"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/InputSnapshot"
+      },
+      "minItems": 1,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "calibration_method": {
+      "enum": [
+        "pooled_marginal_mad",
+        "daily_sup_norm"
+      ],
+      "title": "Calibration Method",
+      "type": "string"
+    },
+    "calibration_state_version": {
+      "minLength": 1,
+      "title": "Calibration State Version",
+      "type": "string"
+    },
+    "calibration_state_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Calibration State Sha256",
+      "type": "string"
+    },
+    "nominal_coverage": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Nominal Coverage",
+      "type": "number"
+    },
+    "effective_alpha": {
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Effective Alpha",
+      "type": "number"
+    },
+    "deliveries": {
+      "items": {
+        "$ref": "#/$defs/Delivery"
+      },
+      "maxItems": 25,
+      "minItems": 23,
+      "title": "Deliveries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "protocol_sha256",
+    "record_id",
+    "issued_at",
+    "issuance_timezone",
+    "delivery_date",
+    "model_id",
+    "model_sha256",
+    "feature_code_sha256",
+    "route",
+    "routing_reason",
+    "data_quality_flags",
+    "outage",
+    "inputs",
+    "calibration_method",
+    "calibration_state_version",
+    "calibration_state_sha256",
+    "nominal_coverage",
+    "effective_alpha",
+    "deliveries"
+  ],
+  "title": "PredictionRecord",
+  "type": "object"
+}

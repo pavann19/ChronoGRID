@@ -3,7 +3,8 @@ Tests for ONNX Engine and FastAPI Serving Endpoints (P5.8).
 """
 
 import numpy as np
-from src.serving.app import health, metrics
+from src.serving.app import health, metrics, forecast_resilient, load_engine
+from src.serving.schemas import ResilientForecastRequest
 from src.serving.onnx_engine import OnnxInferenceEngine
 
 
@@ -17,6 +18,16 @@ def test_fastapi_metrics_endpoint():
     resp = metrics()
     assert resp.status_code == 200
     assert b"chronogrid_inference_requests_total" in resp.body
+
+
+def test_fastapi_resilient_endpoint():
+    load_engine()
+    req = ResilientForecastRequest(horizon_hours=24, weather_payload=None)
+    resp = forecast_resilient(req)
+    assert resp.routing_state == "UNAVAILABLE"
+    assert resp.active_head == "FALLBACK_LOAD_ONLY"
+    assert len(resp.forecast_load_mw) == 24
+    assert resp.forecast_load_mw[0] > 0
 
 
 def test_onnx_engine_predictions():
