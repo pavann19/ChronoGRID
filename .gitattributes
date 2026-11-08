@@ -71,6 +71,11 @@ requirements.txt -text
 .github/workflows/operations.yml -text
 .github/workflows/ci.yml -text
 .gitattributes -text
+scripts/preserve_portfolio_handoff.py -text
+scripts/verify_portfolio_demo.py -text
+tests/test_calibration_model_binding.py -text
+src/uncertainty/engine.py -text
+tests/test_dqcp_uncertainty_engine.py -text
 OPERATIONS.md -text
 scripts/seal_engineering_checkpoint.py -text
 src/serving/*.py -text
