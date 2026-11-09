@@ -18,6 +18,7 @@ def main(argv=None):
     register=sub.add_parser('register'); register.add_argument('config',type=Path)
     sub.add_parser('verify'); sub.add_parser('fetch-smard'); sub.add_parser('fetch-weather')
     sub.add_parser('doctor')
+    status=sub.add_parser('status'); status.add_argument('--run')
     serve=sub.add_parser('serve');serve.add_argument('--port',type=int,default=8765)
     weather_run=sub.add_parser('fetch-weather-run');weather_run.add_argument('initialization',type=datetime.fromisoformat)
     weather_day=sub.add_parser('weather-delivery');weather_day.add_argument('snapshot');weather_day.add_argument('day',type=date.fromisoformat);weather_day.add_argument('output',type=Path)
@@ -56,6 +57,9 @@ def main(argv=None):
     if hasattr(args,'experiment_dir') and args.experiment_dir is None:
         if root is None:parser.error('Model capture requires --experiment-dir or a research --workspace')
         args.experiment_dir=root/'artifacts/experiments/issuance_v2'
+    if args.command=='status':
+        from src.operations.status import journal_status
+        print(json.dumps(journal_status(args.db,run_id=args.run),indent=2));return
     if args.command in ('verify','export','backup','report','adaptive-state','weather-delivery','timestamp-verify','link-smard','settle-adaptive') and not args.db.is_file():
         parser.error('Journal does not exist; read-only/link/feedback commands never initialize an empty journal')
     if args.command=='serve':

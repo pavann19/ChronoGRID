@@ -102,3 +102,7 @@ tests/test_legacy_feature_parity_gate.py -text
 artifacts/engineering/local_release_evidence_*/attestation.sig binary
 tests/test_weather_study_*.py -text
 src/features/*.py -text
+src/operations/status.py -text
+tests/test_operations_status.py -text
+artifacts/engineering/operations_status_v1/* -text
+artifacts/engineering/operations_status_manifest_v1.* -text
