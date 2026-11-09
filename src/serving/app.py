@@ -241,6 +241,17 @@ async def research_boundary(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def diagnostic_response_headers(request: Request, call_next):
+    # Registered last so authentication rejections receive these headers too.
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/health", response_model=HealthResponse)
 def health():
     """Liveness probe."""

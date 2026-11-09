@@ -8,6 +8,7 @@ import requests
 from src.evaluation.prospective import Delivery, InputSnapshot, utc
 from src.operations.contracts import Forecast
 from src.operations.journal import Journal, digest, encode
+from src.operations.availability import observed_history
 
 SMARD='https://www.smard.de/app/chart_data/410/DE'
 MAX_BYTES=8_000_000
@@ -71,15 +72,8 @@ def capture_weekly(store: Journal,run_id: str,day: date,arm: str,snapshot_sha256
     dataset=json.loads(store.snapshot_bytes(snapshot_sha256))
     if dataset.get('format')!='smard-hourly-mw-v1' or dataset.get('unit')!='MW': raise ValueError('wrong source/unit contract')
     if source['source']!='smard-normalized-hourly': raise ValueError('unapproved source')
-    rows={}; issued=utc(store.clock())
-    for row in dataset['rows']:
-        ts=utc(datetime.fromisoformat(row['timestamp'])); value=float(row['load_mw'])
-        if ts in rows or ts.minute or ts.second or ts.microsecond or not math.isfinite(value) or value<0: raise ValueError('invalid hourly history')
-        if ts+timedelta(hours=1)>utc(datetime.fromisoformat(source['available_at'])): raise ValueError('source contains unfinished/future actuals')
-        rows[ts]=value
-    if not rows: raise ValueError('empty source')
-    # Do not present an old 2024 dataset as today's usable source.
-    if issued-(max(rows)+timedelta(hours=1))>timedelta(hours=48): raise ValueError('load source is stale (>48 hours)')
+    issued=utc(store.clock())
+    rows=observed_history(dataset,source,issued)
     points=[]
     for ts in delivery_grid(day):
         lag=ts-timedelta(hours=168)
@@ -93,7 +87,6 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     """Frozen V2 load-only model with source availability and exact calibration identity."""
     import pandas as pd
     import numpy as np
-    import joblib
     from src.features.engineer import FeatureEngineer
     from src.uncertainty.schemas import CalibrationTable
     from src.operations.models import static_intervals
@@ -124,6 +117,7 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     if data.get('format')!='smard-hourly-mw-v1' or data.get('unit')!='MW' or source['source']!='smard-normalized-hourly':
         raise ValueError('source contract mismatch')
     issued=utc(store.clock()); grid=delivery_grid(day)
+    observed_history(data,source,issued)
     from src.operations.calendar_support import assert_frozen_calendar_supported
     if policy!=POLICY:assert_frozen_calendar_supported(grid)
     history=pd.DataFrame(data['rows']).rename(columns={'load_mw':'grid_load_mw'})

@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test & information-boundary Verification
+    name: Tests and historical feature regression checks
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,7 +39,7 @@ jobs:
         run: |
           python -m pytest tests/ -v --durations=10
 
-      - name: Run adversarial information-boundary verification suite
+      - name: Run historical feature regression suite (not issuance-time certification)
         run: |
           python -c "
           import sys; sys.path.insert(0, '.')
@@ -50,7 +50,7 @@ jobs:
           fe.fit(df)
           results = fe.run_adversarial_leakage_suite(df)
           assert results['suite_status'] == 'ALL_TESTS_PASSED', f'Leakage verification failed: {results}'
-          print('CI information-boundary Verification Passed: 10/10 tests')
+          print('Historical feature regression suite passed; issuance-time availability is a separate contract.')
           "
 
       - name: Verify ONNX Runtime serving

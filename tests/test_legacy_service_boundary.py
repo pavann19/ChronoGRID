@@ -120,3 +120,17 @@ def test_probes_remain_accessible_and_replay_token_is_separate(monkeypatch):
     assert client.get('/ready').status_code in {200, 503}
     assert client.post('/forecast/day-ahead', headers={'Authorization': 'Bearer diagnostics-only'}, json={}).status_code == 401
     assert client.get('/metrics', headers={'Authorization': 'Bearer replay-only'}).status_code == 401
+
+
+@pytest.mark.parametrize('route,status', [('/health', 200), ('/predict', 503),
+                                        ('/forecast/day-ahead', 410)])
+def test_diagnostic_security_headers_include_auth_and_retired_responses(monkeypatch, route, status):
+    monkeypatch.delenv('CHRONOGRID_DIAGNOSTICS_TOKEN', raising=False)
+    monkeypatch.delenv('CHRONOGRID_ENABLE_LEGACY_REPLAY', raising=False)
+    client = TestClient(service.app)
+    response = client.get(route) if route == '/health' else client.post(route, json={})
+    assert response.status_code == status
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert response.headers['X-Content-Type-Options'] == 'nosniff'
+    assert response.headers['X-Frame-Options'] == 'DENY'
+    assert response.headers['Referrer-Policy'] == 'no-referrer'
