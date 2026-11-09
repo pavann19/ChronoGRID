@@ -117,8 +117,21 @@ CHAMPION_META = {"version": None, "model_type": "Unknown", "promoted_at": None, 
 def load_engine():
     """Initializes ONNX engine, DDIR router, and registry metadata."""
     global ENGINE, ROUTER, CHAMPION_META, DQCP_ENGINE
+    ENGINE = ROUTER = DQCP_ENGINE = None
     CHAMPION_META = {"version": None, "model_type": "Unknown", "promoted_at": None, "registry_identity_verified": False}
     CHAMPION_VERSION.set(0) # zero is the unverified registry-version sentinel, not a model release
+    if os.getenv('CHRONOGRID_ARTIFACT_REGISTRY'):
+        from src.operations.artifact_registry import ArtifactRegistry
+        registry = ArtifactRegistry(os.environ['CHRONOGRID_ARTIFACT_REGISTRY'])
+        bundle = registry.active_bundle(os.getenv('CHRONOGRID_REGISTRY_MODEL', 'ChronoGrid_LoadForecaster'))
+        ENGINE = OnnxInferenceEngine.from_bytes(bundle['model_bytes'], bundle['metadata_bytes'])
+        CHAMPION_META = dict(version=bundle['revision'], model_type=ENGINE.metadata.get('model_type', 'Unknown'),
+                             registry_identity_verified=True, bundle_id=bundle['bundle_id'],
+                             artifact_sha256=bundle['manifest']['model_sha256'],
+                             metadata_sha256=bundle['manifest']['metadata_sha256'],
+                             scope='immutable caller-feature diagnostic bundle; no calibration or prospective approval')
+        CHAMPION_VERSION.set(bundle['revision'])
+        return  # Never fall back to legacy files/router/calibration when opt-in registry fails.
     onnx_file = Path("artifacts/models/champion_model.onnx")
     meta_file = Path("artifacts/models/champion_metadata.json")
     fallback_onnx = Path("artifacts/models/load_only_model.onnx")
@@ -129,8 +142,8 @@ def load_engine():
             onnx_model_path=str(onnx_file),
             metadata_path=str(meta_file),
         )
-        actual_sha = hashlib.sha256(onnx_file.read_bytes()).hexdigest()
-        CHAMPION_META = {"version": None, "model_type": ENGINE.metadata.get("model_type", "Unknown"), "promoted_at": None, "artifact_sha256": actual_sha, "registry_identity_verified": False}
+        actual_sha = ENGINE.model_sha256
+        CHAMPION_META = {"version": None, "model_type": ENGINE.metadata.get("model_type", "Unknown"), "promoted_at": None, "artifact_sha256": actual_sha, "metadata_sha256": ENGINE.metadata_sha256, "registry_identity_verified": False}
         if fallback_onnx.exists():
             try:
                 from src.reliability.router import DualHeadInferenceRouter
@@ -154,7 +167,7 @@ def load_engine():
                 if rec:
                     CHAMPION_META["registry_record"] = {"version": rec.version, "model_type": rec.model_type, "onnx_uri": rec.onnx_uri}
                     registry_metadata = json.loads(rec.metadata_json or "{}")
-                    if registry_metadata.get("onnx_sha256") == actual_sha:
+                    if registry_metadata.get("onnx_sha256") == actual_sha and registry_metadata.get("metadata_sha256") == ENGINE.metadata_sha256:
                         CHAMPION_META.update(version=rec.version, promoted_at=str(rec.promoted_at), registry_identity_verified=True)
                         CHAMPION_VERSION.set(rec.version)
         except Exception:
@@ -186,7 +199,8 @@ def load_engine():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    init_db()
+    if not os.getenv('CHRONOGRID_ARTIFACT_REGISTRY'):
+        init_db()
     load_engine()
     yield
     # Shutdown

@@ -38,9 +38,9 @@ jobs:
       - name: Verify reviewed load-only feature and artifact bindings
         if: matrix.profile == 'operations'
         run: python scripts/write_feature_contract_bindings.py
-      - name: Strict inference and legacy HTTP boundaries
+      - name: Strict inference, registry recovery and HTTP boundaries
         if: matrix.profile == 'service'
-        run: python -m pytest tests/test_legacy_service_boundary.py -q
+        run: python -m pytest tests/test_legacy_service_boundary.py tests/test_operations_artifact_registry.py tests/test_registry_serving_and_cli.py -q
       - name: Known dependency advisories
         run: python -m pip_audit -f json -o dependency_audit.json
       - uses: actions/upload-artifact@v4

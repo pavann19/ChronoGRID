@@ -31,6 +31,7 @@ dev = ["pytest>=9.2", "pytest-cov>=6.0", "hypothesis>=6.100", "ruff>=0.4", "http
 
 [project.scripts]
 chronogrid-ops = "src.operations.cli:main"
+chronogrid-registry = "src.operations.registry_cli:main"
 
 [tool.setuptools]
 include-package-data = false

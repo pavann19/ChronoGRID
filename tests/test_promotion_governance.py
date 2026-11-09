@@ -46,24 +46,32 @@ def test_promotion_engine_rejects_degraded_model(dummy_train_eval_data):
     assert decision["passed_promotion_gate"] is False
 
 
-def test_atomic_promotion_and_rollback(dummy_train_eval_data):
-    df, feat_cols = dummy_train_eval_data
-    engine = PromotionEngine(min_improvement_pct=0.01)
+def test_legacy_multi_file_mutation_is_retired(tmp_path):
+    engine = PromotionEngine(models_dir=str(tmp_path/'models'),backup_dir=str(tmp_path/'backup'))
+    with pytest.raises(RuntimeError,match='retired'):
+        engine._execute_atomic_promotion(None,'unused',[],{}, {})
+    with pytest.raises(RuntimeError,match='retired'):
+        engine.rollback_to_previous_champion()
+    assert not list((tmp_path/'models').iterdir())
+    assert not list((tmp_path/'backup').iterdir())
 
-    model = XGBoostModel(n_estimators=10, learning_rate=0.05)
-    model.fit(df.iloc[:150][feat_cols], df.iloc[:150]["grid_load_mw"].values)
 
-    # 1. Promote to generate active model & backup
-    engine._execute_atomic_promotion(
-        challenger_model=model,
-        challenger_model_type="XGBoost_GovernanceTest",
-        feature_cols=feat_cols,
-        metrics={"mae": 900.0, "rmse": 1200.0, "mape": 1.8, "r2": 0.98},
-        params={"n_estimators": 10},
-    )
-
-    # 2. Rollback to restore previous backup
-    res = engine.rollback_to_previous_champion()
-    assert res["status"] == "ROLLBACK_SUCCESSFUL"
-    assert res["restored_backup"] is not None
+def test_passing_metric_review_does_not_execute_a_release(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from src.retraining import promotion_engine as module
+    engine=PromotionEngine(models_dir=str(tmp_path/'models'),backup_dir=str(tmp_path/'backup'))
+    monkeypatch.setattr(module,'diebold_mariano_test',lambda *args:(-3.0,.001))
+    def forbidden(*args,**kwargs):
+        raise AssertionError('metric review must not execute artifact or registry mutation')
+    monkeypatch.setattr(module,'get_session',forbidden)
+    monkeypatch.setattr(engine,'_execute_atomic_promotion',forbidden)
+    frame=pd.DataFrame(dict(f=np.arange(48),grid_load_mw=np.full(48,100.0),
+                            timestamp=pd.date_range('2024-01-01',periods=48,freq='h',tz='UTC')))
+    champ=SimpleNamespace(predict=lambda x:np.full(len(x),110.0))
+    challenger=SimpleNamespace(predict=lambda x:np.full(len(x),101.0))
+    decision=engine.evaluate_and_promote(champ,challenger,frame,['f'])
+    assert decision['passed_promotion_gate'] is True
+    assert decision['decision']=='RELEASE_REVIEW_REQUIRED'
+    assert decision['promotion_executed'] is False and decision['production_approved'] is False
+    assert not list((tmp_path/'models').iterdir())
 

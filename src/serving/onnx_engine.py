@@ -4,6 +4,7 @@ Loads ONNX model and executes ultra-low latency predictions.
 """
 
 import json
+import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List, Union
@@ -39,6 +40,24 @@ class OnnxInferenceEngine:
         if not self.metadata_path.exists():
             raise FileNotFoundError(f'Model feature metadata not found at {self.metadata_path}')
 
+        self._load_bytes(self.onnx_model_path.read_bytes(), self.metadata_path.read_bytes())
+
+    @classmethod
+    def from_bytes(cls, model_bytes: bytes, metadata_bytes: bytes):
+        """Load one verified registry snapshot without reopening mutable file paths."""
+        engine = cls.__new__(cls)
+        engine.onnx_model_path = None
+        engine.metadata_path = None
+        engine._load_bytes(model_bytes, metadata_bytes)
+        return engine
+
+    def _load_bytes(self, model_bytes, metadata_bytes):
+        self.model_sha256 = hashlib.sha256(model_bytes).hexdigest()
+        self.metadata_sha256 = hashlib.sha256(metadata_bytes).hexdigest()
+        self.metadata = json.loads(metadata_bytes)
+        if not isinstance(self.metadata, dict):
+            raise ValueError('Model metadata must be a JSON object.')
+
         # Optimize ONNX Runtime session options
         so = ort.SessionOptions()
         so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -46,7 +65,7 @@ class OnnxInferenceEngine:
         so.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
         self.session = ort.InferenceSession(
-            str(self.onnx_model_path),
+            model_bytes,
             sess_options=so,
             providers=["CPUExecutionProvider"]
         )
@@ -54,10 +73,7 @@ class OnnxInferenceEngine:
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
 
-        if self.metadata_path.exists():
-            with open(self.metadata_path, "r") as f:
-                self.metadata = json.load(f)
-                self.feature_names = self.metadata.get("feature_names", [])
+        self.feature_names = self.metadata.get("feature_names", [])
         shape = self.session.get_inputs()[0].shape
         if not isinstance(self.feature_names, list) or not self.feature_names or any(not isinstance(name,str) or not name for name in self.feature_names) or len(set(self.feature_names))!=len(self.feature_names):
             raise ValueError('Model metadata must contain unique non-empty feature names.')

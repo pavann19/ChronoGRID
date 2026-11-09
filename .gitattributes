@@ -93,6 +93,11 @@ scripts/*weather_v4*.py -text
 scripts/audit_legacy_feature_parity.py -text
 scripts/collect_local_release_evidence.py -text
 tests/test_local_release_evidence.py -text
+src/retraining/promotion_engine.py -text
+tests/test_promotion_governance.py -text
+tests/test_registry_serving_and_cli.py -text
+scripts/chronogrid_registry.py -text
+scripts/verify_registry_recovery.py -text
 tests/test_legacy_feature_parity_gate.py -text
 artifacts/engineering/local_release_evidence_*/attestation.sig binary
 tests/test_weather_study_*.py -text
