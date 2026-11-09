@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
+from io import BytesIO
 import json
 import math
 import requests
@@ -91,6 +92,10 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     from src.uncertainty.schemas import CalibrationTable
     from src.operations.models import static_intervals
     metadata=json.loads((experiment_dir/'fallback_metadata.json').read_text())
+    from src.operations.feature_contracts import load_binding,validate_dependencies
+    binding,binding_bytes,feature_code_hash=load_binding(experiment_dir,metadata)
+    binding_hash=store.snapshot(binding_bytes,'feature-contract-binding-v1',utc(store.clock()))
+    binding_source=store.get('snapshot:'+binding_hash)
     model_bytes=(experiment_dir/'fallback.joblib').read_bytes()
     cal_bytes=(experiment_dir/'fallback_calibration.json').read_bytes()
     if digest(model_bytes)!=metadata['model_sha256'] or digest(cal_bytes)!=metadata['calibration_sha256']:
@@ -117,7 +122,8 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     if data.get('format')!='smard-hourly-mw-v1' or data.get('unit')!='MW' or source['source']!='smard-normalized-hourly':
         raise ValueError('source contract mismatch')
     issued=utc(store.clock()); grid=delivery_grid(day)
-    observed_history(data,source,issued)
+    validated_history=observed_history(data,source,issued)
+    validate_dependencies(binding,grid,validated_history,datetime.fromisoformat(source['available_at']),issued)
     from src.operations.calendar_support import assert_frozen_calendar_supported
     if policy!=POLICY:assert_frozen_calendar_supported(grid)
     history=pd.DataFrame(data['rows']).rename(columns={'load_mw':'grid_load_mw'})
@@ -136,11 +142,11 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
     features=fe._generate_raw_features(full).set_index('timestamp').loc[pd.DatetimeIndex(grid),metadata['feature_names']]
     if not np.isfinite(features.values).all(): raise ValueError('missing issuance-safe features')
     from src.operations.model_loading import load_research_model
-    model=load_research_model(experiment_dir/'fallback.joblib'); predictions=model.predict(features.values)
+    model=load_research_model(BytesIO(model_bytes)); predictions=model.predict(features.values)
     intervals=static_intervals(predictions,np.array([t.hour for t in grid]),table,metadata['model_sha256'],'pooled_marginal_mad',.9,metadata['feature_policy'],metadata['feature_policy'])
     points=tuple(Delivery(timestamp=t,point_mw=float(p),lower_mw=intervals['lower'][i] if intervals['lower'] is not None else None,upper_mw=intervals['upper'][i] if intervals['upper'] is not None else None,interval_status=intervals['status'],quality_flags=('research_calibration_temporal_assumptions_unverified',)) for i,(t,p) in enumerate(zip(grid,predictions)))
     run=store.get('run:'+run_id)
-    p=Forecast(run_id=run_id,arm=arm,experiment_kind=run['experiment_kind'],record_id=f'{run_id}_{day}_{arm}',protocol_sha256=run['protocol_sha256'],issued_at=issued,issuance_timezone='UTC',delivery_date=day,model_id=metadata['model_id'],model_sha256=metadata['model_sha256'],feature_code_sha256=digest(Path(__file__).read_bytes()),feature_policy=metadata['feature_policy'],route='fallback',routing_reason='load-only V2 arm; no genuine prospective weather-vintage integration',data_quality_flags=('research_calibration_temporal_assumptions_unverified',),outage=False,inputs=(InputSnapshot(source=source['source'],snapshot_sha256=snapshot_sha256,event_time_start=history.timestamp.iloc[0].to_pydatetime(),event_time_end=history.timestamp.iloc[-1].to_pydatetime(),available_at=datetime.fromisoformat(source['available_at']),captured_at=datetime.fromisoformat(source['captured_at']),quality_flags=(),outage=False),),calibration_method='pooled_marginal_mad',calibration_state_version=table.version,calibration_state_sha256=state_hash,nominal_coverage=.9,effective_alpha=.1,deliveries=points)
+    p=Forecast(run_id=run_id,arm=arm,experiment_kind=run['experiment_kind'],record_id=f'{run_id}_{day}_{arm}',protocol_sha256=run['protocol_sha256'],issued_at=issued,issuance_timezone='UTC',delivery_date=day,model_id=metadata['model_id'],model_sha256=metadata['model_sha256'],feature_code_sha256=feature_code_hash,feature_policy=metadata['feature_policy'],route='fallback',routing_reason='load-only V2 arm; no genuine prospective weather-vintage integration',data_quality_flags=('research_calibration_temporal_assumptions_unverified',),outage=False,inputs=(InputSnapshot(source=binding_source['source'],snapshot_sha256=binding_hash,event_time_start=datetime.fromisoformat(binding_source['captured_at']),event_time_end=datetime.fromisoformat(binding_source['captured_at']),available_at=datetime.fromisoformat(binding_source['available_at']),captured_at=datetime.fromisoformat(binding_source['captured_at']),quality_flags=('retrospective_binding_review',),outage=False),InputSnapshot(source=source['source'],snapshot_sha256=snapshot_sha256,event_time_start=history.timestamp.iloc[0].to_pydatetime(),event_time_end=history.timestamp.iloc[-1].to_pydatetime(),available_at=datetime.fromisoformat(source['available_at']),captured_at=datetime.fromisoformat(source['captured_at']),quality_flags=(),outage=False),),calibration_method='pooled_marginal_mad',calibration_state_version=table.version,calibration_state_sha256=state_hash,nominal_coverage=.9,effective_alpha=.1,deliveries=points)
     return p
 
 

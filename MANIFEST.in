@@ -1,5 +1,6 @@
 include pyproject.toml MANIFEST.in LICENSE OPERATIONS.md
 recursive-include src *.py
+include src/operations/feature_contract_bindings.json
 prune artifacts
 prune data
 prune docs

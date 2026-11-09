@@ -69,5 +69,5 @@ def test_real_v3_model_capture_on_isolated_synthetic_history(tmp_path,day):
     metadata=json.loads((copied/'fallback_metadata.json').read_bytes())
     metadata['feature_sources']['src/operations/local_calendar.py']='0'*64
     (copied/'fallback_metadata.json').write_text(json.dumps(metadata))
-    with pytest.raises(ValueError,match='implementation checksum'):
+    with pytest.raises(ValueError,match='binding mismatch'):
         capture_fallback48(store,'calendar',d,'local',snap,copied)

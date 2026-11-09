@@ -40,6 +40,9 @@ where = ["."]
 include = ["src", "src.*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+"src.operations" = ["feature_contract_bindings.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

@@ -62,6 +62,11 @@ def test_fallback48_capture_uses_model_bound_calibration(tmp_path):
     snap=store.snapshot(encode(dict(format='smard-hourly-mw-v1',unit='MW',rows=rows)),'smard-normalized-hourly',state[0]);state[0]=t
     p,key=capture_fallback48(store,'model48',date(2027,1,15),'fallback48',snap,experiment)
     assert p.model_sha256==modelsha and p.calibration_state_sha256 is not None
+    from src.operations.feature_contracts import MANIFEST,load_binding
+    binding_input=next(x for x in p.inputs if x.source=='feature-contract-binding-v1')
+    assert store.snapshot_bytes(binding_input.snapshot_sha256)==(ROOT/MANIFEST).read_bytes()
+    metadata=json.loads((experiment/'fallback_metadata.json').read_bytes())
+    assert p.feature_code_sha256==load_binding(experiment,metadata)[2]
     assert all(d.interval_status=='bounded' and d.lower_mw<=d.point_mw<=d.upper_mw for d in p.deliveries)
     assert store.verify()['objects']>=5
 
