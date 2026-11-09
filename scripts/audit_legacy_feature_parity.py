@@ -21,6 +21,10 @@ def audit(day='2024-06-17'):
     origin = pd.Timestamp(day, tz='Europe/Berlin') - pd.DateOffset(days=1) + pd.Timedelta(hours=12)
     rows = []
     inputs = {source.relative_to(ROOT).as_posix(): hashlib.sha256(source.read_bytes()).hexdigest()}
+    for name in ('src/features/engineer.py', 'src/features/autoregressive.py',
+                 'src/features/temporal.py', 'src/features/weather_features.py',
+                 'src/serving/feature_parity.py', 'scripts/audit_legacy_feature_parity.py'):
+        inputs[name] = hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
     for head, filename, mode in [('primary', 'champion_metadata.json', 'persistence'),
                                   ('fallback', 'load_only_metadata.json', 'load_only')]:
         path = ROOT / 'artifacts/models' / filename
@@ -48,11 +52,14 @@ def audit(day='2024-06-17'):
                    mismatched_cells=sum(not r['numerical_match'] for r in rows), compared_cells=len(rows),
                    inputs_sha256=inputs,
                    reference_kind='Historical rowwise feature replay; not archived original training features',
+                   runtime=dict(numpy=np.__version__, pandas=pd.__version__),
                    limitations=['One historical origin; not forecast performance or original training provenance',
                                 'Reference uses historical observations including post-gate values for diagnosis only',
                                 'No models, calibration, labels or frozen feature code changed'])
     summary['per_head'] = {head: dict(
         feature_count=len({r['feature'] for r in rows if r['head'] == head}),
+        compared_cells=sum(r['head'] == head for r in rows),
+        unavailable_feature_cells=sum(r['head'] == head and not r['dependency_available_at_gate'] for r in rows),
         delivery_hours=len({r['delivery_timestamp'] for r in rows if r['head'] == head}),
         unavailable_delivery_hours=len({r['delivery_timestamp'] for r in rows if r['head'] == head and not r['dependency_available_at_gate']}),
         mismatched_cells=sum(not r['numerical_match'] for r in rows if r['head'] == head),

@@ -90,5 +90,10 @@ scripts/audit_local_calendar_v3.py -text
 scripts/probe_single_weather_run.py -text
 scripts/audit_weather_run_capture.py -text
 scripts/*weather_v4*.py -text
+scripts/audit_legacy_feature_parity.py -text
+scripts/collect_local_release_evidence.py -text
+tests/test_local_release_evidence.py -text
+tests/test_legacy_feature_parity_gate.py -text
+artifacts/engineering/local_release_evidence_*/attestation.sig binary
 tests/test_weather_study_*.py -text
 src/features/*.py -text
