@@ -31,7 +31,11 @@ def run_once(store,run_id,arm,model='weekly',fetch=capture_smard,workspace=None)
                 if attempt==2:raise
     except StaleAdaptiveState as exc:
         store.failure(run_id,day,arm,str(exc));return dict(status='adaptive_state_contended_retry_later')
-    except Conflict:return dict(status='concurrent_origin_already_committed')
+    except Conflict as exc:
+        # A snapshot/calibration conflict does not prove a competing forecast committed.
+        try:store.get(key)
+        except KeyError:raise exc
+        return dict(status='concurrent_origin_already_committed')
     except Exception as exc:
         store.failure(run_id,day,arm,str(exc));raise
 

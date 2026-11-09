@@ -19,6 +19,11 @@ def main(argv=None):
     sub.add_parser('verify'); sub.add_parser('fetch-smard'); sub.add_parser('fetch-weather')
     sub.add_parser('doctor')
     status=sub.add_parser('status'); status.add_argument('--run')
+    scheduled=sub.add_parser('bounded-cycle'); scheduled.add_argument('run')
+    model_map=scheduled.add_mutually_exclusive_group(required=True)
+    model_map.add_argument('--models'); model_map.add_argument('--models-file',type=Path)
+    scheduled.add_argument('--evidence-dir',type=Path,required=True); scheduled.add_argument('--cycle-key',required=True)
+    scheduled.add_argument('--timeout-seconds',type=int,default=300)
     serve=sub.add_parser('serve');serve.add_argument('--port',type=int,default=8765)
     weather_run=sub.add_parser('fetch-weather-run');weather_run.add_argument('initialization',type=datetime.fromisoformat)
     weather_day=sub.add_parser('weather-delivery');weather_day.add_argument('snapshot');weather_day.add_argument('day',type=date.fromisoformat);weather_day.add_argument('output',type=Path)
@@ -60,6 +65,14 @@ def main(argv=None):
     if args.command=='status':
         from src.operations.status import journal_status
         print(json.dumps(journal_status(args.db,run_id=args.run),indent=2));return
+    if args.command=='bounded-cycle':
+        from src.operations.automation import bounded_cycle
+        models=json.loads(args.models_file.read_text(encoding='utf-8-sig') if args.models_file else args.models)
+        result=bounded_cycle(args.db,args.run,models,args.evidence_dir,args.cycle_key,
+                             workspace=root,timeout_seconds=args.timeout_seconds)
+        print(json.dumps(result,indent=2))
+        if result['attention_required']:raise SystemExit(2)
+        return
     if args.command in ('verify','export','backup','report','adaptive-state','weather-delivery','timestamp-verify','link-smard','settle-adaptive') and not args.db.is_file():
         parser.error('Journal does not exist; read-only/link/feedback commands never initialize an empty journal')
     if args.command=='serve':

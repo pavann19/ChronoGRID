@@ -106,3 +106,11 @@ src/operations/status.py -text
 tests/test_operations_status.py -text
 artifacts/engineering/operations_status_v1/* -text
 artifacts/engineering/operations_status_manifest_v1.* -text
+src/operations/automation.py -text
+src/operations/worker.py -text
+tests/test_operations_automation.py -text
+tests/test_operations_worker.py -text
+scripts/invoke_bounded_cycle.ps1 -text
+README_CURRENT.md -text
+artifacts/engineering/bounded_automation_v1/* -text
+artifacts/engineering/bounded_automation_manifest_v1.* -text
