@@ -11,7 +11,9 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app \
 WORKDIR /app
 COPY deployment/requirements-service.lock /app/requirements.lock
 RUN --mount=type=bind,from=locked-wheels,source=/wheels,target=/wheels,readonly \
-    pip install --no-index --find-links=/wheels --require-hashes -r requirements.lock && pip check
+    pip install --no-index --find-links=/wheels --require-hashes -r requirements.lock && pip check && \
+    python -m pip uninstall --yes pip && \
+    rm -rf /usr/local/lib/python3.13/ensurepip
 COPY src/ /app/src/
 COPY artifacts/models/ /app/artifacts/models/
 COPY artifacts/calibration/ /app/artifacts/calibration/

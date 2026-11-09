@@ -238,6 +238,8 @@ async def research_boundary(request: Request, call_next):
             response.headers["X-ChronoGrid-Calibration-Compatibility"] = "not-validated"
     elif request.url.path == "/predict":
         response.headers["X-ChronoGrid-Evidence-Kind"] = "caller_supplied_features"
+    if legacy or request.url.path == "/predict":
+        response.headers["X-ChronoGrid-Feature-Parity"] = "not-established"
     return response
 
 
@@ -277,6 +279,8 @@ def model_info():
         raise HTTPException(status_code=503, detail="Model engine not loaded.")
     return {
         "champion_metadata": CHAMPION_META,
+        "training_serving_feature_parity": "not-established",
+        "day_ahead_issuance_compatibility": "not-validated; legacy lag24 dependencies cross the noon gate",
         "n_features": len(ENGINE.feature_names),
         "feature_names": ENGINE.feature_names,
         "input_name": ENGINE.input_name,

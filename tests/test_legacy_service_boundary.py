@@ -61,6 +61,7 @@ def test_predict_labels_caller_features_and_validates_complete_schema(monkeypatc
     response=client.post('/predict',json={'features':[{n:1 for n in e.feature_names}]})
     assert response.status_code==200 and response.json()['model_version'] is None
     assert response.json()['evidence_kind']=='caller_supplied_features'
+    assert response.headers['X-ChronoGrid-Feature-Parity']=='not-established'
     assert response.headers['X-Model-Version']=='unverified'
     assert response.headers['X-ChronoGrid-Evidence-Kind']=='caller_supplied_features'
 
@@ -120,6 +121,16 @@ def test_probes_remain_accessible_and_replay_token_is_separate(monkeypatch):
     assert client.get('/ready').status_code in {200, 503}
     assert client.post('/forecast/day-ahead', headers={'Authorization': 'Bearer diagnostics-only'}, json={}).status_code == 401
     assert client.get('/metrics', headers={'Authorization': 'Bearer replay-only'}).status_code == 401
+
+
+def test_model_info_discloses_unverified_feature_parity(monkeypatch):
+    monkeypatch.setenv('CHRONOGRID_DIAGNOSTICS_TOKEN','diagnostic-test')
+    engine=SimpleNamespace(feature_names=['example'],input_name='in',output_name='out')
+    monkeypatch.setattr(service,'ENGINE',engine)
+    client=TestClient(service.app,headers={'Authorization':'Bearer diagnostic-test'})
+    response=client.get('/model/info')
+    assert response.status_code==200
+    assert response.json()['training_serving_feature_parity']=='not-established'
 
 
 @pytest.mark.parametrize('route,status', [('/health', 200), ('/predict', 503),
