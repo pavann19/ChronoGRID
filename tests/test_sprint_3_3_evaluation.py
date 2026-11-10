@@ -16,7 +16,7 @@ import pytest
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-from scripts.run_sprint_3_3_evaluation import (
+from chronogrid.evaluation.scoring import (
     compute_winkler_score,
 )
 

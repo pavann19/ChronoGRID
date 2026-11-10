@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from chronogrid.features.delivery_grid import delivery_grid
 from chronogrid.features.engineer import FeatureEngineer
-from chronogrid.operations.capture import delivery_grid
 from chronogrid.operations.feature_contracts import (
     MANIFEST,
     ROOT,

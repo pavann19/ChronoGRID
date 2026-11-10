@@ -1,6 +1,6 @@
 # ADR: Build-time locked dependencies
 
-Status: current implementation reviewed during portfolio cleanup.
+Status: implemented.
 
 I declare dependencies in pyproject.toml and retain hash-locked operations and service profiles. Docker installs a transferable virtual environment in a build stage and copies the installed environment into the runtime.
 

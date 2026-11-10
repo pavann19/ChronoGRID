@@ -1,11 +1,11 @@
-# Operations
+# Running the diagnostic service
 
-I use ChronoGRID as a local forecasting research demonstration. I do not claim production readiness or managed operation. The root README contains the supported install, test, benchmark, serving and Docker commands.
+Install, test and run the corrected benchmark using the commands in the README. The service is an authenticated local diagnostic API; its historical ONNX artifacts are separate from the corrected benchmark winner.
 
-The `chronogrid-ops` command manages explicitly selected local journals and workspaces; `chronogrid-registry` manages reviewed diagnostic artifact bundles. A journal records forecast/model/source identities and applies feedback transactionally. Health and readiness are probes, not assertions of forecast quality or external evidence custody.
+`chronogrid-registry` registers and checks immutable model/metadata bundles. Registry checks reject incompatible identities before loading. Back up the SQLite registry before migration or recovery work.
 
-The diagnostics token protects prediction, model information and metrics. Forecast routes require the replay token before their enablement state is exposed. I keep replay disabled unless I am running an explicitly labelled historical or synthetic exercise. The corrected benchmark does not automatically promote a model, change a registry or publish an artifact.
+`/health` and `/ready` are unauthenticated liveness and model-load probes. Predictions and model information require the diagnostics token. Historical replay requires a separate token and remains disabled by default. A probe does not establish forecast validity or suitability for an operated service.
 
-I declare dependencies in `pyproject.toml`; the runtime lockfiles under `deployment/` pin distributions and hashes. `scripts/lock_operations_dependencies.py` selects the operations or service profile from that declaration when creating a new lock. Local development may have a different installed environment, so I record which checks actually ran and do not imply locked-environment coverage from them.
+The Python dependencies are declared in `pyproject.toml` and the service distributions and hashes are pinned in `deployment/requirements-service.lock`. `scripts/lock_dependencies.py` generates a new lock from an explicitly selected installed environment. The container verifier builds committed source without a local wheelhouse and probes the isolated runtime.
 
-Optional historical audits require separately restored private evidence. Public findings and limits are in [evaluation](evaluation.md). Recovery and credential handling are described in [the runbook](runbook.md).
+See [evaluation](evaluation.md), [architecture](architecture.md) and [the runbook](runbook.md).

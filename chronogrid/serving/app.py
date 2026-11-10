@@ -360,7 +360,7 @@ def ready():
         raise HTTPException(status_code=503, detail="ONNX model is not loaded yet.")
     return {
         "ready": True,
-        "scope": "ONNX engine loaded; not prospective forecast validity or production readiness",
+        "scope": "ONNX engine loaded; not prospective forecast validity",
     }
 
 

@@ -208,7 +208,7 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
         "limitations": [
             "This report establishes current file-hash and SQLite-schema relationships only; it does not exercise a running service or prove which file a deployed process has loaded.",
             "The audit does not validate calibration methodology, interval coverage, feature availability, runtime reload behavior, or production security controls.",
-            "A failed binding check is a legacy production-readiness blocker, not a reason to alter the frozen research experiment.",
+            "A failed binding check is a reason to reject legacy model loading, not a reason to alter the frozen research experiment.",
         ],
     }
 

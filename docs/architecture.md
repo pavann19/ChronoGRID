@@ -10,7 +10,7 @@ flowchart LR
     D --> E[Expanding fold training and evaluation]
     E --> F[Reviewed model registry]
     F --> G[Authenticated ONNX diagnostics]
-    G --> H[Metrics and local evidence journal]
+    G --> H[Metrics]
 ```
 
 `chronogrid/features/gate_audit.py` resolves the latest dependency for each delivery-hour feature and fails closed for unknown names. The leakage suite checks transformations by perturbing raw observations; the data-integrity suite separately checks timezone, DST, horizon and schema behavior. Publication-time evidence is outside this event-time audit.
@@ -19,4 +19,5 @@ flowchart LR
 
 `chronogrid/serving/app.py` authenticates diagnostics and every forecast path. Local artifacts are checked against `artifacts/models/serving_registry.json` before ONNX Runtime loads them; the optional transactional artifact registry verifies immutable model/metadata bundles. Health probes remain open. Legacy replay is disabled by default.
 
-The optional operations journal records local forecasts, source snapshots and feedback with identities and transactional checks. Local timestamps and hashes do not provide external attestation. I retain frozen evidence as byte-addressed snapshots and compact test fixtures, while bulky historical outputs live in an ignored evidence bundle.
+
+DDIR means **Degraded & Delayed Input Reliability**, the legacy telemetry-validation and fallback-routing subsystem. Existing DDIR interface names and serialized keys are retained for compatibility; historical `sprint` labels identify earlier evaluation fixtures.

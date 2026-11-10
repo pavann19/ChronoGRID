@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chronogrid"
 version = "0.2.0"
-description = "German day-ahead load forecasting and evidence research platform"
+description = "German day-ahead load forecasting and ONNX diagnostics"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -31,7 +31,6 @@ dashboard = ["streamlit>=1.44", "SQLAlchemy==2.1.8", "prometheus-client==0.26.0"
 dev = ["pytest>=9.0", "pytest-cov>=6.0", "hypothesis>=6.100", "ruff>=0.4", "httpx==0.28.1", "pip-audit>=2.10.1", "mypy>=1.18", "build>=1.2", "pre-commit>=4.0"]
 
 [project.scripts]
-chronogrid-ops = "chronogrid.operations.cli:main"
 chronogrid-registry = "chronogrid.operations.registry_cli:main"
 
 [tool.setuptools]

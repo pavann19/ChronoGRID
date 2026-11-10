@@ -1,6 +1,6 @@
 # ADR: Authenticated diagnostics and replay
 
-Status: current implementation reviewed during portfolio cleanup.
+Status: implemented.
 
 I require constant-time bearer-token comparison for prediction, model information, metrics and every forecast path. Replay authentication precedes the replay enablement check. Health probes remain open.
 

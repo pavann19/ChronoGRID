@@ -79,14 +79,14 @@ flowchart LR
     D --> E[Expanding fold training and evaluation]
     E --> F[Reviewed model registry]
     F --> G[Authenticated ONNX diagnostics]
-    G --> H[Metrics and local evidence journal]
+    G --> H[Metrics]
 ```
 
 A registry entry binds the served model and metadata bytes. Training/evaluation results require a separate review before a serving artifact is changed. [Architecture](docs/architecture.md), [operations](docs/operations.md), and [runbook](docs/runbook.md) describe these boundaries.
 
 ## Limits
 
-I have about 19 months of data and only 35 reused evaluation days. Weather features are persistence from a historical archive, not timestamped NWP forecast vintages. The gate audit checks completed observation intervals; it does not reconstruct actual publication delays or later revisions. The historical weather download used Open-Meteo; its legacy filename and source label do not prove direct DWD station provenance. I have no external timestamped prospective evidence and make no production-readiness claim. [Provenance and limitations](docs/provenance_and_limitations.md) records the details.
+I have about 19 months of data and only 35 reused evaluation days. Weather features are persistence from a historical archive, not timestamped NWP forecast vintages. The gate audit checks completed observation intervals; it does not reconstruct actual publication delays or later revisions. The historical weather download used Open-Meteo; its legacy filename and source label do not prove direct DWD station provenance. I have no external timestamped prospective evidence and make no claim of suitability for an operated service. [Provenance and limitations](docs/provenance_and_limitations.md) records the details.
 
 ## Sources and licensing
 

@@ -1,7 +1,7 @@
 """Build a committed Git archive without local wheels, then probe isolated containers.
 
 Evidence distinguishes clean-context buildability from bit-for-bit image reproducibility,
-security approval, signed provenance and production readiness.
+security approval, signed provenance and suitability for an operated service.
 """
 
 import argparse
@@ -16,7 +16,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = {
-    "operations": ("deployment/Dockerfile.operations", 8765),
     "service": ("deployment/Dockerfile", 8000),
 }
 INVENTORY = """
@@ -83,25 +82,6 @@ def build_profile(profile, context, output, commit):
         output / f"{profile}-runtime-inventory.json",
         timeout=60,
     )
-    if profile == "operations":
-        logged(
-            [
-                "docker",
-                "run",
-                "--rm",
-                "--network",
-                "none",
-                "--entrypoint",
-                "python",
-                tag,
-                "-c",
-                "import json; from pathlib import Path; from chronogrid.operations.feature_contracts import load_binding; "
-                "[(load_binding(p,json.loads((p/'fallback_metadata.json').read_bytes()))) for p in "
-                "[Path('/app/artifacts/experiments/issuance_v2'),Path('/app/artifacts/experiments/local_calendar_v3')]]; print('PASS')",
-            ],
-            output / "operations-binding.log",
-            timeout=60,
-        )
     container = subprocess.check_output(
         [
             "docker",
@@ -175,7 +155,7 @@ def main():
             "Not bit-identical image reproducibility",
             "No fresh vulnerability scan",
             "Inventory is not a signed SBOM",
-            "No production readiness or hosted CI claim",
+            "No suitability for an operated service or hosted CI claim",
         ],
     )
     try:

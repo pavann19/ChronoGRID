@@ -1,6 +1,6 @@
 # ADR: Calendar compatibility
 
-Status: current implementation reviewed during portfolio cleanup.
+Status: implemented.
 
 I generate nationwide German holidays with the holidays package for the main feature transform. I retain separately versioned compatibility rules and guards for the frozen research adapters.
 

@@ -1,7 +1,7 @@
 name: ChronoGRID CI
 on:
   push:
-    branches: [master, portfolio-cleanup]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -24,7 +24,6 @@ jobs:
       - run: make lint
       - run: python -m pytest --cov=chronogrid --cov-report=xml
       - run: python scripts/audit_gate.py
-      - run: python scripts/preserve_research_evidence.py --verify
       - run: python -m pip_audit
       - uses: actions/upload-artifact@v4
         if: always()
@@ -39,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [operations, service]
+        profile: [service]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -1,6 +1,6 @@
 # ADR: OS refresh policy after evidence export
 
-Status: current implementation reviewed during portfolio cleanup.
+Status: implemented.
 
 I supersede the old dependency on locally stored OS-package payloads. The operations Dockerfile refreshes packages from the configured OS repositories at build time, while Python distributions remain hash-locked.
 

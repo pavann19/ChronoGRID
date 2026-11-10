@@ -10,7 +10,7 @@ Weather is persistence rather than an archived NWP vintage. A source's observati
 
 The bootstrap resamples consecutive delivery-day blocks and quantifies variation on these reused observations. It cannot create missing seasons, establish deployment performance or validate a causal explanation. All point metrics and intervals come from the saved benchmark outputs; I do not claim statistical superiority from overlapping individual intervals.
 
-The separate operations adapters retain compatibility guards and model/calibration/source bindings for frozen research artifacts. Their local receipts and synthetic fault tests are distinct from externally attested prospective evidence. I would next collect archived NWP forecast vintages, evaluate a complete untouched year, and compare against timestamped TSO forecasts.
+The served artifacts retain compatibility guards and model/calibration bindings. The corrected benchmark remains retrospective. Further evaluation needs archived forecast vintages, untouched delivery dates and timestamped TSO forecasts.
 
 Source attribution and licences are in [NOTICE](../NOTICE). The corrected protocol is described in [evaluation](evaluation.md).
 

@@ -13,5 +13,4 @@ Describe what actually ran and any remaining limitation. Accuracy claims must re
 the market gate and disclose reused evaluation dates.
 
 Keep runtime databases, credentials and bulky historical outputs outside Git tracking.
-The evidence-export script and history-cleanup note describe the optional archive.
 A model promotion or public release requires its own explicit review.

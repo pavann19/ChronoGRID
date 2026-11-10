@@ -49,14 +49,14 @@ def test_build_uses_committed_bytes_and_preserves_failure_report(tmp_path, monke
 
     monkeypatch.setattr(verifier, "ROOT", repo)
     monkeypatch.setattr(verifier, "build_profile", build)
-    monkeypatch.setattr(sys, "argv", ["verify", "--profile", "operations", "--output", str(output)])
+    monkeypatch.setattr(sys, "argv", ["verify", "--profile", "service", "--output", str(output)])
     if failure:
         with pytest.raises(RuntimeError, match="synthetic build failure"):
             verifier.main()
     else:
         verifier.main()
     report = json.loads((output / "report.json").read_text())
-    assert report["commit"] == commit and seen == ["operations"]
+    assert report["commit"] == commit and seen == ["service"]
     assert report["status"] == ("FAIL" if failure else "PASS")
     assert "build.log" in report["files"] and len(report["context_archive_sha256"]) == 64
     with pytest.raises(FileExistsError):

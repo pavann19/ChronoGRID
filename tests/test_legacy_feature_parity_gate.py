@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from chronogrid.operations.capture import delivery_grid
+from chronogrid.features.delivery_grid import delivery_grid
 from chronogrid.serving.feature_parity import (
     legacy_dependencies,
     require_legacy_prospective_parity,
