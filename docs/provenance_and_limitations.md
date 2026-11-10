@@ -6,11 +6,11 @@ The load collector requests SMARD's German hourly grid-load series. The weather 
 
 The corrected evaluation is retrospective. It reuses 35 previously inspected local dates, with 5 expanding folds and a 24-hour embargo. The new mean errors are not interchangeable with the earlier fixed-training-cutoff experiment. I did not tune models against a fresh holdout, establish prospective reliability, or measure a managed production service.
 
-Weather is persistence rather than an archived NWP vintage. A source's observation interval ending before the gate is necessary but does not prove that its value was actually published by then. Historical revisions, source availability delays and vintage identity remain unresolved. The SMARD TSO comparison uses a currently downloaded revision, not an archived issuance receipt.
+Weather is persistence rather than an archived NWP vintage. A source's observation interval ending before the gate is necessary but does not prove that its value was actually published by then. Historical revisions, source availability delays and vintage identity remain unresolved. The external series is excluded from comparisons; see the [baseline limitation](evaluation.md).
 
 The bootstrap resamples consecutive delivery-day blocks and quantifies variation on these reused observations. It cannot create missing seasons, establish deployment performance or validate a causal explanation. All point metrics and intervals come from the saved benchmark outputs; I do not claim statistical superiority from overlapping individual intervals.
 
-The served artifacts retain compatibility guards and model/calibration bindings. The corrected benchmark remains retrospective. Further evaluation needs archived forecast vintages, untouched delivery dates and timestamped TSO forecasts.
+The served artifacts retain compatibility guards and model/calibration bindings. The corrected benchmark remains retrospective. Further evaluation needs archived forecast vintages, untouched delivery dates and timestamped external forecasts.
 
 Source attribution and licences are in [NOTICE](../NOTICE). The corrected protocol is described in [evaluation](evaluation.md).
 

@@ -33,7 +33,7 @@ The learned models in the paired comparisons are statistically indistinguishable
 | LightGBM minus Weekly_168h | -41.3045 | [-207.1093, 115.0052] | No |
 | XGBoost minus Weekly_168h | 54.7214 | [-152.3170, 277.6310] | No |
 
-The paired differences use 10,000 circular moving-block resamples with NumPy `RandomState(42)`: 18 blocks of two complete Berlin delivery days per replicate, truncated to 35 days, with shared sampled hours across models and percentile 95% intervals. Negative differences favor the first model. Results are saved in [paired_differences.csv](artifacts/reports/benchmark_corrected/paired_differences.csv); reproduce them with `make paired-bootstrap`. The external TSO series is excluded from comparisons; see its [scope and vintage limitations](docs/evaluation.md).
+The paired differences use 10,000 circular moving-block resamples with NumPy `RandomState(42)`: 18 blocks of two complete Berlin delivery days per replicate, truncated to 35 days, with shared sampled hours across models and percentile 95% intervals. Negative differences favor the first model. Results are saved in [paired_differences.csv](artifacts/reports/benchmark_corrected/paired_differences.csv); reproduce them with `make paired-bootstrap`. See the [external-baseline limitation](docs/evaluation.md).
 
 <details>
 <summary>Explicitly leaky 24-hour comparison â€” excluded from day-ahead claims</summary>
