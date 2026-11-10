@@ -36,7 +36,7 @@ The learned models in the paired comparisons are statistically indistinguishable
 The paired differences use 10,000 circular moving-block resamples with NumPy `RandomState(42)`: 18 blocks of two complete Berlin delivery days per replicate, truncated to 35 days, with shared sampled hours across models and percentile 95% intervals. Negative differences favor the first model. Results are saved in [paired_differences.csv](artifacts/reports/benchmark_corrected/paired_differences.csv); reproduce them with `make paired-bootstrap`. See the [external-baseline limitation](docs/evaluation.md).
 
 <details>
-<summary>Explicitly leaky 24-hour comparison â€” excluded from day-ahead claims</summary>
+<summary>Explicitly leaky 24-hour comparison - excluded from day-ahead claims</summary>
 
 | Model | MAE (MW) | MAE 95% block CI | RMSE (MW) | MAPE |
 |---|---:|---:|---:|---:|
