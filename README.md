@@ -1,13 +1,13 @@
 # ChronoGRID
 
-[![CI](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml/badge.svg)](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml)
+[![CI](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/pavann19/ChronoGRID)](LICENSE)
 
-I built ChronoGRID to study day-ahead electricity-load forecasting for Germany and to make its information boundary inspectable. The repository contains data ingestion, causal feature generation, a German market-gate audit, reproducible evaluation, and authenticated ONNX diagnostics. I treat the results as retrospective research and a local engineering demonstration.
+ChronoGRID studies day-ahead electricity-load forecasting for Germany and makes its information boundary inspectable. The repository contains data ingestion, causal feature generation, a German market-gate audit, reproducible evaluation, and authenticated ONNX diagnostics. I treat the results as retrospective research and a local engineering demonstration.
 
 ## What the audit changed
 
-The original 24-hour-lag result used observation intervals ending after the previous-day noon gate on 420 of 840 delivery hours. I withdrew its day-ahead accuracy and information-boundary claims. The corrected default uses 48-hour lags. In the new expanding-fold run, Random Forest has MAE **1,146.79 MW**, compared with **1,225.04 MW** for weekly persistence. This is a lower mean error on reused historical dates; it is not evidence of a prospective or production advantage. The earlier fixed-model experiment remains preserved and uses a different training protocol.
+The original 24-hour-lag result used observation intervals ending after the previous-day noon gate on 420 of 840 delivery hours. I withdrew its day-ahead accuracy and claims that no post-gate observations were used. The corrected default uses 48-hour lags. In the new expanding-fold run, Random Forest has MAE **1,146.79 MW**, compared with **1,225.04 MW** for weekly persistence. This is a lower mean error on reused historical dates; it is not evidence of a prospective or production advantage. The earlier fixed-model experiment remains preserved and uses a different training protocol.
 
 ## Reproduced results
 
@@ -67,7 +67,7 @@ docker run --rm -p 127.0.0.1:8000:8000 \
   -e CHRONOGRID_DIAGNOSTICS_TOKEN chronogrid:0.2.0
 ```
 
-The Dockerfiles install hash-locked dependencies during the build and need no ignored wheelhouse. Build and validation evidence, including any unresolved checks, is in [the cleanup report](artifacts/reports/cleanup_report.md).
+The Dockerfiles install hash-locked dependencies during the build and need no ignored wheelhouse. The evaluation protocol and validation limits are described in [evaluation](docs/evaluation.md).
 
 ## Architecture
 

@@ -1,7 +1,7 @@
 # Repository scripts bootstrap the checkout before importing the installed package.
 # ruff: noqa: E402
 """
-Unit and regression tests for ChronoGrid Historical evaluation Out-of-Sample Evaluation and Benchmark.
+Unit and regression tests for ChronoGrid Historical evaluationOut-of-Sample Evaluation and Benchmark.
 Verifies data partition integrity, point forecast parity, conformal coverage guarantees,
 Daily-Origin Block Bootstrap outputs, segregated synthetic degradation resilience,
 per-origin and per-horizon granularity, and objective assessment scorecard.
@@ -27,7 +27,7 @@ def compute_sha256(path: Path) -> str:
 
 @pytest.fixture(scope="module")
 def benchmark_data():
-    report_path = ROOT_DIR / "artifacts/reports/ddir_sprint_3_3_benchmark.json"
+    report_path = ROOT_DIR / "artifacts/evaluation_legacy/benchmark.json"
     assert report_path.exists(), (
         f"Benchmark report not found at {report_path}. Run scripts/run_sprint_3_3_evaluation.py first."
     )

@@ -8,6 +8,6 @@ If startup reports a checksum mismatch, I stop and inspect the registry entry, m
 
 For Docker I use `make docker`, then the loopback-only container command in the README. Neither Dockerfile reads a local wheelhouse. Dependencies are hash-locked; OS package refreshes use the build-time repository state, so I do not claim bit-for-bit image reproducibility.
 
-I verify preserved research with `python scripts/preserve_research_evidence.py --verify`. The retained weather fixture verifies and unpacks its archive when a replay test needs it. Optional historical audits read the separate bundle described in [HISTORY_REWRITE.md](HISTORY_REWRITE.md); current tests do not need the bulky old scans or checkpoints.
+Run `python scripts/preserve_research_evidence.py --verify` only for optional restored closure evidence. Without the private frozen files it reports a skip. Public weather replay tests validate numerical reconstruction without authenticating unavailable historical source bytes.
 
 I keep local runtime databases and logs outside Git tracking. I back up a journal before experimenting with it and use isolated fixture paths for tests. A successful local check does not imply that hosted CI, a published image or a production deployment has passed.

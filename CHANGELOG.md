@@ -1,16 +1,26 @@
 # Changelog
 
-## 0.2.0 - 2026-11-10
+All notable changes are documented here using [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-I corrected the day-ahead information boundary, added a completed-hour gate audit,
-replaced future-dependent filling, and reran the benchmark on identical delivery hours.
-I authenticated forecast routes, bound served artifacts to a checksum registry, and
-renamed the Python package to `chronogrid`. I consolidated dependencies and CI,
-normalized source line endings, and separated historical working notes from current docs.
-Validation and remaining limits are recorded in `artifacts/reports/cleanup_report.md`.
+## [0.2.0] - 2026-11-10
 
-## 1.0.0 - 2026-11-03 (Superseded)
+### Fixed
+- Correct the day-ahead information boundary with completed-hour checks and 48-hour lags.
+- Replace future-dependent filling and rerun the benchmark on matching delivery hours.
+- Require authentication for forecast routes and bind serving artifacts to a checksum registry.
 
-The original release used post-gate load features. Its day-ahead accuracy and
-information-boundary claims are withdrawn. The original Git tag remains unchanged for inspection.
-The corrected development release is 0.2.0; this does not imply production operation.
+### Changed
+- Rename the Python package to `chronogrid` and consolidate packaging and dependency locks.
+- Consolidate validation into one CI workflow and separate public findings from local working notes.
+
+### Added
+- Save corrected metrics, predictions, fold boundaries and gate audits under `artifacts/reports/benchmark_corrected/`.
+- Document the protocol and remaining limits in [evaluation](docs/evaluation.md).
+
+## [0.1.0] - 2026-11-03
+
+### Added
+- Implement data ingestion, forecasting, ONNX diagnostics and research evaluation.
+
+### Known issues
+- A later audit found post-gate lag features in the initial evaluation; see 0.2.0 for the correction.

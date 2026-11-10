@@ -8,4 +8,4 @@ The diagnostics token protects prediction, model information and metrics. Foreca
 
 I declare dependencies in `pyproject.toml`; the runtime lockfiles under `deployment/` pin distributions and hashes. `scripts/lock_operations_dependencies.py` selects the operations or service profile from that declaration when creating a new lock. Local development may have a different installed environment, so I record which checks actually ran and do not imply locked-environment coverage from them.
 
-I keep historical working notes in `docs/archive/`, and large evidence outside Git tracking. The optional evidence bundle can be restored for old audit scripts. Current acceptance evidence and unresolved checks are listed in `artifacts/reports/cleanup_report.md`. Recovery and credential handling are described in [the runbook](runbook.md).
+Optional historical audits require separately restored private evidence. Public findings and limits are in [evaluation](evaluation.md). Recovery and credential handling are described in [the runbook](runbook.md).

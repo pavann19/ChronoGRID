@@ -33,9 +33,14 @@ def create_app(database: Path | None = None, root: Path | None = None):
         sidecar = manifest_path.with_suffix(".sha256").read_text().split()[0]
         if hashlib.sha256(manifest_path.read_bytes()).hexdigest() != sidecar:
             raise IntegrityFailure("historical manifest mismatch")
-        path = root / "artifacts/reports" / name
+        public_names = {
+            "ddir_sprint_3_3_1_numerical_reconciliation.json": "reconciliation.json",
+            "ddir_sprint_3_3_1_per_origin.csv": "per_origin.csv",
+            "ddir_sprint_3_3_1_reconstructed_per_hour.csv": "reconstructed_per_hour.csv",
+        }
+        path = root / "artifacts/evaluation_legacy" / public_names[name]
         expected = next(
-            x["sha256"] for x in manifest["files"] if x["path"] == path.relative_to(root).as_posix()
+            x["sha256"] for x in manifest["files"] if x["path"] == "artifacts/reports/" + name
         )
         if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             raise IntegrityFailure("historical file mismatch")

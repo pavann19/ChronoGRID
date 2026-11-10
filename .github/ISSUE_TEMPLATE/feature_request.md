@@ -15,7 +15,7 @@ A clear and concise description of what you want to happen.
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
 
-**information-boundary Impact**
+**Information Boundary Impact**
 Does this feature affect the day-ahead information boundary ($T \le T_{\text{gate}}$)? If yes, how is leakage prevented?
 
 **Additional context**
