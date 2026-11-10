@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from src.db.models import Base
+from chronogrid.db.models import Base
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -55,8 +55,8 @@ def isolated_application_database(monkeypatch):
         finally:
             session.close()
 
-    monkeypatch.setattr("src.retraining.promotion_engine.get_session", get_isolated_session)
-    monkeypatch.setattr("src.monitoring.drift_detector.get_session", get_isolated_session)
+    monkeypatch.setattr("chronogrid.retraining.promotion_engine.get_session", get_isolated_session)
+    monkeypatch.setattr("chronogrid.monitoring.drift_detector.get_session", get_isolated_session)
     try:
         yield get_isolated_session
     finally:

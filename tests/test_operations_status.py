@@ -3,8 +3,8 @@ import sqlite3
 
 import pytest
 
-from src.operations.journal import digest, IntegrityFailure
-from src.operations.status import ReadOnlyJournal, journal_status
+from chronogrid.operations.journal import digest, IntegrityFailure
+from chronogrid.operations.status import ReadOnlyJournal, journal_status
 from test_operations_evidence import setup, forecast
 
 
@@ -39,12 +39,12 @@ def test_readonly_connection_rejects_writes_and_unknown_run(tmp_path):
 
 def test_cli_status_uses_readonly_path(tmp_path, capsys, monkeypatch):
     import json
-    from src.operations.cli import main
+    from chronogrid.operations.cli import main
     store, _, _, _ = setup(tmp_path)
     before = digest(store.path.read_bytes())
     def forbidden(*args, **kwargs):
         raise AssertionError('status must bypass Journal initialization')
-    monkeypatch.setattr('src.operations.cli.Journal', forbidden)
+    monkeypatch.setattr('chronogrid.operations.cli.Journal', forbidden)
     main(['--db', str(store.path), 'status', '--run', 'run1'])
     assert json.loads(capsys.readouterr().out)['runs'][0]['run_id'] == 'run1'
     assert digest(store.path.read_bytes()) == before
@@ -80,8 +80,8 @@ def test_synthetic_slots_do_not_become_missed_prospective_forecasts(tmp_path):
 @pytest.mark.parametrize('day,instant', [('2027-03-29','2027-03-28T10:00:00+00:00'),
                                        ('2027-11-01','2027-10-31T11:00:00+00:00')])
 def test_gate_uses_german_timezone_across_dst(tmp_path, day, instant):
-    from src.operations.contracts import Run
-    from src.operations.journal import Journal
+    from chronogrid.operations.contracts import Run
+    from chronogrid.operations.journal import Journal
     store = Journal(tmp_path / 'journal.sqlite')
     store.register(Run(run_id='dst', experiment_kind='prospective', protocol_sha256='a'*64,
                        start_date=day, end_date=day, arms=('main',),

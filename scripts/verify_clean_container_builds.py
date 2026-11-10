@@ -49,7 +49,7 @@ def build_profile(profile, context, output, commit):
             '-c', INVENTORY], output / f'{profile}-runtime-inventory.json', timeout=60)
     if profile == 'operations':
         logged(['docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'python', tag,
-                '-c', "import json; from pathlib import Path; from src.operations.feature_contracts import load_binding; "
+                '-c', "import json; from pathlib import Path; from chronogrid.operations.feature_contracts import load_binding; "
                 "[(load_binding(p,json.loads((p/'fallback_metadata.json').read_bytes()))) for p in "
                 "[Path('/app/artifacts/experiments/issuance_v2'),Path('/app/artifacts/experiments/local_calendar_v3')]]; print('PASS')"],
                output / 'operations-binding.log', timeout=60)

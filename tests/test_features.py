@@ -4,10 +4,10 @@ Tests for Feature Engineering and Leak-Free Transforms (P5.3).
 
 import numpy as np
 import pandas as pd
-from src.features.temporal import add_temporal_features
-from src.features.weather_features import add_weather_features
-from src.features.autoregressive import add_autoregressive_features
-from src.features.engineer import FeatureEngineer
+from chronogrid.features.temporal import add_temporal_features
+from chronogrid.features.weather_features import add_weather_features
+from chronogrid.features.autoregressive import add_autoregressive_features
+from chronogrid.features.engineer import FeatureEngineer
 
 
 def test_temporal_features_cyclical_bounds():

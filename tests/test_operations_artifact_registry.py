@@ -11,8 +11,8 @@ from threading import Event, Thread, current_thread
 import numpy as np
 import pytest
 
-from src.operations.artifact_registry import ArtifactRegistry, RegistryConflict, RegistryIntegrityError, sha
-from src.serving.onnx_engine import OnnxInferenceEngine
+from chronogrid.operations.artifact_registry import ArtifactRegistry, RegistryConflict, RegistryIntegrityError, sha
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,7 +83,7 @@ def test_process_death_rolls_back_uncommitted_pointer_and_history(registry, stag
     before = registry.verify()['state_sha256']
     code = """
 import os,sys
-from src.operations.artifact_registry import ArtifactRegistry
+from chronogrid.operations.artifact_registry import ArtifactRegistry
 r=ArtifactRegistry(sys.argv[1])
 r._checkpoint=lambda stage: os._exit(19) if stage==sys.argv[4] else None
 r.activate('load',sys.argv[2],expected_current=sys.argv[3])
@@ -96,7 +96,7 @@ r.activate('load',sys.argv[2],expected_current=sys.argv[3])
 def test_process_exit_after_commit_preserves_new_identity(registry):
     a, b = register(registry), register(registry, note='B')
     registry.activate('load', a, expected_current=None)
-    code = "import os,sys; from src.operations.artifact_registry import ArtifactRegistry; ArtifactRegistry(sys.argv[1]).activate('load',sys.argv[2],expected_current=sys.argv[3]); os._exit(20)"
+    code = "import os,sys; from chronogrid.operations.artifact_registry import ArtifactRegistry; ArtifactRegistry(sys.argv[1]).activate('load',sys.argv[2],expected_current=sys.argv[3]); os._exit(20)"
     result = subprocess.run([sys.executable, '-c', code, str(registry.path), b, a], cwd=ROOT, timeout=30)
     assert result.returncode == 20
     assert ArtifactRegistry(registry.path).active_bundle('load')['bundle_id'] == b

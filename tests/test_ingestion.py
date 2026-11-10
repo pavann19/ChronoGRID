@@ -3,9 +3,9 @@ Tests for Data Ingestion (P5.1).
 """
 
 import pandas as pd
-from src.ingestion.benchmark_generator import generate_german_energy_weather_dataset
-from src.ingestion.smard_client import SmardClient
-from src.ingestion.dwd_client import DwdClient
+from chronogrid.ingestion.benchmark_generator import generate_german_energy_weather_dataset
+from chronogrid.ingestion.smard_client import SmardClient
+from chronogrid.ingestion.dwd_client import DwdClient
 
 
 def test_benchmark_generator_structure():

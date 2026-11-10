@@ -12,10 +12,10 @@ sys.path.insert(0, str(ROOT_DIR))
 import json
 import pandas as pd
 import numpy as np
-from src.features.engineer import FeatureEngineer
-from src.models.tree_models import HistGradientBoostingModel
-from src.serving.onnx_exporter import export_to_onnx
-from src.models.evaluation import compute_metrics
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.models.tree_models import HistGradientBoostingModel
+from chronogrid.serving.onnx_exporter import export_to_onnx
+from chronogrid.models.evaluation import compute_metrics
 
 
 def train_and_export_fallback():

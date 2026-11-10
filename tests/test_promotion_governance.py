@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.models.tree_models import LightGBMModel, XGBoostModel
-from src.retraining.promotion_engine import PromotionEngine
+from chronogrid.models.tree_models import LightGBMModel, XGBoostModel
+from chronogrid.retraining.promotion_engine import PromotionEngine
 
 
 @pytest.fixture
@@ -58,7 +58,7 @@ def test_legacy_multi_file_mutation_is_retired(tmp_path):
 
 def test_passing_metric_review_does_not_execute_a_release(tmp_path,monkeypatch):
     from types import SimpleNamespace
-    from src.retraining import promotion_engine as module
+    from chronogrid.retraining import promotion_engine as module
     engine=PromotionEngine(models_dir=str(tmp_path/'models'),backup_dir=str(tmp_path/'backup'))
     monkeypatch.setattr(module,'diebold_mariano_test',lambda *args:(-3.0,.001))
     def forbidden(*args,**kwargs):

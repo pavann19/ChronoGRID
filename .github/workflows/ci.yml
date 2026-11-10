@@ -44,7 +44,7 @@ jobs:
           python -c "
           import sys; sys.path.insert(0, '.')
           import pandas as pd
-          from src.features.engineer import FeatureEngineer
+          from chronogrid.features.engineer import FeatureEngineer
           df = pd.read_parquet('data/raw/genuine_smard_dwd_observations.parquet')
           fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode='persistence')
           fe.fit(df)
@@ -57,7 +57,7 @@ jobs:
         run: |
           python -c "
           import sys; sys.path.insert(0, '.')
-          from src.serving.onnx_engine import OnnxInferenceEngine
+          from chronogrid.serving.onnx_engine import OnnxInferenceEngine
           engine = OnnxInferenceEngine('artifacts/models/champion_model.onnx')
           print('ONNX Engine loaded successfully in CI environment')
           "

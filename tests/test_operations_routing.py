@@ -1,8 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timedelta,timezone
 import pytest
-from src.operations.journal import Journal
-from src.operations.routing import SharedRouting
+from chronogrid.operations.journal import Journal
+from chronogrid.operations.routing import SharedRouting
 
 def test_shared_routing_recovers_once_with_distinct_telemetry(tmp_path):
     now=datetime(2027,1,1,12,tzinfo=timezone.utc);j=Journal(tmp_path/'j.sqlite',lambda:now)

@@ -4,9 +4,9 @@ import json
 from fastapi.testclient import TestClient
 import pytest
 
-from src.operations.artifact_registry import ArtifactRegistry, sha
-from src.operations.registry_cli import main
-from src.serving import app as service
+from chronogrid.operations.artifact_registry import ArtifactRegistry, sha
+from chronogrid.operations.registry_cli import main
+from chronogrid.serving import app as service
 
 ROOT=Path(__file__).resolve().parents[1]
 

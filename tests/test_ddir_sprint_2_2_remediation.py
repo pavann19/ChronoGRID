@@ -18,13 +18,13 @@ from unittest.mock import patch
 import pytest
 import pandas as pd
 
-from src.reliability.router import DualHeadInferenceRouter
-from src.reliability.validator import WeatherInputValidator
-from src.reliability.state_machine import ReliabilityState, ReliabilityStateMachine
-from src.reliability.recovery import HysteresisRecoveryManager
-from src.reliability.persistence import DDIRStatePersistence, DDIRPersistedState
-from src.serving.app import load_engine, forecast_resilient, metrics, DDIR_REQUEST_COUNT, DDIR_QUALITY_GAUGE
-from src.serving.schemas import ResilientForecastRequest
+from chronogrid.reliability.router import DualHeadInferenceRouter
+from chronogrid.reliability.validator import WeatherInputValidator
+from chronogrid.reliability.state_machine import ReliabilityState, ReliabilityStateMachine
+from chronogrid.reliability.recovery import HysteresisRecoveryManager
+from chronogrid.reliability.persistence import DDIRStatePersistence, DDIRPersistedState
+from chronogrid.serving.app import load_engine, forecast_resilient, metrics, DDIR_REQUEST_COUNT, DDIR_QUALITY_GAUGE
+from chronogrid.serving.schemas import ResilientForecastRequest
 
 
 @pytest.fixture(scope="module")
@@ -39,7 +39,7 @@ def initialized_engine():
 def test_remediation_observability_shielding_counter_failure(initialized_engine):
     """
     Audit Finding: RISK-02 (CRITICAL). Unhandled exceptions in Prometheus metric collection abort forecasts.
-    Fix: Wrap metric collection in try-except in src/serving/app.py.
+    Fix: Wrap metric collection in try-except in chronogrid/serving/app.py.
     Verification: Request succeeds with HTTP 200 equivalent and complete 24-hour predictions despite Prometheus error.
     """
     req = ResilientForecastRequest(

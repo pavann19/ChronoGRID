@@ -7,10 +7,10 @@ import shutil
 
 import pytest
 
-from src.operations import capture
-from src.operations.automation import bounded_cycle, host_lock
-from src.operations.contracts import Run
-from src.operations.journal import Journal, digest
+from chronogrid.operations import capture
+from chronogrid.operations.automation import bounded_cycle, host_lock
+from chronogrid.operations.contracts import Run
+from chronogrid.operations.journal import Journal, digest
 
 
 def registered(tmp_path, *, kind='prospective', pinned=None):
@@ -94,7 +94,7 @@ def test_missing_journal_is_not_initialized(tmp_path):
 
 def test_cross_process_overlap_rejected_and_lock_released_after_exit(tmp_path):
     lock = tmp_path / 'worker.lock'
-    code = ('import sys;from pathlib import Path;from src.operations.automation import host_lock;'
+    code = ('import sys;from pathlib import Path;from chronogrid.operations.automation import host_lock;'
             '\nwith host_lock(Path(sys.argv[1])): pass')
     with host_lock(lock):
         result = subprocess.run([sys.executable, '-c', code, str(lock)], capture_output=True)
@@ -115,8 +115,8 @@ def test_invalid_output_is_preserved_and_flagged(tmp_path):
 
 def test_real_worker_cycle_commits_once_with_offline_source(tmp_path):
     from datetime import datetime, timedelta, timezone
-    from src.operations.journal import encode
-    from src.operations.worker import run_cycle
+    from chronogrid.operations.journal import encode
+    from chronogrid.operations.worker import run_cycle
     store = registered(tmp_path)
     issued = datetime(2027, 1, 14, 10, tzinfo=timezone.utc)
     store.clock = lambda: issued
@@ -139,14 +139,14 @@ def test_real_worker_cycle_commits_once_with_offline_source(tmp_path):
 
 
 def test_cli_models_file_propagates_attention_exit(tmp_path, monkeypatch, capsys):
-    from src.operations.cli import main
+    from chronogrid.operations.cli import main
     store = registered(tmp_path)
     config = tmp_path / 'models.json'
     config.write_text('{"baseline":"weekly"}', encoding='utf-8-sig')
     def stub(db, run_id, models, evidence_dir, cycle_key, **kwargs):
         assert models == {'baseline': 'weekly'}
         return {'status': 'needs_attention', 'attention_required': True}
-    monkeypatch.setattr('src.operations.automation.bounded_cycle', stub)
+    monkeypatch.setattr('chronogrid.operations.automation.bounded_cycle', stub)
     with pytest.raises(SystemExit) as exc:
         main(['--db', str(store.path), 'bounded-cycle', 'automation',
               '--models-file', str(config), '--evidence-dir', str(tmp_path / 'attempts'),

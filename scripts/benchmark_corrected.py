@@ -18,9 +18,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from lightgbm import LGBMRegressor
 from xgboost import XGBRegressor
-from src.features.engineer import FeatureEngineer
-from src.features.gate_audit import audit_gate_availability
-from src.models.walk_forward import TimeSeriesWalkForwardValidator
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.features.gate_audit import audit_gate_availability
+from chronogrid.models.walk_forward import TimeSeriesWalkForwardValidator
 
 OUT = ROOT / 'artifacts/reports/benchmark_corrected'
 

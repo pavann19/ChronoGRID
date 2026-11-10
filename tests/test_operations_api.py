@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastapi.testclient import TestClient
-from src.operations.api import create_app
+from chronogrid.operations.api import create_app
 
 def test_readonly_console_and_historical_counts(tmp_path):
     client=TestClient(create_app(tmp_path/'journal.sqlite'))

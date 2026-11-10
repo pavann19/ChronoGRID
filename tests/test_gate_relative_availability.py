@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-from src.features.engineer import FeatureEngineer
-from src.features.gate_audit import audit_gate_availability
-from src.pipeline.cleaning import DataCleaner
-from src.models.baselines import WeeklySeasonalPersistence168h
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.features.gate_audit import audit_gate_availability
+from chronogrid.pipeline.cleaning import DataCleaner
+from chronogrid.models.baselines import WeeklySeasonalPersistence168h
 
 @pytest.mark.parametrize("day,end,hours", [("2024-03-31", "2024-04-01",23),("2024-10-27","2024-10-28",25),("2024-06-17","2024-06-18",24)])
 def test_gate_old_lag_fails_corrected_passes(day,end,hours):

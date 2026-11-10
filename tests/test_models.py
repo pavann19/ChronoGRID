@@ -4,9 +4,9 @@ Tests for Models, Baselines, and Metrics (P5.4, P5.5, P5.6).
 
 import numpy as np
 import pandas as pd
-from src.models.evaluation import compute_metrics, diebold_mariano_test
-from src.models.baselines import NaivePersistence24h, WeeklySeasonalPersistence168h
-from src.models.tree_models import LightGBMModel, XGBoostModel
+from chronogrid.models.evaluation import compute_metrics, diebold_mariano_test
+from chronogrid.models.baselines import NaivePersistence24h, WeeklySeasonalPersistence168h
+from chronogrid.models.tree_models import LightGBMModel, XGBoostModel
 
 
 def test_metrics_calculation():

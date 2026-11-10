@@ -7,9 +7,9 @@ import pandas as pd
 import pytest
 from fastapi import Response
 from fastapi.testclient import TestClient
-from src.serving import app as service
-from src.serving.onnx_engine import OnnxInferenceEngine
-from src.reliability.router import DualHeadInferenceRouter
+from chronogrid.serving import app as service
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
+from chronogrid.reliability.router import DualHeadInferenceRouter
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -22,7 +22,7 @@ def test_missing_nonfinite_empty_and_misdimensioned_features_rejected():
 
 def test_primary_array_projects_fallback_by_names_and_rejects_missing_columns():
     router=DualHeadInferenceRouter()
-    from src.features.engineer import FeatureEngineer
+    from chronogrid.features.engineer import FeatureEngineer
     raw=pd.read_parquet(ROOT/'data/raw/genuine_smard_dwd_observations.parquet').iloc[:700]
     frame=FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24,weather_mode='persistence').fit_transform(raw,drop_warmup=True).iloc[:24][router.primary_engine.feature_names]
     expected=router.fallback_engine.predict(frame[router.fallback_engine.feature_names].values)
@@ -39,7 +39,8 @@ def test_legacy_http_retired_by_default_and_optin_requires_token(monkeypatch):
     monkeypatch.delenv('CHRONOGRID_ENABLE_LEGACY_REPLAY',raising=False)
     expected={'/forecast/day-ahead','/forecast/resilient','/forecast/dqcp','/forecast/dqcp/feedback'}
     assert service.LEGACY_REPLAY_ROUTES==expected
-    for route in expected:assert client.post(route,json={}).status_code==410
+    monkeypatch.delenv('CHRONOGRID_LEGACY_REPLAY_TOKEN',raising=False)
+    for route in expected:assert client.post(route,json={}).status_code==503
     monkeypatch.setenv('CHRONOGRID_ENABLE_LEGACY_REPLAY','1');monkeypatch.delenv('CHRONOGRID_LEGACY_REPLAY_TOKEN',raising=False)
     assert client.post('/forecast/day-ahead',json={}).status_code==503
     monkeypatch.setenv('CHRONOGRID_LEGACY_REPLAY_TOKEN','ephemeral-test-credential')
@@ -134,7 +135,7 @@ def test_model_info_discloses_unverified_feature_parity(monkeypatch):
 
 
 @pytest.mark.parametrize('route,status', [('/health', 200), ('/predict', 503),
-                                        ('/forecast/day-ahead', 410)])
+                                        ('/forecast/day-ahead', 503)])
 def test_diagnostic_security_headers_include_auth_and_retired_responses(monkeypatch, route, status):
     monkeypatch.delenv('CHRONOGRID_DIAGNOSTICS_TOKEN', raising=False)
     monkeypatch.delenv('CHRONOGRID_ENABLE_LEGACY_REPLAY', raising=False)

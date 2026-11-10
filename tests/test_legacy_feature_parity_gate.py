@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from src.operations.capture import delivery_grid
-from src.serving.feature_parity import unavailable_features, legacy_dependencies, require_legacy_prospective_parity
+from chronogrid.operations.capture import delivery_grid
+from chronogrid.serving.feature_parity import unavailable_features, legacy_dependencies, require_legacy_prospective_parity
 from scripts.audit_legacy_feature_parity import audit, ROOT
 
 
@@ -27,7 +27,7 @@ def test_unknown_feature_and_unverified_provenance_fail_closed():
 
 
 def test_frozen_feature_paths_still_expose_the_measured_mismatch():
-    before = (ROOT / 'src/features/engineer.py').read_bytes()
+    before = (ROOT / 'chronogrid/features/engineer.py').read_bytes()
     report, rows = audit()
     assert report['per_head']['primary']['feature_count'] == 43
     assert report['per_head']['fallback']['feature_count'] == 34
@@ -35,6 +35,6 @@ def test_frozen_feature_paths_still_expose_the_measured_mismatch():
     assert report['unavailable_head_delivery_hours'] == 24
     assert report['mismatched_cells'] > 0
     assert any(not r['numerical_match'] and r['dependency_available_at_gate'] for r in rows)
-    assert (ROOT / 'src/features/engineer.py').read_bytes() == before
+    assert (ROOT / 'chronogrid/features/engineer.py').read_bytes() == before
     with pytest.raises(ValueError):
         require_legacy_prospective_parity(report)

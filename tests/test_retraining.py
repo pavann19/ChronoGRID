@@ -5,7 +5,7 @@ Tests for Retraining and Promotion Logic (P5.10).
 import numpy as np
 import pandas as pd
 
-from src.retraining.promotion_engine import PromotionEngine
+from chronogrid.retraining.promotion_engine import PromotionEngine
 
 
 class MockModel:

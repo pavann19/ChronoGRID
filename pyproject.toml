@@ -13,6 +13,7 @@ license-files = ["LICENSE"]
 authors = [{name = "ChronoGrid Engineering Team"}]
 keywords = ["time-series", "forecasting", "uncertainty", "energy", "research"]
 dependencies = [
+    "holidays==0.108",
     "fastapi==0.162.0", "uvicorn==0.54.0", "pydantic==2.14.2",
     "numpy==2.4.4", "pandas==2.2.3", "requests==2.34.2",
     "scikit-learn==1.8.0", "joblib==1.4.2", "onnxruntime==1.24.4",
@@ -30,19 +31,19 @@ dashboard = ["streamlit>=1.44", "SQLAlchemy==2.1.8", "prometheus-client==0.26.0"
 dev = ["pytest>=9.2", "pytest-cov>=6.0", "hypothesis>=6.100", "ruff>=0.4", "httpx==0.28.1", "pip-audit>=2.10.1"]
 
 [project.scripts]
-chronogrid-ops = "src.operations.cli:main"
-chronogrid-registry = "src.operations.registry_cli:main"
+chronogrid-ops = "chronogrid.operations.cli:main"
+chronogrid-registry = "chronogrid.operations.registry_cli:main"
 
 [tool.setuptools]
 include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src", "src.*"]
+include = ["chronogrid", "chronogrid.*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"src.operations" = ["feature_contract_bindings.json"]
+"chronogrid.operations" = ["feature_contract_bindings.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

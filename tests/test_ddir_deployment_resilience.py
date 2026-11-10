@@ -9,11 +9,11 @@ from unittest.mock import patch
 import pytest
 import pandas as pd
 
-from src.reliability.router import DualHeadInferenceRouter
-from src.reliability.validator import WeatherInputValidator
-from src.reliability.state_machine import ReliabilityState
-from src.serving.app import load_engine, forecast_resilient, DDIR_REQUEST_COUNT
-from src.serving.schemas import ResilientForecastRequest
+from chronogrid.reliability.router import DualHeadInferenceRouter
+from chronogrid.reliability.validator import WeatherInputValidator
+from chronogrid.reliability.state_machine import ReliabilityState
+from chronogrid.serving.app import load_engine, forecast_resilient, DDIR_REQUEST_COUNT
+from chronogrid.serving.schemas import ResilientForecastRequest
 
 
 @pytest.fixture(scope="module")

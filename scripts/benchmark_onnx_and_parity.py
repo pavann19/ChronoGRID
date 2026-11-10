@@ -130,7 +130,7 @@ def run_onnx_performance_benchmark(
     # 5. Latency component breakdown
     # a. Raw ONNX: mean_lat
     # b. Feature transformation latency
-    from src.features.engineer import FeatureEngineer
+    from chronogrid.features.engineer import FeatureEngineer
     sample_df = pd.DataFrame([{f: 1.0 for f in feature_names}] * 24)
     # create synthetic minimal frame
     sample_ts = pd.date_range("2024-01-01", periods=200, freq="1h", tz="UTC")
@@ -220,7 +220,7 @@ def run_onnx_parity_verification(
 
     # Load data for real sample evaluation
     df = pd.read_parquet(data_path)
-    from src.features.engineer import FeatureEngineer
+    from chronogrid.features.engineer import FeatureEngineer
     fe = FeatureEngineer()
     fe.feature_cols = feature_names
     fe.fitted = True
@@ -248,7 +248,7 @@ def run_onnx_parity_verification(
     py_model.fit(X_clean[:-100], y_clean[:-100])
 
     # Re-export to temporary onnx to test export reproducibility
-    from src.serving.onnx_exporter import export_to_onnx
+    from chronogrid.serving.onnx_exporter import export_to_onnx
     test_onnx = "artifacts/models/test_repro.onnx"
     test_meta = "artifacts/models/test_repro.json"
     export_to_onnx(py_model, feature_names, test_onnx, test_meta)

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from src.operations.availability import observed_history
+from chronogrid.operations.availability import observed_history
 
 
 def evidence():

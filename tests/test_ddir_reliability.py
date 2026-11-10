@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.reliability.state_machine import ReliabilityState
-from src.reliability.validator import WeatherInputValidator
-from src.reliability.recovery import HysteresisRecoveryManager
-from src.reliability.router import DualHeadInferenceRouter
+from chronogrid.reliability.state_machine import ReliabilityState
+from chronogrid.reliability.validator import WeatherInputValidator
+from chronogrid.reliability.recovery import HysteresisRecoveryManager
+from chronogrid.reliability.router import DualHeadInferenceRouter
 
 
 @pytest.fixture

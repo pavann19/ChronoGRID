@@ -1,9 +1,9 @@
 from datetime import datetime,date,timedelta,timezone
 import json
 import pytest
-from src.operations.journal import Journal,encode
-from src.operations.weather_runs import RunRequest,capture_single_run,delivery_weather,normalize,SOURCE
-from src.operations.capture import delivery_grid
+from chronogrid.operations.journal import Journal,encode
+from chronogrid.operations.weather_runs import RunRequest,capture_single_run,delivery_weather,normalize,SOURCE
+from chronogrid.operations.capture import delivery_grid
 
 def fixture(day):
     initialization=datetime.combine(day-timedelta(days=1),datetime.min.time(),timezone.utc)
@@ -29,7 +29,7 @@ def test_single_run_radiation_alignment_dst_and_lineage(tmp_path,day):
     assert store.verify()['objects']==3
     assert store.rows('forecast')==[]
     from fastapi.testclient import TestClient
-    from src.operations.api import create_app
+    from chronogrid.operations.api import create_app
     response=TestClient(create_app(tmp_path/'weather.sqlite')).get('/api/weather/runs')
     assert response.status_code==200
     record=response.json()['runs'][0]

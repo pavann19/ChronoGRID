@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import numpy as np
 import pandas as pd
-from src.features.engineer import FeatureEngineer
-from src.serving.feature_parity import unavailable_features, require_legacy_prospective_parity
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.serving.feature_parity import unavailable_features, require_legacy_prospective_parity
 
 
 def audit(day='2024-06-17'):
@@ -21,9 +21,9 @@ def audit(day='2024-06-17'):
     origin = pd.Timestamp(day, tz='Europe/Berlin') - pd.DateOffset(days=1) + pd.Timedelta(hours=12)
     rows = []
     inputs = {source.relative_to(ROOT).as_posix(): hashlib.sha256(source.read_bytes()).hexdigest()}
-    for name in ('src/features/engineer.py', 'src/features/autoregressive.py',
-                 'src/features/temporal.py', 'src/features/weather_features.py',
-                 'src/serving/feature_parity.py', 'scripts/audit_legacy_feature_parity.py'):
+    for name in ('chronogrid/features/engineer.py', 'chronogrid/features/autoregressive.py',
+                 'chronogrid/features/temporal.py', 'chronogrid/features/weather_features.py',
+                 'chronogrid/serving/feature_parity.py', 'scripts/audit_legacy_feature_parity.py'):
         inputs[name] = hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
     for head, filename, mode in [('primary', 'champion_metadata.json', 'persistence'),
                                   ('fallback', 'load_only_metadata.json', 'load_only')]:

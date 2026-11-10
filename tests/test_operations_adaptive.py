@@ -3,12 +3,12 @@ from datetime import date,datetime,timedelta,timezone
 from pathlib import Path
 import json
 import pytest
-from src.operations.adaptive import AdaptiveConfig,AdaptiveStreams,StaleAdaptiveState,capture_adaptive48
-from src.operations.journal import Journal,encode,digest
-from src.operations.contracts import Run,Forecast
-from src.operations.capture import delivery_grid
-from src.evaluation.prospective import ActualObservation
-from src.uncertainty.schemas import CalibrationTable
+from chronogrid.operations.adaptive import AdaptiveConfig,AdaptiveStreams,StaleAdaptiveState,capture_adaptive48
+from chronogrid.operations.journal import Journal,encode,digest
+from chronogrid.operations.contracts import Run,Forecast
+from chronogrid.operations.capture import delivery_grid
+from chronogrid.evaluation.prospective import ActualObservation
+from chronogrid.uncertainty.schemas import CalibrationTable
 from test_operations_evidence import setup,forecast,Clock,D
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -142,7 +142,7 @@ def test_application_timestamp_is_atomic_when_wall_clock_advances(tmp_path):
     j.clock=tick;streams.settle('run1','marginal');j.verify()
 
 def test_first_collected_revision_uses_event_sequence_not_revision_spelling(tmp_path):
-    from src.operations.reporting import score_run
+    from chronogrid.operations.reporting import score_run
     j,clock,_,snapshot,streams=configured(tmp_path,arms=('marginal',));p,h=issue(j,clock,snapshot,streams)
     same_time=delivery_grid(p.delivery_date)[-1]+timedelta(hours=2)
     actuals(j,clock,p,h,misses=24,revision='z_first',all_at=same_time)
@@ -171,7 +171,7 @@ def test_registered_clipping_is_exact_and_not_tuned(tmp_path,misses,expected):
     j.verify()
 
 def test_restore_rejects_semantically_invalid_but_rehashed_feedback_atomically(tmp_path):
-    from src.operations.journal import IntegrityFailure
+    from chronogrid.operations.journal import IntegrityFailure
     j,clock,_,snapshot,streams=configured(tmp_path,arms=('marginal',))
     p,h=issue(j,clock,snapshot,streams);actuals(j,clock,p,h,misses=1)
     clock.t=delivery_grid(p.delivery_date)[-1]+timedelta(hours=49);streams.settle('run1','marginal')
@@ -192,7 +192,7 @@ def test_feedback_is_exactly_once_across_real_processes(tmp_path):
     import subprocess,sys
     j,clock,_,snapshot,streams=configured(tmp_path,arms=('marginal',));p,h=issue(j,clock,snapshot,streams);actuals(j,clock,p,h,misses=24)
     clock.t=delivery_grid(p.delivery_date)[-1]+timedelta(hours=49)
-    code="from pathlib import Path;from datetime import datetime,date;from src.operations.journal import Journal;from src.operations.adaptive import AdaptiveStreams;import sys,json;j=Journal(Path(sys.argv[1]),lambda:datetime.fromisoformat(sys.argv[2]));r=AdaptiveStreams(j).settle('run1','marginal',date(2027,1,15));print(json.dumps(r))"
+    code="from pathlib import Path;from datetime import datetime,date;from chronogrid.operations.journal import Journal;from chronogrid.operations.adaptive import AdaptiveStreams;import sys,json;j=Journal(Path(sys.argv[1]),lambda:datetime.fromisoformat(sys.argv[2]));r=AdaptiveStreams(j).settle('run1','marginal',date(2027,1,15));print(json.dumps(r))"
     children=[subprocess.Popen([sys.executable,'-c',code,str(j.path),clock().isoformat()],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True) for _ in range(4)]
     outputs=[child.communicate(timeout=30) for child in children]
     assert all(child.returncode==0 for child in children),outputs

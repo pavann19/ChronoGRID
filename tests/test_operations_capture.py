@@ -4,18 +4,18 @@ import json
 import pytest
 import numpy as np
 import pandas as pd
-from src.features.engineer import FeatureEngineer
-from src.operations.journal import Journal,digest,encode
-from src.operations.contracts import Run
-from src.operations.capture import capture_weekly,delivery_grid
-from src.operations.models import CheckedOnnx,static_intervals
-from src.uncertainty.schemas import CalibrationTable
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.operations.journal import Journal,digest,encode
+from chronogrid.operations.contracts import Run
+from chronogrid.operations.capture import capture_weekly,delivery_grid
+from chronogrid.operations.models import CheckedOnnx,static_intervals
+from chronogrid.uncertainty.schemas import CalibrationTable
 
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_weekly_capture_actual_inputs_and_no_fake_intervals(tmp_path):
     t=datetime(2027,1,14,10,tzinfo=timezone.utc); state=[t-timedelta(minutes=2)]
-    store=Journal(tmp_path/'j.sqlite',lambda:state[0]); h=digest((ROOT/'src/operations/capture.py').read_bytes())
+    store=Journal(tmp_path/'j.sqlite',lambda:state[0]); h=digest((ROOT/'chronogrid/operations/capture.py').read_bytes())
     store.register(Run(run_id='weekly',experiment_kind='prospective',protocol_sha256='a'*64,start_date='2027-01-15',end_date='2027-01-15',arms=('baseline',),allowed_model_sha256=(h,),demand_low_mw=90,demand_high_mw=110))
     rows=[dict(timestamp=(t-timedelta(hours=i+2)).isoformat(),load_mw=100+i) for i in reversed(range(336))]
     data=dict(format='smard-hourly-mw-v1',unit='MW',rows=rows)
@@ -53,7 +53,7 @@ def test_strict_onnx_inputs_and_calibration_compatibility():
     assert len(result['lower'])==25 and not result['guarantee']
 
 def test_fallback48_capture_uses_model_bound_calibration(tmp_path):
-    from src.operations.capture import capture_fallback48
+    from chronogrid.operations.capture import capture_fallback48
     t=datetime(2027,1,14,10,tzinfo=timezone.utc); state=[t-timedelta(minutes=2)]
     store=Journal(tmp_path/'j.sqlite',lambda:state[0]); experiment=ROOT/'artifacts/experiments/issuance_v2'
     modelsha=digest((experiment/'fallback.joblib').read_bytes())
@@ -62,7 +62,7 @@ def test_fallback48_capture_uses_model_bound_calibration(tmp_path):
     snap=store.snapshot(encode(dict(format='smard-hourly-mw-v1',unit='MW',rows=rows)),'smard-normalized-hourly',state[0]);state[0]=t
     p,key=capture_fallback48(store,'model48',date(2027,1,15),'fallback48',snap,experiment)
     assert p.model_sha256==modelsha and p.calibration_state_sha256 is not None
-    from src.operations.feature_contracts import MANIFEST,load_binding
+    from chronogrid.operations.feature_contracts import MANIFEST,load_binding
     binding_input=next(x for x in p.inputs if x.source=='feature-contract-binding-v1')
     assert store.snapshot_bytes(binding_input.snapshot_sha256)==(ROOT/MANIFEST).read_bytes()
     metadata=json.loads((experiment/'fallback_metadata.json').read_bytes())
@@ -71,8 +71,8 @@ def test_fallback48_capture_uses_model_bound_calibration(tmp_path):
     assert store.verify()['objects']>=5
 
 def test_future_holiday_calendar_fails_closed_without_changing_model_features():
-    from src.operations.calendar_support import assert_frozen_calendar_supported,nationwide_holidays
-    from src.features.temporal import GERMAN_HOLIDAYS
+    from chronogrid.operations.calendar_support import assert_frozen_calendar_supported,nationwide_holidays
+    from chronogrid.features.temporal import GERMAN_HOLIDAYS
     for year in (2023,2024,2025):
         assert {(d.year,d.month,d.day) for d in nationwide_holidays(year)}=={d for d in GERMAN_HOLIDAYS if d[0]==year}
     assert_frozen_calendar_supported(delivery_grid(date(2026,11,5)))

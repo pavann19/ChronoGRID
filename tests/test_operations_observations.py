@@ -2,10 +2,10 @@ from datetime import datetime,timedelta,timezone,date
 from pathlib import Path
 import json,subprocess,sys
 import pytest
-from src.operations.journal import Journal,encode
-from src.operations.observations import link_smard
-from src.operations.worker import run_cycle
-from src.operations.reporting import score_run
+from chronogrid.operations.journal import Journal,encode
+from chronogrid.operations.observations import link_smard
+from chronogrid.operations.worker import run_cycle
+from chronogrid.operations.reporting import score_run
 from test_operations_evidence import setup,forecast
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -37,11 +37,11 @@ def test_collector_rejects_duplicates_future_units_and_nonfinite_actuals(tmp_pat
     assert not j.rows('actual')
 
 def test_cycle_isolates_model_arm_failure_and_keeps_valid_baseline(tmp_path):
-    from src.operations.contracts import Run
-    from src.operations.journal import digest
+    from chronogrid.operations.contracts import Run
+    from chronogrid.operations.journal import digest
     from test_operations_evidence import Clock
     clock=Clock();clock.t=datetime(2027,1,14,9,58,tzinfo=timezone.utc);j=Journal(tmp_path/'cycle.sqlite',clock)
-    model=digest((ROOT/'src/operations/capture.py').read_bytes())
+    model=digest((ROOT/'chronogrid/operations/capture.py').read_bytes())
     j.register(Run(run_id='isolated',experiment_kind='prospective',protocol_sha256='a'*64,start_date='2027-01-15',end_date='2027-01-15',arms=('broken','baseline'),allowed_model_sha256=(model,),demand_low_mw=40000,demand_high_mw=60000))
     t=datetime(2027,1,14,10,tzinfo=timezone.utc)
     rows=[dict(timestamp=(t-timedelta(hours=i+2)).isoformat(),load_mw=50000+i) for i in reversed(range(336))]

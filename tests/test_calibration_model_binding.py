@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.uncertainty.engine import load_dqcp_engine
+from chronogrid.uncertainty.engine import load_dqcp_engine
 
 ROOT = Path(__file__).resolve().parents[1]
 

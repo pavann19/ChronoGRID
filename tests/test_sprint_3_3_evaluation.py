@@ -16,11 +16,11 @@ import joblib
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-from src.features.engineer import FeatureEngineer
-from src.reliability.state_machine import ReliabilityState
-from src.uncertainty.schemas import CalibrationTable
-from src.uncertainty.conformal import ConformalCalibrationPool
-from src.uncertainty.engine import DQCPUncertaintyEngine
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.reliability.state_machine import ReliabilityState
+from chronogrid.uncertainty.schemas import CalibrationTable
+from chronogrid.uncertainty.conformal import ConformalCalibrationPool
+from chronogrid.uncertainty.engine import DQCPUncertaintyEngine
 from scripts.run_sprint_3_3_evaluation import compute_winkler_score, run_daily_origin_block_bootstrap
 
 

@@ -14,11 +14,11 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from src.features.engineer import FeatureEngineer
-from src.serving.onnx_engine import OnnxInferenceEngine
-from src.reliability.state_machine import ReliabilityState
-from src.reliability.recovery import HysteresisRecoveryManager
-from src.reliability.router import DualHeadInferenceRouter
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
+from chronogrid.reliability.state_machine import ReliabilityState
+from chronogrid.reliability.recovery import HysteresisRecoveryManager
+from chronogrid.reliability.router import DualHeadInferenceRouter
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 

@@ -3,11 +3,11 @@ from datetime import datetime,timedelta,timezone,date
 from pathlib import Path
 import json, sqlite3, subprocess,sys
 import pytest
-from src.operations.contracts import Run,Forecast
-from src.operations.journal import Journal,Conflict,IntegrityFailure,digest,encode
-from src.evaluation.prospective import ActualObservation
-from src.operations.capture import delivery_grid,parse_smard
-from src.operations.reporting import score_run
+from chronogrid.operations.contracts import Run,Forecast
+from chronogrid.operations.journal import Journal,Conflict,IntegrityFailure,digest,encode
+from chronogrid.evaluation.prospective import ActualObservation
+from chronogrid.operations.capture import delivery_grid,parse_smard
+from chronogrid.operations.reporting import score_run
 D='a'*64
 class Clock:
     def __init__(self): self.t=datetime(2027,1,1,tzinfo=timezone.utc)
@@ -129,7 +129,7 @@ def test_actual_cross_prediction_rejection(tmp_path):
 
 def test_actual_processes_compete_for_same_registered_slot(tmp_path):
     store,clock,_,snapshot=setup(tmp_path);p=forecast(store,clock,snapshot);payload=tmp_path/'forecast.json';payload.write_text(p.model_dump_json())
-    code="from pathlib import Path;from datetime import datetime;from src.operations.journal import Journal,Conflict;from src.operations.contracts import Forecast;import sys;p=Forecast.model_validate_json(Path(sys.argv[2]).read_bytes());j=Journal(Path(sys.argv[1]),lambda:datetime.fromisoformat(sys.argv[3]));\ntry:j.commit(p);print('committed')\nexcept Conflict:print('duplicate')"
+    code="from pathlib import Path;from datetime import datetime;from chronogrid.operations.journal import Journal,Conflict;from chronogrid.operations.contracts import Forecast;import sys;p=Forecast.model_validate_json(Path(sys.argv[2]).read_bytes());j=Journal(Path(sys.argv[1]),lambda:datetime.fromisoformat(sys.argv[3]));\ntry:j.commit(p);print('committed')\nexcept Conflict:print('duplicate')"
     procs=[subprocess.Popen([sys.executable,'-c',code,str(store.path),str(payload),clock().isoformat()],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True) for _ in range(4)]
     outputs=[p.communicate(timeout=30) for p in procs]
     assert all(p.returncode==0 for p in procs),outputs
@@ -138,7 +138,7 @@ def test_actual_processes_compete_for_same_registered_slot(tmp_path):
     assert len(store.rows('forecast'))==1
 
 def test_wal_reset_version_policy_and_conservative_fallback(tmp_path):
-    from src.operations.journal import wal_reset_safe
+    from chronogrid.operations.journal import wal_reset_safe
     assert not wal_reset_safe((3,49,1)) and not wal_reset_safe((3,46,1))
     assert not wal_reset_safe((3,51,2)) and not wal_reset_safe((3,50,6))
     assert wal_reset_safe((3,51,3)) and wal_reset_safe((3,44,6)) and wal_reset_safe((3,50,7))
@@ -146,7 +146,7 @@ def test_wal_reset_version_policy_and_conservative_fallback(tmp_path):
     assert j.journal_mode==('wal' if wal_reset_safe(sqlite3.sqlite_version_info) else 'delete')
 
 def test_multi_model_runs_pin_each_arm(tmp_path):
-    from src.operations.contracts import ArmModel
+    from chronogrid.operations.contracts import ArmModel
     j,clock,run,snapshot=setup(tmp_path)
     future=run.model_copy(update={'run_id':'pinned','arms':('a','b'),'allowed_model_sha256':(D,'b'*64),'arm_models':()})
     with pytest.raises(ValueError,match='per-arm'):j.register(future)

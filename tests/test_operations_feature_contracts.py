@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.features.engineer import FeatureEngineer
-from src.operations.capture import delivery_grid
-from src.operations.feature_contracts import (
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.operations.capture import delivery_grid
+from chronogrid.operations.feature_contracts import (
     MANIFEST, ROOT, SOURCE_PATHS, feature_dependencies, load_binding, validate_dependencies,
 )
-from src.operations.local_calendar import LocalCalendarFeatures
+from chronogrid.operations.local_calendar import LocalCalendarFeatures
 
 
 @pytest.mark.parametrize('day,length', [('2024-02-15', 24), ('2024-03-31', 23), ('2024-10-27', 25)])

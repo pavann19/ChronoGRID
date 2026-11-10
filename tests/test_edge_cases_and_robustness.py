@@ -12,10 +12,10 @@ import pytest
 from datetime import datetime, timezone
 import zoneinfo
 
-from src.pipeline.cleaning import DataCleaner
-from src.pipeline.validation import DataValidator
-from src.features.engineer import FeatureEngineer
-from src.serving.schemas import DayAheadForecastRequest
+from chronogrid.pipeline.cleaning import DataCleaner
+from chronogrid.pipeline.validation import DataValidator
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.serving.schemas import DayAheadForecastRequest
 
 
 # ==============================================================================

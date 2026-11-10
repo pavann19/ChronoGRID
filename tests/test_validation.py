@@ -4,8 +4,8 @@ Tests for Data Validation and Cleaning Pipelines (P5.2).
 
 import numpy as np
 import pandas as pd
-from src.pipeline.validation import DataValidator
-from src.pipeline.cleaning import DataCleaner
+from chronogrid.pipeline.validation import DataValidator
+from chronogrid.pipeline.cleaning import DataCleaner
 
 
 def test_validator_detects_out_of_bounds():

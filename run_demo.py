@@ -22,17 +22,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ChronoGrid")
 
-from src.db.database import init_db
-from src.ingestion.ingest_pipeline import IngestionPipeline
-from src.pipeline.pipeline import DataPipeline
-from src.features.engineer import FeatureEngineer
-from src.models.trainer import ModelBenchmarkTrainer
-from src.tracking.mlflow_tracker import MLflowTracker
-from src.serving.onnx_exporter import export_to_onnx
-from src.serving.onnx_engine import OnnxInferenceEngine
-from src.monitoring.drift_detector import DriftDetector
-from src.monitoring.metrics import update_drift_prometheus_metrics
-from src.retraining.promotion_engine import PromotionEngine
+from chronogrid.db.database import init_db
+from chronogrid.ingestion.ingest_pipeline import IngestionPipeline
+from chronogrid.pipeline.pipeline import DataPipeline
+from chronogrid.features.engineer import FeatureEngineer
+from chronogrid.models.trainer import ModelBenchmarkTrainer
+from chronogrid.tracking.mlflow_tracker import MLflowTracker
+from chronogrid.serving.onnx_exporter import export_to_onnx
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
+from chronogrid.monitoring.drift_detector import DriftDetector
+from chronogrid.monitoring.metrics import update_drift_prometheus_metrics
+from chronogrid.retraining.promotion_engine import PromotionEngine
 
 
 def main():
@@ -164,7 +164,7 @@ def main():
     promotion_engine = PromotionEngine(min_improvement_pct=0.01) # 1% gate for demo
     
     # Train challenger model (e.g. XGBoost challenger vs LightGBM champion)
-    from src.models.tree_models import XGBoostModel, LightGBMModel
+    from chronogrid.models.tree_models import XGBoostModel, LightGBMModel
     challenger_type = "XGBoost" if "LightGBM" in champion_name else "LightGBM"
     logger.info(f"Training Challenger Model ({challenger_type}) on latest window...")
     challenger = XGBoostModel(n_estimators=220, learning_rate=0.04) if challenger_type == "XGBoost" else LightGBMModel(n_estimators=220, learning_rate=0.04)
@@ -187,7 +187,7 @@ def main():
     logger.info("Evidently-Compatible Drift Report: artifacts/reports/drift_report.html")
     logger.info("Champion ONNX Model: artifacts/models/champion_model.onnx")
     logger.info("MLflow Tracking URI: sqlite:///mlruns/mlflow.db")
-    logger.info("FastAPI Serving App: src/serving/app.py (Run with uvicorn src.serving.app:app)")
+    logger.info("FastAPI Serving App: src/serving/app.py (Run with uvicorn chronogrid.serving.app:app)")
     logger.info("=" * 80)
     logger.info("CHRONOGRID LIFECYCLE EXECUTION SUCCESSFULLY COMPLETED!")
     logger.info("=" * 80)

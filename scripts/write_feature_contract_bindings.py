@@ -7,7 +7,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from src.operations.feature_contracts import MANIFEST, SOURCE_PATHS, feature_dependencies, load_binding, sha
+from chronogrid.operations.feature_contracts import MANIFEST, SOURCE_PATHS, feature_dependencies, load_binding, sha
 
 EXPERIMENTS = ('issuance_v2', 'local_calendar_v3')
 

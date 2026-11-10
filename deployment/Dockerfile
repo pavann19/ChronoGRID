@@ -14,11 +14,11 @@ RUN --mount=type=bind,from=locked-wheels,source=/wheels,target=/wheels,readonly 
     pip install --no-index --find-links=/wheels --require-hashes -r requirements.lock && pip check && \
     python -m pip uninstall --yes pip && \
     rm -rf /usr/local/lib/python3.13/ensurepip
-COPY src/ /app/src/
+COPY chronogrid/ /app/chronogrid/
 COPY artifacts/models/ /app/artifacts/models/
 COPY artifacts/calibration/ /app/artifacts/calibration/
 RUN useradd -u 10001 -m chronogrid && mkdir /state && chown chronogrid:chronogrid /state
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=4s --start-period=15s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"
-CMD ["uvicorn","src.serving.app:app","--host","0.0.0.0","--port","8000","--workers","1"]
+CMD ["uvicorn","chronogrid.serving.app:app","--host","0.0.0.0","--port","8000","--workers","1"]

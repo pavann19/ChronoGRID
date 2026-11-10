@@ -3,9 +3,9 @@ Tests for ONNX Engine and FastAPI Serving Endpoints (P5.8).
 """
 
 import numpy as np
-from src.serving.app import health, metrics, forecast_resilient, load_engine
-from src.serving.schemas import ResilientForecastRequest
-from src.serving.onnx_engine import OnnxInferenceEngine
+from chronogrid.serving.app import health, metrics, forecast_resilient, load_engine
+from chronogrid.serving.schemas import ResilientForecastRequest
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
 
 
 def test_fastapi_health_endpoint():

@@ -3,9 +3,9 @@ from datetime import datetime,timedelta,timezone
 from pathlib import Path
 import shutil,subprocess,json
 import pytest
-from src.operations.timestamps import make_request,verify_receipt
-from src.operations.journal import Journal,digest,encode
-from src.operations.contracts import Run,Forecast
+from chronogrid.operations.timestamps import make_request,verify_receipt
+from chronogrid.operations.journal import Journal,digest,encode
+from chronogrid.operations.contracts import Run,Forecast
 from test_operations_evidence import forecast,Clock
 
 OPENSSL=shutil.which('openssl')

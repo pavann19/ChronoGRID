@@ -3,8 +3,8 @@ from zoneinfo import ZoneInfo
 import json
 import pytest
 from pydantic import ValidationError
-import src.evaluation.prospective as evidence
-from src.evaluation.prospective import PredictionRecord, ActualObservation, EvidenceStore
+import chronogrid.evaluation.prospective as evidence
+from chronogrid.evaluation.prospective import PredictionRecord, ActualObservation, EvidenceStore
 
 D = 'a'*64
 

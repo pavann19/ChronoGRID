@@ -19,7 +19,7 @@ from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from src.operations.artifact_registry import ArtifactRegistry, RegistryConflict, RegistryIntegrityError, sha
+from chronogrid.operations.artifact_registry import ArtifactRegistry, RegistryConflict, RegistryIntegrityError, sha
 
 
 def register(registry,head):
@@ -43,7 +43,7 @@ def probe_http(registry_path,bundle,log):
         with urlopen(request,timeout=3) as response:
             return json.loads(response.read()),response.headers
     with log.open('w',encoding='utf-8') as stream:
-        process=subprocess.Popen([sys.executable,'-m','uvicorn','src.serving.app:app','--host','127.0.0.1','--port',str(port)],
+        process=subprocess.Popen([sys.executable,'-m','uvicorn','chronogrid.serving.app:app','--host','127.0.0.1','--port',str(port)],
                                  cwd=ROOT,env=env,stdout=stream,stderr=subprocess.STDOUT)
         try:
             for _ in range(60):
@@ -86,7 +86,7 @@ def drill(output,work):
     backup_seconds=time.perf_counter()-started
     child="""
 import os,sys
-from src.operations.artifact_registry import ArtifactRegistry
+from chronogrid.operations.artifact_registry import ArtifactRegistry
 r=ArtifactRegistry(sys.argv[1])
 if sys.argv[4]=='before':
     r._checkpoint=lambda stage: os._exit(19) if stage=='pointer_before_event' else None

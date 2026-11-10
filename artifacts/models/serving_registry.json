@@ -1,0 +1,9 @@
+{
+  "scope": "Reviewed diagnostic artifact identity; historical model, not a corrected benchmark promotion",
+  "sha256": {
+    "champion_model.onnx": "1c28a97074fbc579f94eb3ab5ae72752bba97057c077eece647c2d1e5b8fcd91",
+    "champion_metadata.json": "5b8cc902e24a4e6ea9464ce6fba506d2b844b835d071e0c0fb8ba17d72c72348",
+    "load_only_model.onnx": "fa2913cf584e985e9b23d4e61ec082bb90ba93780d062eb8ed6ed910b45c6e45",
+    "load_only_metadata.json": "674521cc3390c804abc08a32392f970d1d28c96af4cac2e1444e4319125c5cb7"
+  }
+}

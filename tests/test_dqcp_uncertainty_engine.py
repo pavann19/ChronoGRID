@@ -19,12 +19,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from src.reliability.state_machine import ReliabilityState
-from src.uncertainty.schemas import UncertaintyResult, CalibrationTable, DelayedFeedbackRecord
-from src.uncertainty.normalization import DeliveryHourMADNormalizer
-from src.uncertainty.conformal import ConformalCalibrationPool, compute_finite_sample_rank
-from src.uncertainty.aci import DelayedFeedbackACIManager
-from src.uncertainty.engine import DQCPUncertaintyEngine, load_dqcp_engine
+from chronogrid.reliability.state_machine import ReliabilityState
+from chronogrid.uncertainty.schemas import UncertaintyResult, CalibrationTable, DelayedFeedbackRecord
+from chronogrid.uncertainty.normalization import DeliveryHourMADNormalizer
+from chronogrid.uncertainty.conformal import ConformalCalibrationPool, compute_finite_sample_rank
+from chronogrid.uncertainty.aci import DelayedFeedbackACIManager
+from chronogrid.uncertainty.engine import DQCPUncertaintyEngine, load_dqcp_engine
 
 
 # =============================================================================
@@ -478,8 +478,8 @@ def test_no_evaluation_leakage_audit():
 
 def test_api_forecast_dqcp_endpoint():
     """Verify forecast_dqcp route handler returns valid prediction envelope and Prometheus metrics."""
-    from src.serving.app import load_engine, forecast_dqcp
-    from src.serving.schemas import DQCPForecastRequest
+    from chronogrid.serving.app import load_engine, forecast_dqcp
+    from chronogrid.serving.schemas import DQCPForecastRequest
 
     load_engine()
 
@@ -509,15 +509,15 @@ def test_api_forecast_dqcp_endpoint():
 
 def test_api_feedback_settlement_endpoint(monkeypatch):
     """Verify submit_dqcp_feedback route handler processes delayed feedback and enforces 2-day lag."""
-    from src.serving.app import load_engine, submit_dqcp_feedback
-    from src.serving.schemas import DQCPFeedbackRequest
+    from chronogrid.serving.app import load_engine, submit_dqcp_feedback
+    from chronogrid.serving.schemas import DQCPFeedbackRequest
     from fastapi import HTTPException
 
     load_engine()
 
     # Exercise feedback mechanics using an isolated synthetic engine. Startup
     # correctly rejects the incompatible frozen serving/calibration pair.
-    from src.serving import app as service
+    from chronogrid.serving import app as service
     synthetic = DQCPUncertaintyEngine()
     synthetic.primary_aci_manager.register_forecast(
         '2024-06-16', np.full(24, 50000.0), np.full(24, 54000.0)

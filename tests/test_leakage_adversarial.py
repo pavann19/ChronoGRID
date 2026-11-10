@@ -6,7 +6,7 @@ Verifies that no future target, weather, or market information leaks into predic
 import numpy as np
 import pandas as pd
 import pytest
-from src.features.engineer import FeatureEngineer
+from chronogrid.features.engineer import FeatureEngineer
 
 
 @pytest.fixture

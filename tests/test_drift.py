@@ -5,7 +5,7 @@ Tests for Drift Detection (P5.9).
 import numpy as np
 import pandas as pd
 
-from src.monitoring.drift_detector import DriftDetector
+from chronogrid.monitoring.drift_detector import DriftDetector
 
 
 def test_psi_identical_distributions():

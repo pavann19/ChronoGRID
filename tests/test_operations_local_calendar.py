@@ -5,8 +5,8 @@ import pytest
 import json
 from pathlib import Path
 from datetime import datetime,timedelta,timezone
-from src.operations.capture import delivery_grid
-from src.operations.local_calendar import holidays,add_local_calendar,LocalCalendarFeatures
+from chronogrid.operations.capture import delivery_grid
+from chronogrid.operations.local_calendar import holidays,add_local_calendar,LocalCalendarFeatures
 
 def test_2026_nationwide_holidays_and_local_midnight():
     assert holidays(2026)==frozenset(date.fromisoformat(d) for d in ['2026-01-01','2026-04-03','2026-04-06','2026-05-01','2026-05-14','2026-05-25','2026-10-03','2026-12-25','2026-12-26'])
@@ -43,9 +43,9 @@ def test_reject_gaps_before_row_shift():
 
 @pytest.mark.parametrize('day',['2026-12-25','2027-03-28','2027-10-31'])
 def test_real_v3_model_capture_on_isolated_synthetic_history(tmp_path,day):
-    from src.operations.capture import capture_fallback48
-    from src.operations.journal import Journal,digest,encode
-    from src.operations.contracts import Run
+    from chronogrid.operations.capture import capture_fallback48
+    from chronogrid.operations.journal import Journal,digest,encode
+    from chronogrid.operations.contracts import Run
     root=Path(__file__).resolve().parents[1]
     experiment=root/'artifacts/experiments/local_calendar_v3'
     d=date.fromisoformat(day)
@@ -67,7 +67,7 @@ def test_real_v3_model_capture_on_isolated_synthetic_history(tmp_path,day):
     import shutil
     copied=tmp_path/'bad';shutil.copytree(experiment,copied)
     metadata=json.loads((copied/'fallback_metadata.json').read_bytes())
-    metadata['feature_sources']['src/operations/local_calendar.py']='0'*64
+    metadata['feature_sources']['chronogrid/operations/local_calendar.py']='0'*64
     (copied/'fallback_metadata.json').write_text(json.dumps(metadata))
     with pytest.raises(ValueError,match='binding mismatch'):
         capture_fallback48(store,'calendar',d,'local',snap,copied)
