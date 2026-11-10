@@ -1,0 +1,6 @@
+comparison,observed_diff_mw,ci_low_mw,ci_high_mw,excludes_zero
+RandomForest minus Weekly_168h,-78.248854759,-180.947375024,15.766885768,False
+RandomForest minus HistGradientBoosting,-11.946472103,-110.258167950,82.835062594,False
+HistGradientBoosting minus Weekly_168h,-66.302382656,-219.623661000,84.274827167,False
+LightGBM minus Weekly_168h,-41.304505938,-207.109302441,115.005234948,False
+XGBoost minus Weekly_168h,54.721358817,-152.317009859,277.630964820,False
