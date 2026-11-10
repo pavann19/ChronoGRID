@@ -1,5 +1,5 @@
 """
-ChronoGrid DDIR Historical evaluation Remediation Regression Suite.
+ChronoGrid DDIR Historical evaluationRegression Suite.
 Verifies all 5 highest-priority fixes supported by reproducible audit evidence:
 1. Observability Blast Radius Shielding (RISK-02)
 2. Future Timestamp Validation & Routing to INVALID (RISK-05)

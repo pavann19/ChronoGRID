@@ -1,5 +1,5 @@
 """
-Tests for ChronoGrid DDIR Historical evaluation: Deployment & Multi-Process Resilience Audit.
+Tests for ChronoGrid DDIR Historical evaluation Deployment & Multi-Process Resilience Audit.
 Verifies multi-process isolation, cold-start state inversion, frozen sensor bypass,
 future timestamp validation anomaly, observability blast radius, and bounded metric cardinality.
 """

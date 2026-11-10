@@ -1,6 +1,6 @@
 """
 Unit and integration tests for ChronoGrid Data-Quality-Conditioned Conformal Prediction (DQ-CP).
-Historical evaluation Remediation Suite:
+Historical evaluation:
 - Quantile-rank boundary tests and infinite/unbounded interval handling (k > n)
 - Normalization, Zero-MAD epsilon guard, and non-finite input guards
 - Strict Primary and Fallback ACI state isolation

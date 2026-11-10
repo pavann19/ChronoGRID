@@ -1,5 +1,5 @@
 """
-Tests for ChronoGrid DDIR Historical evaluation Audit Verification.
+Tests for ChronoGrid DDIR Historical evaluation Verification.
 Ensures artifact checksums, schema integrity, fallback parity, hysteresis anti-replay,
 and session reuse remain verified.
 """

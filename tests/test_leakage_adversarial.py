@@ -1,5 +1,5 @@
 """
-Adversarial information-boundary & Day-Ahead Information Boundary Tests.
+Adversarial Information Boundary & Day-Ahead Information Boundary Tests.
 Verifies that no future target, weather, or market information leaks into predictions.
 """
 
