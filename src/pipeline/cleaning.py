@@ -75,23 +75,15 @@ class DataCleaner:
             if col in cleaned.columns:
                 null_mask = cleaned[col].isnull()
                 if null_mask.any():
-                    # Interpolate using linear interpolation on unbroken hourly grid
-                    interpolated_series = cleaned[col].interpolate(
-                        method="linear",
-                        limit=self.max_interpolation_gap_hours,
-                        limit_direction="both"
-                    )
-                    # Flag which entries were filled
-                    filled_mask = null_mask & (~interpolated_series.isnull())
+                    filled = cleaned[col].ffill(limit=self.max_interpolation_gap_hours)
+                    filled_mask = null_mask & filled.notna()
                     cleaned.loc[filled_mask, "is_interpolated"] = True
-                    cleaned[col] = interpolated_series
+                    cleaned.loc[filled_mask, "quality_flag"] = "CAUSAL_FORWARD_FILL"
+                    cleaned[col] = filled
                     cleaning_stats["interpolated_values_count"] += int(filled_mask.sum())
 
-                    # If any remaining nulls (gaps > max_interpolation_gap_hours), forward fill and flag
-                    remaining_nulls = cleaned[col].isnull()
-                    if remaining_nulls.any():
-                        cleaned[col] = cleaned[col].bfill().ffill()
-                        cleaned.loc[remaining_nulls, "quality_flag"] = "ESTIMATED_EXTRAPOLATION"
+        # Drop unknown leading values and observations beyond the causal fill bound.
+        cleaned = cleaned.dropna(subset=[c for c in numeric_cols if c in cleaned])
 
         # Reset index back to column
         cleaned.reset_index(inplace=True)

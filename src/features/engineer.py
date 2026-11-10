@@ -21,16 +21,22 @@ class FeatureEngineer:
     def __init__(
         self,
         target_col: str = "grid_load_mw",
-        min_lag_hours: int = 24, # Day-Ahead Gate Closure constraint
+        min_lag_hours: int = 48,
         lags: List[int] = None,
         rolling_windows: List[int] = None,
         weather_mode: str = "persistence", # "persistence" (default honest mode), "load_only"
         scale_features: bool = False,
+        allow_post_gate_lags: bool = False,
     ):
+        if min_lag_hours < 48 and not allow_post_gate_lags:
+            raise ValueError("Lags below 48h require allow_post_gate_lags=True (leaky comparison baseline)")
+        self.allow_post_gate_lags = allow_post_gate_lags
         self.target_col = target_col
         self.min_lag_hours = min_lag_hours
         # Day-ahead lags strictly >= min_lag_hours (e.g. 24, 25, 48, 72, 168)
-        self.lags = lags or [24, 25, 48, 72, 168]
+        self.lags = lags or ([24, 25, 48, 72, 168] if allow_post_gate_lags else [48, 72, 168])
+        if any(lag < 48 for lag in self.lags) and not allow_post_gate_lags:
+            raise ValueError("Post-gate lags require allow_post_gate_lags=True")
         self.rolling_windows = rolling_windows or [6, 12, 24, 168]
         self.weather_mode = weather_mode
         self.scale_features = scale_features
@@ -40,6 +46,11 @@ class FeatureEngineer:
 
     def _generate_raw_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies all deterministic, issuance-constrained feature transformations."""
+        timestamps = pd.to_datetime(df["timestamp"], utc=True)
+        if not self.allow_post_gate_lags and (timestamps.duplicated().any() or not timestamps.is_monotonic_increasing):
+            raise ValueError("Features require unique chronological timestamps")
+        if not self.allow_post_gate_lags and not timestamps.diff().dropna().eq(pd.Timedelta(hours=1)).all():
+            df = df.assign(timestamp=timestamps).set_index("timestamp").reindex(pd.date_range(timestamps.iloc[0], timestamps.iloc[-1], freq="h")).rename_axis("timestamp").reset_index()
         out = add_temporal_features(df)
         out = add_weather_features(out, weather_mode=self.weather_mode, min_lag_hours=self.min_lag_hours)
         out = add_autoregressive_features(
@@ -99,7 +110,7 @@ class FeatureEngineer:
 
         if drop_warmup:
             max_warmup = max(self.lags + [self.min_lag_hours + w for w in self.rolling_windows])
-            df_feat = df_feat.iloc[max_warmup:].reset_index(drop=True)
+            df_feat = df_feat.iloc[max_warmup:].dropna(subset=self.feature_cols).reset_index(drop=True)
 
         return df_feat
 
@@ -258,148 +269,63 @@ class FeatureEngineer:
 
         return delivery_features, metadata
 
-    def run_adversarial_leakage_suite(self, df: pd.DataFrame) -> Dict[str, any]:
-        """
-        Executes an adversarial battery of 10 tests to mathematically verify zero data leakage.
-        """
-        tests_passed = 0
-        test_details = {}
+    @staticmethod
+    def _suite_result(details):
+        passed = sum(bool(item["passed"]) for item in details.values())
+        return {"suite_status": "ALL_TESTS_PASSED" if passed == len(details) else "TESTS_FAILED",
+                "tests_passed": passed, "total_tests": len(details), "details": details}
 
-        # Baseline features
-        df_clean = df.dropna().reset_index(drop=True)
+    def run_leakage_suite(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Perturb raw observations and compare features at their original row positions.
+
+        This checks transformation causality. Gate-relative availability is a separate audit.
+        """
+        clean = df.dropna().reset_index(drop=True)
+        if len(clean) <= max(self.lags) + self.min_lag_hours + 10:
+            raise ValueError("Insufficient rows for meaningful perturbation tests")
         if not self.fitted:
-            self.fit(df_clean)
-        base_feats = self.transform(df_clean, drop_warmup=True)
-        feat_cols = self.get_feature_names()
+            self.fit(clean)
+        cols = self.get_feature_names()
+        base = self.transform(clean)[cols]
+        cut = len(clean) - self.min_lag_hours - 5
+        details = {}
+        def compare(name, altered, stop):
+            actual = self.transform(altered)[cols]
+            left, right = base.iloc[:stop], actual.iloc[:stop]
+            equal = np.isclose(left.to_numpy(dtype=float), right.to_numpy(dtype=float), equal_nan=True)
+            details[name] = {"passed": bool(equal.all()), "rows_compared": stop}
+        pert = clean.copy()
+        pert.loc[cut, self.target_col] += 50000
+        compare("1_future_target_perturbation", pert, cut + self.min_lag_hours)
+        weather = [c for c in ("temperature_c", "wind_speed_ms", "humidity_pct", "solar_radiation_wm2") if c in clean]
+        if weather and self.weather_mode != "load_only":
+            pert = clean.copy()
+            pert.loc[cut:, weather] += 1000
+            compare("2_future_weather_perturbation", pert, cut + self.min_lag_hours)
+        pert = clean.copy()
+        pert.loc[cut:, self.target_col] = np.arange(len(clean)-cut) * 100000 + 900000
+        compare("3_future_load_perturbation", pert, cut + self.min_lag_hours)
+        details["target_excluded"] = {"passed": self.target_col not in cols}
+        shifted = clean[self.target_col].shift(self.min_lag_hours)
+        for window in self.rolling_windows:
+            col = f"{self.target_col}_roll_mean_{window}"
+            expected = shifted.rolling(window, min_periods=max(1, window//2)).mean()
+            details[f"rolling_shift_{window}"] = {"passed": bool(np.isclose(base[col], expected, equal_nan=True).all())}
+        return self._suite_result(details)
 
-        # 1. Future target perturbation
-        df_pert = df_clean.copy()
-        target_idx = len(df_pert) - 5
-        df_pert.loc[target_idx, self.target_col] += 50000.0
-        pert_feats = self.transform(df_pert, drop_warmup=True)
-        # Check that rows prior to target_idx + min_lag_hours have identical features
-        max_unaffected_idx = target_idx - 1
-        diff = np.max(np.abs(
-            base_feats.iloc[:max_unaffected_idx][feat_cols].values - 
-            pert_feats.iloc[:max_unaffected_idx][feat_cols].values
-        ))
-        test_details["1_future_target_perturbation"] = {
-            "passed": bool(diff < 1e-6),
-            "max_difference_in_prior_rows": float(diff),
-            "description": "Features before perturbed timestamp remained bitwise invariant"
-        }
-        if diff < 1e-6:
-            tests_passed += 1
-
-        # 2. Future weather perturbation
-        df_w_pert = df_clean.copy()
-        w_idx = len(df_w_pert) - 5
-        if "temperature_c" in df_w_pert.columns:
-            df_w_pert.loc[w_idx, "temperature_c"] += 40.0
-        pert_w_feats = self.transform(df_w_pert, drop_warmup=True)
-        diff_w = np.max(np.abs(
-            base_feats.iloc[:w_idx - 1][feat_cols].values - 
-            pert_w_feats.iloc[:w_idx - 1][feat_cols].values
-        ))
-        test_details["2_future_weather_perturbation"] = {
-            "passed": bool(diff_w < 1e-6),
-            "max_difference_in_prior_rows": float(diff_w),
-            "description": "Prior rows unaffected by future weather spikes"
-        }
-        if diff_w < 1e-6:
-            tests_passed += 1
-
-        # 3. Future load perturbation
-        test_details["3_future_load_perturbation"] = {
-            "passed": bool(diff < 1e-6),
-            "description": "Verified no future grid load values leak into past features"
-        }
-        tests_passed += 1
-
-        # 4. Incorrect timezone conversion
-        ts_s = df_clean["timestamp"].iloc[:24]
-        has_tz = ts_s.dt.tz is not None
-        test_details["4_timezone_continuity"] = {
-            "passed": bool(has_tz),
-            "timezone": str(ts_s.dt.tz) if has_tz else "None",
-            "description": "UTC timestamps explicitly serialized with timezone metadata"
-        }
-        if has_tz:
-            tests_passed += 1
-
-        # 5. DST spring-forward
-        # 2024-03-31 in Berlin has 23 hours; UTC has 24 continuous hours
-        march31_utc = pd.date_range("2024-03-31 00:00:00", "2024-03-31 23:00:00", freq="1h", tz="UTC")
-        march31_berlin = march31_utc.tz_convert("Europe/Berlin")
-        dst_spring_ok = (len(march31_utc) == 24) and (len(march31_berlin.hour.unique()) == 23)
-        test_details["5_dst_spring_continuity"] = {
-            "passed": dst_spring_ok,
-            "description": "UTC time series preserves 24 continuous hours across German 23h spring DST transition"
-        }
-        if dst_spring_ok:
-            tests_passed += 1
-
-        # 6. DST autumn-fallback
-        oct27_utc = pd.date_range("2024-10-27 00:00:00", "2024-10-27 23:00:00", freq="1h", tz="UTC")
-        oct27_berlin = oct27_utc.tz_convert("Europe/Berlin")
-        dst_autumn_ok = (len(oct27_utc) == 24) and (oct27_utc.is_monotonic_increasing)
-        test_details["6_dst_autumn_monotonicity"] = {
-            "passed": dst_autumn_ok,
-            "description": "UTC timeline remains strictly monotonic during German 25h autumn DST fallback"
-        }
-        if dst_autumn_ok:
-            tests_passed += 1
-
-        # 7. Forecast horizon extension
+    def run_data_integrity_suite(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Report timezone, DST, horizon and schema checks separately from leakage."""
+        if not self.fitted:
+            self.fit(df)
+        details = {"timezone_continuity": {"passed": bool(df.timestamp.dt.tz is not None and df.timestamp.is_unique and df.timestamp.diff().dropna().eq(pd.Timedelta(hours=1)).all())}}
+        for label, day, end, count in [("spring", "2024-03-31", "2024-04-01", 23), ("autumn", "2024-10-27", "2024-10-28", 25)]:
+            grid = pd.date_range(day, end, inclusive="left", freq="h", tz="Europe/Berlin")
+            details[f"dst_{label}"] = {"passed": bool(len(grid)==count and grid.tz_convert("UTC").is_unique)}
         try:
-            feats_24, meta_24 = self.build_day_ahead_market_frame(df_clean.tail(500))
-            horizon_ok = meta_24["delivery_hours"] in (23, 24, 25)
-        except Exception:
-            horizon_ok = False
-        test_details["7_forecast_horizon_validity"] = {
-            "passed": horizon_ok,
-            "description": "Block market frame correctly generates complete 24h delivery profile"
-        }
-        if horizon_ok:
-            tests_passed += 1
-
-        # 8. Recursive prediction contamination
-        # Asserts that contemporaneous target is never in feature columns
-        leak_check = self.target_col not in feat_cols
-        test_details["8_zero_target_contamination"] = {
-            "passed": leak_check,
-            "description": "Target variable is strictly excluded from input feature columns"
-        }
-        if leak_check:
-            tests_passed += 1
-
-        # 9. Rolling-window contamination
-        # Minimum lag for rolling stats >= 24h
-        min_roll_shift = self.min_lag_hours >= 24
-        test_details["9_rolling_window_shifted"] = {
-            "passed": min_roll_shift,
-            "min_lag_hours": self.min_lag_hours,
-            "description": "Rolling stats computed on target shifted by >= 24h"
-        }
-        if min_roll_shift:
-            tests_passed += 1
-
-        # 10. Training/inference feature schema parity
-        fit_cols = list(self.feature_cols)
-        inf_cols = list(pert_feats[self.feature_cols].columns)
-        schema_parity = (fit_cols == inf_cols)
-        test_details["10_feature_schema_parity"] = {
-            "passed": schema_parity,
-            "n_features": len(fit_cols),
-            "description": "Training and inference feature schema are identical"
-        }
-        if schema_parity:
-            tests_passed += 1
-
-        return {
-            "suite_status": "ALL_TESTS_PASSED" if tests_passed == 10 else "TESTS_FAILED",
-            "tests_passed": tests_passed,
-            "total_tests": 10,
-            "audit_timestamp": pd.Timestamp.now(tz="UTC").isoformat(),
-            "details": test_details
-        }
+            _, metadata = self.build_day_ahead_market_frame(df)
+            horizon = metadata["delivery_hours"] in (23, 24, 25)
+        except (ValueError, IndexError):
+            horizon = False
+        details["forecast_horizon_validity"] = {"passed": horizon}
+        details["feature_schema_parity"] = {"passed": list(self.transform(df)[self.feature_cols]) == self.feature_cols}
+        return self._suite_result(details)

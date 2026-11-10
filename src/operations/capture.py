@@ -112,7 +112,8 @@ def build_fallback48(store: Journal,run_id: str,day: date,arm: str,snapshot_sha2
         expected={'src/operations/local_calendar.py','src/features/engineer.py','src/features/autoregressive.py','src/features/weather_features.py'}
         sources=metadata.get('feature_sources',{})
         root=Path(__file__).resolve().parents[2]
-        if set(sources)!=expected or any(digest((root/p).read_bytes())!=h for p,h in sources.items()):
+        from src.operations.historical_sources import historical_source
+        if set(sources)!=expected or any(digest(historical_source(p,h))!=h for p,h in sources.items()):
             raise ValueError('V3 feature implementation checksum mismatch')
     table=CalibrationTable.model_validate_json(cal_bytes)
     if table.model_sha256!=metadata['model_sha256']: raise ValueError('V2 model/calibration mismatch')

@@ -25,7 +25,7 @@ def train_and_export_fallback():
     print(f"Loaded {len(df_raw):,} records from {raw_path}")
 
     # Feature engineering in load_only mode (min_lag_hours=24)
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="load_only")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="load_only")
     df_feats = fe.fit_transform(df_raw, drop_warmup=True)
     feature_cols = fe.get_feature_names()
     print(f"Engineered {len(feature_cols)} load-only features (Zero weather dependency).")

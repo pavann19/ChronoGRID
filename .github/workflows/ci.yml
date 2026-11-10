@@ -46,9 +46,9 @@ jobs:
           import pandas as pd
           from src.features.engineer import FeatureEngineer
           df = pd.read_parquet('data/raw/genuine_smard_dwd_observations.parquet')
-          fe = FeatureEngineer(min_lag_hours=24, weather_mode='persistence')
+          fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode='persistence')
           fe.fit(df)
-          results = fe.run_adversarial_leakage_suite(df)
+          results = fe.run_leakage_suite(df)
           assert results['suite_status'] == 'ALL_TESTS_PASSED', f'Leakage verification failed: {results}'
           print('Historical feature regression suite passed; issuance-time availability is a separate contract.')
           "

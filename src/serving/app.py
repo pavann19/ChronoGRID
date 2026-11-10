@@ -361,7 +361,7 @@ def forecast_day_ahead(payload: DayAheadForecastRequest):
     future_timestamps = pd.date_range(start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC")
 
     from src.features.engineer import FeatureEngineer
-    fe = FeatureEngineer(min_lag_hours=24)
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24)
     fe.feature_cols = ENGINE.feature_names
     fe.fitted = True
 
@@ -422,7 +422,7 @@ def forecast_resilient(payload: ResilientForecastRequest):
     future_timestamps = pd.date_range(start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC")
 
     from src.features.engineer import FeatureEngineer
-    fe = FeatureEngineer(min_lag_hours=24)
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24)
     fe.feature_cols = ROUTER.primary_engine.feature_names
     fe.fitted = True
 
@@ -522,7 +522,7 @@ def forecast_dqcp(payload: DQCPForecastRequest):
     future_timestamps = [start_ts + pd.Timedelta(hours=i) for i in range(horizon)]
 
     from src.features.engineer import FeatureEngineer
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     recent_history = df.tail(336).copy()
     last_known_load = recent_history["grid_load_mw"].iloc[-1]
 

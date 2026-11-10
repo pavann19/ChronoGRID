@@ -21,7 +21,7 @@ class NaivePersistence24h:
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         lag_col = f"{self.target_col}_lag_24"
         if lag_col in X.columns:
-            return X[lag_col].bfill().values
+            return X[lag_col].ffill(limit=3).values
         raise ValueError(f"Required lag column '{lag_col}' not found in features.")
 
 
@@ -37,7 +37,7 @@ class WeeklySeasonalPersistence168h:
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         lag_col = f"{self.target_col}_lag_168"
         if lag_col in X.columns:
-            return X[lag_col].bfill().values
+            return X[lag_col].ffill(limit=3).values
         raise ValueError(f"Required lag column '{lag_col}' not found in features.")
 
 
@@ -53,7 +53,7 @@ class MovingAverageBaseline:
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         roll_col = f"{self.target_col}_roll_mean_24"
         if roll_col in X.columns:
-            return X[roll_col].bfill().values
+            return X[roll_col].ffill(limit=3).values
         raise ValueError(f"Required column '{roll_col}' not found in features.")
 
 

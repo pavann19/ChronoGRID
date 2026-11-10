@@ -24,7 +24,7 @@ def test_primary_array_projects_fallback_by_names_and_rejects_missing_columns():
     router=DualHeadInferenceRouter()
     from src.features.engineer import FeatureEngineer
     raw=pd.read_parquet(ROOT/'data/raw/genuine_smard_dwd_observations.parquet').iloc[:700]
-    frame=FeatureEngineer(min_lag_hours=24,weather_mode='persistence').fit_transform(raw,drop_warmup=True).iloc[:24][router.primary_engine.feature_names]
+    frame=FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24,weather_mode='persistence').fit_transform(raw,drop_warmup=True).iloc[:24][router.primary_engine.feature_names]
     expected=router.fallback_engine.predict(frame[router.fallback_engine.feature_names].values)
     prefix=router.fallback_engine.predict(frame.values[:,:len(router.fallback_engine.feature_names)])
     assert np.max(np.abs(prefix-expected))>1 # this data actually reproduces the old positional bug

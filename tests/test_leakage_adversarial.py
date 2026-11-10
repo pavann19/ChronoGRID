@@ -26,7 +26,7 @@ def clean_sample_data():
 
 def test_adversarial_future_target_perturbation(clean_sample_data):
     """Perturbing a future target row must NOT alter features at earlier rows."""
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     fe.fit(clean_sample_data)
     
     base_feats = fe.transform(clean_sample_data, drop_warmup=True)
@@ -52,7 +52,7 @@ def test_adversarial_future_target_perturbation(clean_sample_data):
 
 def test_adversarial_future_weather_perturbation(clean_sample_data):
     """Perturbing future weather at delivery hour must NOT alter features at earlier rows."""
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     fe.fit(clean_sample_data)
     
     base_feats = fe.transform(clean_sample_data, drop_warmup=True)
@@ -76,7 +76,7 @@ def test_adversarial_future_weather_perturbation(clean_sample_data):
 
 def test_market_gate_closure_winter_vs_summer(clean_sample_data):
     """Asserts that 12:00 Berlin gate closure converts to 11:00 UTC in winter (CET) and 10:00 UTC in summer (CEST)."""
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     
     # 1. Winter date (Jan 15, CET = UTC+1)
     winter_origin = pd.Timestamp("2024-01-15 12:00:00", tz="Europe/Berlin")
@@ -89,7 +89,7 @@ def test_market_gate_closure_winter_vs_summer(clean_sample_data):
 
 def test_block_day_ahead_market_frame_generator(clean_sample_data):
     """Verifies that block day-ahead frame generation produces valid delivery profiles with zero leakage."""
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     features_df, meta = fe.build_day_ahead_market_frame(clean_sample_data)
 
     assert meta["delivery_hours"] in (23, 24, 25)

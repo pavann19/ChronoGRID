@@ -69,13 +69,13 @@ def test_audit_fallback_parity_and_correctness(paths):
     direct_fall_engine = OnnxInferenceEngine(str(paths["fall_onnx"]), str(paths["fall_meta"]))
 
     # Synthetic sample row
-    fe_pers = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe_pers = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     df_raw = pd.read_parquet(paths["raw"]).iloc[:500]
     df_pers = fe_pers.fit_transform(df_raw, drop_warmup=True)
     sample_pers = df_pers.iloc[0:1]
 
     # Direct fallback reference
-    fe_load = FeatureEngineer(min_lag_hours=24, weather_mode="load_only")
+    fe_load = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="load_only")
     df_load = fe_load.fit_transform(df_raw, drop_warmup=True)
     sample_load = df_load.iloc[0:1]
     ref_fallback_pred = round(float(direct_fall_engine.predict(sample_load[direct_fall_engine.feature_names].values)[0]), 1)
@@ -145,7 +145,7 @@ def test_audit_session_reuse_and_thread_safety(paths):
 
     # 50 concurrent requests
     df_raw = pd.read_parquet(paths["raw"]).iloc[:500]
-    fe = FeatureEngineer(min_lag_hours=24, weather_mode="persistence")
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     row = fe.fit_transform(df_raw, drop_warmup=True).iloc[0:1]
 
     def worker(idx):

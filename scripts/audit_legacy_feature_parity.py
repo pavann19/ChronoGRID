@@ -30,7 +30,7 @@ def audit(day='2024-06-17'):
         path = ROOT / 'artifacts/models' / filename
         metadata = json.loads(path.read_bytes())
         inputs[path.relative_to(ROOT).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-        fe = FeatureEngineer(min_lag_hours=24, weather_mode=mode)
+        fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode=mode)
         fe.feature_cols, fe.fitted = metadata['feature_names'], True
         reference = fe.transform(raw).set_index('timestamp')
         served, market = fe.build_day_ahead_market_frame(raw, forecast_origin=origin.tz_convert('UTC'))

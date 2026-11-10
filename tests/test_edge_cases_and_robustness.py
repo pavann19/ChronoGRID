@@ -92,7 +92,7 @@ def test_missing_weather_observations_resilience(gap_hours):
     Pipeline must impute minor gaps, extrapolate/persist multi-day gaps,
     and allow downstream feature engineering and inference to execute without crash.
     """
-    n_hours = 250
+    n_hours = 500
     timestamps = pd.date_range("2024-01-01", periods=n_hours, freq="1h", tz="UTC")
     df = pd.DataFrame({
         "timestamp": timestamps,
@@ -104,7 +104,7 @@ def test_missing_weather_observations_resilience(gap_hours):
     })
 
     # Inject missing gap in weather parameters
-    gap_start = 180
+    gap_start = 300
     gap_end = gap_start + gap_hours
     df.loc[gap_start:gap_end, "temperature_c"] = np.nan
     df.loc[gap_start:gap_end, "solar_radiation_wm2"] = np.nan
@@ -117,10 +117,11 @@ def test_missing_weather_observations_resilience(gap_hours):
 
     # If gap > 3h, verify quality flag was set
     if gap_hours > 3:
-        assert (cleaned["quality_flag"] == "ESTIMATED_EXTRAPOLATION").any()
+        assert len(cleaned) < len(df)
+        assert (cleaned["quality_flag"] == "CAUSAL_FORWARD_FILL").any()
 
     # 2. Feature engineering stage must run without error or NaNs
-    fe = FeatureEngineer(min_lag_hours=24)
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24)
     feat_df = fe.fit_transform(cleaned, drop_warmup=True)
     assert len(feat_df) > 0
     assert not feat_df[fe.get_feature_names()].isnull().any().any()
@@ -154,7 +155,7 @@ def test_insufficient_history_depth_failure():
         "grid_load_mw": np.random.uniform(40000, 60000, 10),
         "temperature_c": np.random.uniform(5, 15, 10),
     })
-    fe = FeatureEngineer(min_lag_hours=24, lags=[24, 168])
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, lags=[24, 168])
     fe.fit(short_df)
     
     # Transforming with drop_warmup=True on only 10 rows must return an empty dataframe
@@ -182,7 +183,7 @@ def test_zero_future_leakage_day_ahead():
         "humidity_pct": np.random.uniform(40, 90, n_hours),
     })
 
-    fe = FeatureEngineer(min_lag_hours=24)
+    fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24)
     feat_df = fe.fit_transform(df, drop_warmup=True)
 
     # 1. Assert verify_zero_future_leakage passes
