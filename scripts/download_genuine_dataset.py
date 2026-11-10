@@ -1,5 +1,5 @@
 """
-Download genuine historical SMARD electricity and DWD weather observations.
+Download historical SMARD electricity load and Open-Meteo weather observations.
 """
 
 from datetime import datetime, timezone
