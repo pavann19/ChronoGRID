@@ -253,3 +253,5 @@ artifacts/reports/portfolio_cleanup/frozen_sources/fbd3a6d464d71c3e22da3a167cbb5
 /artifacts/reports/portfolio_cleanup/ruff_current.json
 
 /artifacts/reports/portfolio_cleanup/final_coverage.json
+/artifacts/reports/cleanup_report.md
+/artifacts/reports/portfolio_cleanup/
