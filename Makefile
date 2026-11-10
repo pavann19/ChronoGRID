@@ -1,6 +1,7 @@
 PYTHON ?= python
 .PHONY: install lint test audit benchmark serve docker
 install:
+	$(PYTHON) -m pip install --upgrade "pip>=26.2" "setuptools>=84.1.0" "wheel>=0.45"
 	$(PYTHON) -m pip install -e ".[dev,research,export,tracking,diagnostics]"
 lint:
 	$(PYTHON) -m ruff check chronogrid tests scripts

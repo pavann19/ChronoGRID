@@ -27,7 +27,7 @@ I used 5 expanding folds, a 24-hour purge, and 35 reused Berlin delivery days. E
 `TSO_latest_revision` is SMARD's published load forecast downloaded for the same hours. It is a retrospective reference: the download has no original issuance timestamp and can include revisions. Confidence intervals for individual models do not establish a paired significance claim.
 
 <details>
-<summary>Explicitly leaky 24-hour comparison — excluded from day-ahead claims</summary>
+<summary>Explicitly leaky 24-hour comparison â€” excluded from day-ahead claims</summary>
 
 | Model | MAE (MW) | MAE 95% block CI | RMSE (MW) | MAPE |
 |---|---:|---:|---:|---:|
@@ -42,6 +42,8 @@ I used 5 expanding folds, a 24-hour purge, and 35 reused Berlin delivery days. E
 </details>
 
 ## Run locally on Linux
+
+Prerequisites: Python 3.11–3.13 with virtual-environment support, Git, Make, and the OpenMP runtime (`libgomp1` on Debian/Ubuntu).
 
 ```sh
 git clone https://github.com/pavann19/ChronoGRID.git
@@ -67,7 +69,7 @@ docker run --rm -p 127.0.0.1:8000:8000 \
   -e CHRONOGRID_DIAGNOSTICS_TOKEN chronogrid:0.2.0
 ```
 
-The Dockerfiles install hash-locked dependencies during the build and need no ignored wheelhouse. The evaluation protocol and validation limits are described in [evaluation](docs/evaluation.md).
+The Dockerfile installs hash-locked dependencies during the build and need no ignored wheelhouse. The evaluation protocol and validation limits are described in [evaluation](docs/evaluation.md).
 
 ## Architecture
 

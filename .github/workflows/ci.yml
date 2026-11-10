@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: python -m pip install -e ".[dev,research,export,tracking,diagnostics]"
+      - run: make install
       - run: make lint
       - run: python -m pytest --cov=chronogrid --cov-report=xml
       - run: python scripts/audit_gate.py
