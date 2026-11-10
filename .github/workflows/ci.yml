@@ -1,64 +1,41 @@
-name: ChronoGrid CI
-
+name: ChronoGRID CI
 on:
   push:
-    branches: [master, main]
+    branches: [master, portfolio-cleanup]
   pull_request:
-    branches: [master, main]
-
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  test:
-    name: Tests and historical feature regression checks
+  checks:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pandas==2.2.3 scikit-learn==1.8.0 joblib==1.4.2
-          pip install pytest pytest-cov ruff
-
-      - name: Code style check (ruff)
-        run: |
-          ruff check src tests --select E9,F63,F7,F82
-
-      - name: Run automated test suite
-        run: |
-          python -m pytest tests/ -v --durations=10
-
-      - name: Run historical feature regression suite (not issuance-time certification)
-        run: |
-          python -c "
-          import sys; sys.path.insert(0, '.')
-          import pandas as pd
-          from chronogrid.features.engineer import FeatureEngineer
-          df = pd.read_parquet('data/raw/genuine_smard_dwd_observations.parquet')
-          fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode='persistence')
-          fe.fit(df)
-          results = fe.run_leakage_suite(df)
-          assert results['suite_status'] == 'ALL_TESTS_PASSED', f'Leakage verification failed: {results}'
-          print('Historical feature regression suite passed; issuance-time availability is a separate contract.')
-          "
-
-      - name: Verify ONNX Runtime serving
-        run: |
-          python -c "
-          import sys; sys.path.insert(0, '.')
-          from chronogrid.serving.onnx_engine import OnnxInferenceEngine
-          engine = OnnxInferenceEngine('artifacts/models/champion_model.onnx')
-          print('ONNX Engine loaded successfully in CI environment')
-          "
-
+          cache: pip
+      - run: python -m pip install -e ".[dev,research,export,tracking,diagnostics]"
+      - run: make lint
+      - run: python -m pytest --cov=chronogrid --cov-report=xml
+      - run: python scripts/audit_gate.py
+      - run: python scripts/preserve_research_evidence.py --verify
+      - run: python -m pip_audit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            artifacts/reports/gate_audit.json
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deployment/Dockerfile -t chronogrid:ci .
+      - run: docker build -f deployment/Dockerfile.operations -t chronogrid-operations:ci .

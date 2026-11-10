@@ -1,11 +1,12 @@
 """Database package."""
-from chronogrid.db.database import get_engine, init_db, get_session
+
+from chronogrid.db.database import get_engine, get_session, init_db
 from chronogrid.db.models import (
     Base,
-    ElectricityRecord,
-    PipelineRun,
-    ModelRegistryRecord,
     DriftReportRecord,
+    ElectricityRecord,
+    ModelRegistryRecord,
+    PipelineRun,
 )
 
 __all__ = [
@@ -18,4 +19,3 @@ __all__ = [
     "ModelRegistryRecord",
     "DriftReportRecord",
 ]
-

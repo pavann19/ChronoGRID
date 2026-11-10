@@ -5,7 +5,8 @@ Fetches electricity market data: total grid load, generation by type, and spot p
 
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Optional
+
 import pandas as pd
 import requests
 
@@ -17,14 +18,15 @@ class SmardClient:
     Client for the German Federal Network Agency (Bundesnetzagentur) SMARD API.
     API Docs: https://www.smard.de/en/downloadcenter/data-download
     """
+
     BASE_URL = "https://www.smard.de/app/chart_data"
 
     # Known SMARD filter IDs
-    FILTER_TOTAL_LOAD = 410       # Gesamte Last (Grid Load)
-    FILTER_SOLAR = 1226           # Photovoltaik
-    FILTER_WIND_ONSHORE = 1225    # Wind Onshore
-    FILTER_WIND_OFFSHORE = 1224   # Wind Offshore
-    FILTER_DAY_AHEAD_PRICE = 4169 # Day-Ahead Grosshandelspreise
+    FILTER_TOTAL_LOAD = 410  # Gesamte Last (Grid Load)
+    FILTER_SOLAR = 1226  # Photovoltaik
+    FILTER_WIND_ONSHORE = 1225  # Wind Onshore
+    FILTER_WIND_OFFSHORE = 1224  # Wind Offshore
+    FILTER_DAY_AHEAD_PRICE = 4169  # Day-Ahead Grosshandelspreise
 
     def __init__(self, timeout: int = 15):
         self.timeout = timeout
@@ -34,7 +36,7 @@ class SmardClient:
         filter_id: int,
         region: str = "DE",
         resolution: str = "hour",
-        timestamp_ms: Optional[int] = None,
+        timestamp_ms: Optional[int] | None = None,
     ) -> pd.DataFrame:
         """
         Fetches time series from SMARD endpoint.
@@ -75,4 +77,3 @@ class SmardClient:
         except Exception as e:
             logger.warning(f"Failed to fetch data slice {timestamp_ms} from SMARD: {e}")
             return pd.DataFrame(columns=["timestamp", "value"])
-

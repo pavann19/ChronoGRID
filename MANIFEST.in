@@ -1,4 +1,4 @@
-include pyproject.toml MANIFEST.in LICENSE OPERATIONS.md
+include pyproject.toml MANIFEST.in LICENSE README.md NOTICE
 recursive-include chronogrid *.py
 include chronogrid/operations/feature_contract_bindings.json
 prune artifacts
@@ -10,5 +10,5 @@ prune frontend
 prune deployment
 prune .github
 prune .tools
-exclude README.md requirements.txt .env
+exclude .env
 global-exclude *.pyc *.pyo *.sqlite *.db

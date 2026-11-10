@@ -7,13 +7,15 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
-import pandas as pd
+from typing import Any, Dict, List, Optional
+
 import numpy as np
+import pandas as pd
 
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
+
     MLFLOW_AVAILABLE = True
 except ImportError:
     MLFLOW_AVAILABLE = False
@@ -28,6 +30,7 @@ class MLflowTracker:
     """
     Manages MLflow experiment runs and Model Registry.
     """
+
     def __init__(
         self,
         tracking_uri: str = "sqlite:///mlruns/mlflow.db",
@@ -49,8 +52,7 @@ class MLflowTracker:
                 exp = mlflow.get_experiment_by_name(self.experiment_name)
                 if exp is None:
                     self.experiment_id = mlflow.create_experiment(
-                        self.experiment_name,
-                        artifact_location=str(self.artifact_dir.resolve())
+                        self.experiment_name, artifact_location=str(self.artifact_dir.resolve())
                     )
                 else:
                     self.experiment_id = exp.experiment_id
@@ -66,12 +68,12 @@ class MLflowTracker:
         self,
         model_name: str,
         model_type: str,
-        params: Dict[str, any],
-        metrics: Dict[str, any],
+        params: Dict[str, Any],
+        metrics: Dict[str, Any],
         feature_names: List[str],
-        feature_importances: Dict[str, float] = None,
-        model_artifact_path: Optional[str] = None,
-        onnx_path: Optional[str] = None,
+        feature_importances: Dict[str, float] | None = None,
+        model_artifact_path: Optional[str] | None = None,
+        onnx_path: Optional[str] | None = None,
         stage: str = "Staging",
         is_champion: bool = False,
     ) -> str:
@@ -140,11 +142,14 @@ class MLflowTracker:
                 onnx_uri=onnx_path,
                 is_champion=is_champion,
                 promoted_at=pd.Timestamp.utcnow().to_pydatetime() if is_champion else None,
-                metadata_json=json.dumps({
-                    "params": params,
-                    "metrics": metrics,
-                    "features": feature_names,
-                }, default=str),
+                metadata_json=json.dumps(
+                    {
+                        "params": params,
+                        "metrics": metrics,
+                        "features": feature_names,
+                    },
+                    default=str,
+                ),
             )
             session.add(reg_rec)
             logger.info(
@@ -153,7 +158,7 @@ class MLflowTracker:
 
         return run_id
 
-    def get_champion_model_info(self) -> Optional[Dict[str, any]]:
+    def get_champion_model_info(self) -> Optional[Dict[str, Any]]:
         """Retrieves active Production Champion model metadata."""
         with get_session() as session:
             rec = (
@@ -174,4 +179,3 @@ class MLflowTracker:
                     "promoted_at": str(rec.promoted_at),
                 }
             return None
-

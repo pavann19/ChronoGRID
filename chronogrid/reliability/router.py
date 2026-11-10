@@ -4,19 +4,20 @@ Coordinates validation, reliability state transitions, and deterministic executi
 across Primary (Weather-Enabled) and Fallback (Load-Only) ONNX engines.
 """
 
-import time
 import logging
+import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import pandas as pd
 
-from chronogrid.serving.onnx_engine import OnnxInferenceEngine
-from chronogrid.reliability.state_machine import ReliabilityState, ReliabilityStateMachine
-from chronogrid.reliability.validator import WeatherInputValidator, ValidationReport
 from chronogrid.reliability.recovery import HysteresisRecoveryManager
+from chronogrid.reliability.state_machine import ReliabilityState, ReliabilityStateMachine
+from chronogrid.reliability.validator import ValidationReport, WeatherInputValidator
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ _UNSPECIFIED = object()
 @dataclass
 class DDIRInferenceResult:
     """Rich auditable result returned by DualHeadInferenceRouter."""
+
     predictions: List[float]
     routing_state: ReliabilityState
     active_head: str  # "PRIMARY_WEATHER" or "FALLBACK_LOAD_ONLY"
@@ -56,7 +58,7 @@ class DualHeadInferenceRouter:
         fallback_metadata_path: str = "artifacts/models/load_only_metadata.json",
         recovery_threshold: int = 2,
         max_freshness_hours: float = 28.0,
-        state_file_path: Optional[str] = None,
+        state_file_path: Optional[str] | None = None,
     ):
         self.primary_onnx_path = Path(primary_onnx_path)
         self.primary_metadata_path = Path(primary_metadata_path)
@@ -89,8 +91,8 @@ class DualHeadInferenceRouter:
         self,
         features: Union[pd.DataFrame, List[Dict[str, Any]], np.ndarray],
         weather_payload: Any = _UNSPECIFIED,
-        data_timestamp: Optional[Union[str, datetime]] = None,
-        current_time: Optional[datetime] = None,
+        data_timestamp: Optional[Union[str, datetime]] | None = None,
+        current_time: Optional[datetime] | None = None,
     ) -> DDIRInferenceResult:
         """
         Validates weather telemetry, evaluates reliability state, and executes dual-head prediction.
@@ -99,12 +101,21 @@ class DualHeadInferenceRouter:
 
         # 1. Validation Step
         t_val_start = time.perf_counter()
-        
+
         # If weather_payload is unspecified, attempt to extract it from features
         if weather_payload is _UNSPECIFIED:
             if isinstance(features, pd.DataFrame):
                 # Check for direct weather columns in DataFrame
-                weather_cols = [c for c in ["temperature_c", "wind_speed_ms", "solar_radiation_wm2", "humidity_pct"] if c in features.columns]
+                weather_cols = [
+                    c
+                    for c in [
+                        "temperature_c",
+                        "wind_speed_ms",
+                        "solar_radiation_wm2",
+                        "humidity_pct",
+                    ]
+                    if c in features.columns
+                ]
                 if weather_cols:
                     weather_payload = features[weather_cols].copy()
                 else:
@@ -113,7 +124,7 @@ class DualHeadInferenceRouter:
                         "forecast_temperature_c": "temperature_c",
                         "forecast_wind_speed_ms": "wind_speed_ms",
                         "forecast_solar_radiation_wm2": "solar_radiation_wm2",
-                        "forecast_humidity_pct": "humidity_pct"
+                        "forecast_humidity_pct": "humidity_pct",
                     }
                     present_aliases = [c for c in alias_map if c in features.columns]
                     if present_aliases:
@@ -131,7 +142,9 @@ class DualHeadInferenceRouter:
             )
             raw_state, raw_reason = ReliabilityStateMachine.evaluate(report)
         except Exception as exc:
-            logger.warning(f"Validator/State machine error: {exc}. Executing safe fallback to load-only model.")
+            logger.warning(
+                f"Validator/State machine error: {exc}. Executing safe fallback to load-only model."
+            )
             report = ValidationReport(
                 is_valid=False,
                 quality_score=0.0,
@@ -149,7 +162,12 @@ class DualHeadInferenceRouter:
         src_ts = data_timestamp
         if src_ts is None and isinstance(weather_payload, dict) and "timestamp" in weather_payload:
             src_ts = weather_payload["timestamp"]
-        elif src_ts is None and isinstance(weather_payload, list) and len(weather_payload) > 0 and isinstance(weather_payload[0], dict):
+        elif (
+            src_ts is None
+            and isinstance(weather_payload, list)
+            and len(weather_payload) > 0
+            and isinstance(weather_payload[0], dict)
+        ):
             src_ts = weather_payload[0].get("timestamp")
 
         fingerprint = None
@@ -157,16 +175,36 @@ class DualHeadInferenceRouter:
         if weather_payload is not None:
             try:
                 import hashlib
+
                 fingerprint = hashlib.sha256(str(weather_payload).encode()).hexdigest()[:16]
 
                 # Content fingerprint: hash telemetry readings excluding timestamp / date headers
-                content_obj = None
+                content_obj: dict | list | None = None
                 if isinstance(weather_payload, dict):
-                    content_obj = {k: v for k, v in sorted(weather_payload.items()) if k.lower() not in ("timestamp", "time", "datetime", "date")}
-                elif isinstance(weather_payload, list) and len(weather_payload) > 0 and isinstance(weather_payload[0], dict):
-                    content_obj = [{k: v for k, v in sorted(r.items()) if k.lower() not in ("timestamp", "time", "datetime", "date")} for r in weather_payload]
+                    content_obj = {
+                        k: v
+                        for k, v in sorted(weather_payload.items())
+                        if k.lower() not in ("timestamp", "time", "datetime", "date")
+                    }
+                elif (
+                    isinstance(weather_payload, list)
+                    and len(weather_payload) > 0
+                    and isinstance(weather_payload[0], dict)
+                ):
+                    content_obj = [
+                        {
+                            k: v
+                            for k, v in sorted(r.items())
+                            if k.lower() not in ("timestamp", "time", "datetime", "date")
+                        }
+                        for r in weather_payload
+                    ]
                 elif isinstance(weather_payload, pd.DataFrame):
-                    cols = [c for c in weather_payload.columns if c.lower() not in ("timestamp", "time", "datetime", "date")]
+                    cols = [
+                        c
+                        for c in weather_payload.columns
+                        if c.lower() not in ("timestamp", "time", "datetime", "date")
+                    ]
                     content_obj = weather_payload[cols].to_dict(orient="records")
                 else:
                     content_obj = weather_payload
@@ -195,7 +233,9 @@ class DualHeadInferenceRouter:
                 preds = self._predict_engine(self.primary_engine, features)
                 features_used_count = len(self.primary_engine.feature_names)
             except Exception as e:
-                logger.warning(f"Primary ONNX head encountered inference error: {e}. Executing immediate fallback.")
+                logger.warning(
+                    f"Primary ONNX head encountered inference error: {e}. Executing immediate fallback."
+                )
                 # Immediate fail-safe to Fallback Head
                 preds = self._predict_engine(self.fallback_engine, features)
                 active_head = "FALLBACK_LOAD_ONLY"
@@ -212,7 +252,11 @@ class DualHeadInferenceRouter:
         inference_time_ms = (t_inf_end - t_inf_start) * 1000.0
         total_time_ms = (t_inf_end - t_start) * 1000.0
 
-        freshness_secs = (report.freshness_age_hours * 3600.0) if report.freshness_age_hours is not None else None
+        freshness_secs = (
+            (report.freshness_age_hours * 3600.0)
+            if report.freshness_age_hours is not None
+            else None
+        )
         recovery_status = self.recovery_manager.get_status()
 
         return DDIRInferenceResult(
@@ -233,32 +277,44 @@ class DualHeadInferenceRouter:
                 "recovery_threshold": recovery_status["recovery_threshold"],
                 "violations": report.violations,
                 "missing_rate": report.missing_rate,
-            }
+            },
         )
 
-    def _predict_engine(self, engine: OnnxInferenceEngine, features: Union[pd.DataFrame, List[Dict[str, Any]], np.ndarray]) -> np.ndarray:
+    def _predict_engine(
+        self,
+        engine: OnnxInferenceEngine,
+        features: Union[pd.DataFrame, List[Dict[str, Any]], np.ndarray],
+    ) -> np.ndarray:
         """Extracts required schema subset for target engine and runs prediction."""
         if isinstance(features, pd.DataFrame):
             if features.columns.duplicated().any():
-                raise ValueError('Duplicate feature columns are not allowed.')
-            missing_cols=[c for c in engine.feature_names if c not in features.columns]
+                raise ValueError("Duplicate feature columns are not allowed.")
+            missing_cols = [c for c in engine.feature_names if c not in features.columns]
             if missing_cols:
-                raise ValueError(f'Missing required model features: {missing_cols}')
-            X=features[engine.feature_names].values.astype(np.float32)
+                raise ValueError(f"Missing required model features: {missing_cols}")
+            X = features[engine.feature_names].values.astype(np.float32)
             return engine.predict(X)
 
         elif isinstance(features, list):
             # List of dicts
-            missing=[name for row in features for name in engine.feature_names if name not in row]
-            if missing:raise ValueError(f'Missing required model features: {sorted(set(missing))}')
-            return engine.predict([{name:row[name] for name in engine.feature_names} for row in features])
+            missing = [name for row in features for name in engine.feature_names if name not in row]
+            if missing:
+                raise ValueError(f"Missing required model features: {sorted(set(missing))}")
+            return engine.predict(
+                [{name: row[name] for name in engine.feature_names} for row in features]
+            )
         else:
             # Direct numpy array
             X = np.asarray(features, dtype=np.float32)
             if X.ndim == 1:
                 X = X.reshape(1, -1)
-            if X.ndim!=2:raise ValueError('Expected a one- or two-dimensional feature array.')
-            if engine is self.fallback_engine and X.shape[1]==len(self.primary_engine.feature_names):
-                indices=[self.primary_engine.feature_names.index(name) for name in engine.feature_names]
-                X=X[:,indices]
+            if X.ndim != 2:
+                raise ValueError("Expected a one- or two-dimensional feature array.")
+            if engine is self.fallback_engine and X.shape[1] == len(
+                self.primary_engine.feature_names
+            ):
+                indices = [
+                    self.primary_engine.feature_names.index(name) for name in engine.feature_names
+                ]
+                X = X[:, indices]
             return engine.predict(X)

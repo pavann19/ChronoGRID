@@ -5,7 +5,7 @@ Handles deduplication, chronological reindexing, gap interpolation, and outlier 
 
 import logging
 from typing import Tuple
-import numpy as np
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,7 @@ class DataCleaner:
     """
     Cleans raw electricity and weather time series.
     """
+
     def __init__(self, max_interpolation_gap_hours: int = 3):
         self.max_interpolation_gap_hours = max_interpolation_gap_hours
 
@@ -54,7 +55,7 @@ class DataCleaner:
         full_grid = pd.date_range(start=start_ts, end=end_ts, freq="1h", tz="UTC")
 
         cleaning_stats["missing_hours_inserted"] = len(full_grid) - len(cleaned)
-        
+
         cleaned = cleaned.set_index("timestamp").reindex(full_grid)
         cleaned.index.name = "timestamp"
 
@@ -66,9 +67,14 @@ class DataCleaner:
 
         # 5. Targeted interpolation on numeric series (with DatetimeIndex)
         numeric_cols = [
-            "grid_load_mw", "day_ahead_price_eur_mwh", "solar_generation_mw",
-            "wind_generation_mw", "temperature_c", "humidity_pct",
-            "wind_speed_ms", "solar_radiation_wm2"
+            "grid_load_mw",
+            "day_ahead_price_eur_mwh",
+            "solar_generation_mw",
+            "wind_generation_mw",
+            "temperature_c",
+            "humidity_pct",
+            "wind_speed_ms",
+            "solar_radiation_wm2",
         ]
 
         for col in numeric_cols:

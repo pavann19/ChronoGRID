@@ -1,9 +1,11 @@
 """Verify model and metadata bytes against the reviewed local registry."""
+
 import hashlib
 import json
 from pathlib import Path
 
 REGISTRY = Path(__file__).resolve().parents[2] / "artifacts/models/serving_registry.json"
+
 
 def verify_model_binding(model_path, metadata_path, registry_path=None):
     registry = json.loads(Path(registry_path or REGISTRY).read_bytes())

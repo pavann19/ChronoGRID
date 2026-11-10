@@ -8,12 +8,14 @@ import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
+
 import pandas as pd
+
 from chronogrid.db.database import get_session, init_db
 from chronogrid.db.models import ElectricityRecord, PipelineRun
-from chronogrid.pipeline.validation import DataValidator
 from chronogrid.pipeline.cleaning import DataCleaner
+from chronogrid.pipeline.validation import DataValidator
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,7 @@ class DataPipeline:
     """
     Executes reproducible, validated data preparation.
     """
+
     def __init__(
         self,
         processed_dir: str = "data/processed",
@@ -62,7 +65,9 @@ class DataPipeline:
 
             # 4. Save to Parquet
             df_cleaned.to_parquet(self.canonical_path, index=False)
-            logger.info(f"Saved processed dataset to {self.canonical_path} ({len(df_cleaned)} rows).")
+            logger.info(
+                f"Saved processed dataset to {self.canonical_path} ({len(df_cleaned)} rows)."
+            )
 
             # 5. Database Synchronization (Bulk upsert)
             if sync_to_db:
@@ -108,17 +113,35 @@ class DataPipeline:
             if existing_count == 0:
                 records = []
                 for _, row in df.iterrows():
-                    ts = row["timestamp"].to_pydatetime() if hasattr(row["timestamp"], "to_pydatetime") else row["timestamp"]
+                    ts = (
+                        row["timestamp"].to_pydatetime()
+                        if hasattr(row["timestamp"], "to_pydatetime")
+                        else row["timestamp"]
+                    )
                     rec = ElectricityRecord(
                         timestamp=ts,
                         grid_load_mw=float(row["grid_load_mw"]),
-                        day_ahead_price_eur_mwh=float(row.get("day_ahead_price_eur_mwh", 0.0)) if pd.notnull(row.get("day_ahead_price_eur_mwh")) else None,
-                        solar_generation_mw=float(row.get("solar_generation_mw", 0.0)) if pd.notnull(row.get("solar_generation_mw")) else None,
-                        wind_generation_mw=float(row.get("wind_generation_mw", 0.0)) if pd.notnull(row.get("wind_generation_mw")) else None,
-                        temperature_c=float(row.get("temperature_c", 0.0)) if pd.notnull(row.get("temperature_c")) else None,
-                        humidity_pct=float(row.get("humidity_pct", 0.0)) if pd.notnull(row.get("humidity_pct")) else None,
-                        wind_speed_ms=float(row.get("wind_speed_ms", 0.0)) if pd.notnull(row.get("wind_speed_ms")) else None,
-                        solar_radiation_wm2=float(row.get("solar_radiation_wm2", 0.0)) if pd.notnull(row.get("solar_radiation_wm2")) else None,
+                        day_ahead_price_eur_mwh=float(row.get("day_ahead_price_eur_mwh", 0.0))
+                        if pd.notnull(row.get("day_ahead_price_eur_mwh"))
+                        else None,
+                        solar_generation_mw=float(row.get("solar_generation_mw", 0.0))
+                        if pd.notnull(row.get("solar_generation_mw"))
+                        else None,
+                        wind_generation_mw=float(row.get("wind_generation_mw", 0.0))
+                        if pd.notnull(row.get("wind_generation_mw"))
+                        else None,
+                        temperature_c=float(row.get("temperature_c", 0.0))
+                        if pd.notnull(row.get("temperature_c"))
+                        else None,
+                        humidity_pct=float(row.get("humidity_pct", 0.0))
+                        if pd.notnull(row.get("humidity_pct"))
+                        else None,
+                        wind_speed_ms=float(row.get("wind_speed_ms", 0.0))
+                        if pd.notnull(row.get("wind_speed_ms"))
+                        else None,
+                        solar_radiation_wm2=float(row.get("solar_radiation_wm2", 0.0))
+                        if pd.notnull(row.get("solar_radiation_wm2"))
+                        else None,
                         is_interpolated=bool(row.get("is_interpolated", False)),
                         quality_flag=str(row.get("quality_flag", "VALID")),
                     )
@@ -132,5 +155,6 @@ class DataPipeline:
                     session.commit()
                 logger.info("Database bulk sync completed successfully.")
             else:
-                logger.info(f"Database already contains {existing_count} records. Skipping initial bulk re-insert.")
-
+                logger.info(
+                    f"Database already contains {existing_count} records. Skipping initial bulk re-insert."
+                )

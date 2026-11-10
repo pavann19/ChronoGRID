@@ -6,9 +6,9 @@ Converts LightGBM, XGBoost, and Scikit-learn models into standard ONNX format.
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List
+
 import numpy as np
-import pandas as pd
 import onnx
 from skl2onnx.common.data_types import FloatTensorType
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def export_to_onnx(
-    model_wrapper: any,
+    model_wrapper: Any,
     feature_names: List[str],
     output_path: str = "artifacts/models/champion_model.onnx",
     metadata_path: str = "artifacts/models/champion_metadata.json",
@@ -38,10 +38,9 @@ def export_to_onnx(
     if "LightGBM" in model_name or "LGBM" in type(underlying_model).__name__:
         try:
             import onnxmltools
+
             onnx_model = onnxmltools.convert_lightgbm(
-                underlying_model,
-                initial_types=initial_type,
-                target_opset=15
+                underlying_model, initial_types=initial_type, target_opset=15
             )
             logger.info("Successfully converted LightGBM model via onnxmltools.")
         except Exception as e:
@@ -51,14 +50,14 @@ def export_to_onnx(
     elif "XGB" in model_name or "XGB" in type(underlying_model).__name__:
         try:
             import onnxmltools
+
             # onnxmltools requires XGBoost booster feature names to follow f0, f1... pattern
+            assert underlying_model is not None
             booster = underlying_model.get_booster()
             original_feature_names = booster.feature_names
             booster.feature_names = [f"f{i}" for i in range(n_features)]
             onnx_model = onnxmltools.convert_xgboost(
-                underlying_model,
-                initial_types=initial_type,
-                target_opset=15
+                underlying_model, initial_types=initial_type, target_opset=15
             )
             # Restore original feature names
             booster.feature_names = original_feature_names
@@ -71,17 +70,20 @@ def export_to_onnx(
         try:
             # Patch onnx make_attribute for skl2onnx boolean array compatibility in newer ONNX versions
             orig_make_attr = onnx.helper.make_attribute
+
             def safe_make_attribute(key, value, doc_string=None):
-                if isinstance(value, (list, tuple)) and any(isinstance(x, (bool, np.bool_)) for x in value):
+                if isinstance(value, (list, tuple)) and any(
+                    isinstance(x, (bool, np.bool_)) for x in value
+                ):
                     value = [int(x) if isinstance(x, (bool, np.bool_)) else x for x in value]
                 return orig_make_attr(key, value, doc_string=doc_string)
+
             onnx.helper.make_attribute = safe_make_attribute
 
             from skl2onnx import convert_sklearn
+
             onnx_model = convert_sklearn(
-                underlying_model,
-                initial_types=initial_type,
-                target_opset=15
+                underlying_model, initial_types=initial_type, target_opset=15
             )
             logger.info("Successfully converted model via skl2onnx.")
         except Exception as e:
@@ -103,8 +105,8 @@ def export_to_onnx(
         "output_name": onnx_model.graph.output[0].name,
         "onnx_path": str(out_file),
     }
-    with open(metadata_path, "w") as f:
-        json.dump(meta, f, indent=2)
+    with open(metadata_path, "w") as metadata_stream:
+        json.dump(meta, metadata_stream, indent=2)
 
     logger.info(f"Model exported to {out_file} (Input dim: {n_features})")
     return str(out_file)

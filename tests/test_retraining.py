@@ -18,10 +18,12 @@ class MockModel:
 
 def test_promotion_engine_rejects_inferior_challenger(isolated_application_database):
     engine = PromotionEngine(min_improvement_pct=0.02)
-    df_eval = pd.DataFrame({
-        "target": np.random.normal(50000, 1000, 100),
-        "f1": np.random.randn(100),
-    })
+    df_eval = pd.DataFrame(
+        {
+            "target": np.random.normal(50000, 1000, 100),
+            "f1": np.random.randn(100),
+        }
+    )
     # Champion error: 50, Challenger error: 200 (inferior)
     champ = MockModel(error_scale=50.0)
     chall = MockModel(error_scale=200.0)

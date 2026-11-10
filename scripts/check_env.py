@@ -1,10 +1,28 @@
 import importlib
 
 packages = [
-    "pandas", "numpy", "scipy", "sklearn", "xgboost", "lightgbm",
-    "mlflow", "fastapi", "uvicorn", "pydantic", "evidently",
-    "prometheus_client", "onnx", "onnxruntime", "skl2onnx", "onnxmltools",
-    "sqlalchemy", "psycopg2", "asyncpg", "httpx", "requests", "joblib"
+    "pandas",
+    "numpy",
+    "scipy",
+    "sklearn",
+    "xgboost",
+    "lightgbm",
+    "mlflow",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "evidently",
+    "prometheus_client",
+    "onnx",
+    "onnxruntime",
+    "skl2onnx",
+    "onnxmltools",
+    "sqlalchemy",
+    "psycopg2",
+    "asyncpg",
+    "httpx",
+    "requests",
+    "joblib",
 ]
 
 for pkg in packages:
@@ -14,4 +32,3 @@ for pkg in packages:
         print(f"[OK] {pkg}: {ver}")
     except Exception as e:
         print(f"[MISSING] {pkg}: {e}")
-

@@ -1,3 +1,5 @@
+# Repository scripts bootstrap the checkout before importing the installed package.
+# ruff: noqa: E402
 """
 Unit and regression tests for ChronoGrid Historical evaluation Out-of-Sample Evaluation and Benchmark.
 Verifies data partition integrity, point forecast parity, conformal coverage guarantees,
@@ -5,23 +7,18 @@ Daily-Origin Block Bootstrap outputs, segregated synthetic degradation resilienc
 per-origin and per-horizon granularity, and objective assessment scorecard.
 """
 
-import json
-import math
 import hashlib
+import json
 from pathlib import Path
-import pytest
+
 import numpy as np
-import pandas as pd
-import joblib
+import pytest
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-from chronogrid.features.engineer import FeatureEngineer
-from chronogrid.reliability.state_machine import ReliabilityState
-from chronogrid.uncertainty.schemas import CalibrationTable
-from chronogrid.uncertainty.conformal import ConformalCalibrationPool
-from chronogrid.uncertainty.engine import DQCPUncertaintyEngine
-from scripts.run_sprint_3_3_evaluation import compute_winkler_score, run_daily_origin_block_bootstrap
+from scripts.run_sprint_3_3_evaluation import (
+    compute_winkler_score,
+)
 
 
 def compute_sha256(path: Path) -> str:
@@ -31,7 +28,9 @@ def compute_sha256(path: Path) -> str:
 @pytest.fixture(scope="module")
 def benchmark_data():
     report_path = ROOT_DIR / "artifacts/reports/ddir_sprint_3_3_benchmark.json"
-    assert report_path.exists(), f"Benchmark report not found at {report_path}. Run scripts/run_sprint_3_3_evaluation.py first."
+    assert report_path.exists(), (
+        f"Benchmark report not found at {report_path}. Run scripts/run_sprint_3_3_evaluation.py first."
+    )
     with open(report_path, "r") as f:
         return json.load(f)
 
@@ -46,10 +45,22 @@ def test_evaluation_partition_and_data_hygiene(benchmark_data):
     assert part["end_timestamp_utc"] == "2024-07-21 21:00:00+00:00"
 
     checksums = meta["artifact_checksums"]
-    assert checksums["production_champion_onnx"] == "1c28a97074fbc579f94eb3ab5ae72752bba97057c077eece647c2d1e5b8fcd91"
-    assert checksums["production_fallback_onnx"] == "fa2913cf584e985e9b23d4e61ec082bb90ba93780d062eb8ed6ed910b45c6e45"
-    assert checksums["research_primary_joblib"] == "352abc4f302a43163532a222701efb6d2b1bb2d99df3f33d047faa9029ce758b"
-    assert checksums["research_fallback_joblib"] == "3c12480e7849bf14f44f5e4777dbe6d40edf7b22131f08b9fa19ae80603b21d9"
+    assert (
+        checksums["production_champion_onnx"]
+        == "1c28a97074fbc579f94eb3ab5ae72752bba97057c077eece647c2d1e5b8fcd91"
+    )
+    assert (
+        checksums["production_fallback_onnx"]
+        == "fa2913cf584e985e9b23d4e61ec082bb90ba93780d062eb8ed6ed910b45c6e45"
+    )
+    assert (
+        checksums["research_primary_joblib"]
+        == "352abc4f302a43163532a222701efb6d2b1bb2d99df3f33d047faa9029ce758b"
+    )
+    assert (
+        checksums["research_fallback_joblib"]
+        == "3c12480e7849bf14f44f5e4777dbe6d40edf7b22131f08b9fa19ae80603b21d9"
+    )
 
 
 def test_point_forecast_performance(benchmark_data):
@@ -60,8 +71,12 @@ def test_point_forecast_performance(benchmark_data):
 
     assert 1000.0 < prim["mae_mw"] < 1150.0, f"Primary MAE {prim['mae_mw']} outside expected range"
     assert 1000.0 < fall["mae_mw"] < 1150.0, f"Fallback MAE {fall['mae_mw']} outside expected range"
-    assert prim["mae_mw"] < fall["mae_mw"], "Primary model should outperform Fallback on point forecast MAE"
-    assert prim["rmse_mw"] < fall["rmse_mw"], "Primary model should outperform Fallback on point forecast RMSE"
+    assert prim["mae_mw"] < fall["mae_mw"], (
+        "Primary model should outperform Fallback on point forecast MAE"
+    )
+    assert prim["rmse_mw"] < fall["rmse_mw"], (
+        "Primary model should outperform Fallback on point forecast RMSE"
+    )
     assert pts["delta_mae_mw"] > 0.0
 
 
@@ -109,7 +124,9 @@ def test_simultaneous_daily_coverage_guarantees(benchmark_data):
 
 def test_daily_origin_block_bootstrap_consistency(benchmark_data):
     """Verify Daily-Origin Block Bootstrap confidence intervals and block length sensitivity."""
-    p_boot = benchmark_data["conformal_evaluations"]["primary_static"]["marginal_90"]["block_bootstrap"]
+    p_boot = benchmark_data["conformal_evaluations"]["primary_static"]["marginal_90"][
+        "block_bootstrap"
+    ]
 
     for b in [1, 2, 3, 5]:
         b_key = f"block_length_{b}"
@@ -178,7 +195,10 @@ def test_objective_assessments_scorecard(benchmark_data):
     assert assessments["objective_1_point_forecast_baseline_parity"]["status"] == "PASS"
     assert assessments["objective_2_marginal_conformal_coverage"]["status"] == "PASS"
     assert assessments["objective_3_simultaneous_daily_vector_coverage_90"]["status"] == "PASS"
-    assert assessments["objective_4_simultaneous_daily_vector_coverage_95_exploratory"]["status"] == "CONDITIONAL"
+    assert (
+        assessments["objective_4_simultaneous_daily_vector_coverage_95_exploratory"]["status"]
+        == "CONDITIONAL"
+    )
     assert assessments["objective_5_delayed_feedback_aci_stability"]["status"] == "PASS"
     assert assessments["objective_6_independent_fallback_calibration"]["status"] == "PASS"
     assert assessments["objective_7_block_bootstrap_uncertainty_quantification"]["status"] == "PASS"

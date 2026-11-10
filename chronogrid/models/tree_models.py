@@ -3,16 +3,18 @@ Tree-Based Gradient Boosting and Ensemble Forecasting Models (P5.5).
 Wraps LightGBM, XGBoost, and Scikit-learn models with unified interface.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
+
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 import xgboost as xgb
-import lightgbm as lgb
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 
 
 class LightGBMModel:
     """LightGBM Forecasting Model."""
+
     def __init__(
         self,
         n_estimators: int = 250,
@@ -21,7 +23,7 @@ class LightGBMModel:
         subsample: float = 0.8,
         colsample_bytree: float = 0.8,
         random_state: int = 42,
-        **kwargs
+        **kwargs,
     ):
         self.name = "LightGBM"
         self.params = {
@@ -33,7 +35,7 @@ class LightGBMModel:
             "random_state": random_state,
             "n_jobs": -1,
             "verbose": -1,
-            **kwargs
+            **kwargs,
         }
         self.model = lgb.LGBMRegressor(**self.params)
         self.feature_names_: List[str] = []
@@ -57,6 +59,7 @@ class LightGBMModel:
 
 class XGBoostModel:
     """XGBoost Forecasting Model."""
+
     def __init__(
         self,
         n_estimators: int = 250,
@@ -65,7 +68,7 @@ class XGBoostModel:
         subsample: float = 0.8,
         colsample_bytree: float = 0.8,
         random_state: int = 42,
-        **kwargs
+        **kwargs,
     ):
         self.name = "XGBoost"
         self.params = {
@@ -77,7 +80,7 @@ class XGBoostModel:
             "random_state": random_state,
             "n_jobs": -1,
             "tree_method": "hist",
-            **kwargs
+            **kwargs,
         }
         self.model = xgb.XGBRegressor(**self.params)
         self.feature_names_: List[str] = []
@@ -101,12 +104,9 @@ class XGBoostModel:
 
 class RandomForestModel:
     """Scikit-learn Random Forest Regressor."""
+
     def __init__(
-        self,
-        n_estimators: int = 150,
-        max_depth: int = 14,
-        random_state: int = 42,
-        **kwargs
+        self, n_estimators: int = 150, max_depth: int = 14, random_state: int = 42, **kwargs
     ):
         self.name = "RandomForest"
         self.params = {
@@ -114,7 +114,7 @@ class RandomForestModel:
             "max_depth": max_depth,
             "random_state": random_state,
             "n_jobs": -1,
-            **kwargs
+            **kwargs,
         }
         self.model = RandomForestRegressor(**self.params)
         self.feature_names_: List[str] = []
@@ -138,13 +138,14 @@ class RandomForestModel:
 
 class HistGradientBoostingModel:
     """Scikit-learn Histogram Gradient Boosting Regressor."""
+
     def __init__(
         self,
         max_iter: int = 200,
         learning_rate: float = 0.05,
         max_leaf_nodes: int = 31,
         random_state: int = 42,
-        **kwargs
+        **kwargs,
     ):
         self.name = "HistGradientBoosting"
         self.params = {
@@ -152,7 +153,7 @@ class HistGradientBoostingModel:
             "learning_rate": learning_rate,
             "max_leaf_nodes": max_leaf_nodes,
             "random_state": random_state,
-            **kwargs
+            **kwargs,
         }
         self.model = HistGradientBoostingRegressor(**self.params)
         self.feature_names_: List[str] = []
@@ -165,4 +166,3 @@ class HistGradientBoostingModel:
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self.model.predict(X)
-

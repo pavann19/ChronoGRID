@@ -11,14 +11,14 @@
         "fallback_metadata.json": "74d1a365e564c97e4fafbb2dbbf8cc674b24d786945716e3f5182437c166e59b"
       },
       "sources": {
-        "chronogrid/features/engineer.py": "0319b8316d9b0c85e25e224953e98ee999d2a234dbdb4326c32a41ed927e3662",
-        "chronogrid/features/temporal.py": "469915fbf9f72cb7685bc5515e1df1fdd7fa1fcb16680a6198928490d58b6344",
-        "chronogrid/features/autoregressive.py": "7662807c365a36277291e43b67abdce7e9169628ff5880cb37ad1637d5bdd80f",
-        "chronogrid/features/weather_features.py": "b6842acec7d6cd572712a3825d13f95946593190a1b74ad019b6a926443aa94e",
-        "chronogrid/operations/local_calendar.py": "d9ca7d90a1f8a5b529f40b5c961a4950b99f453711e1d18d4114cf1d4ba96872",
-        "chronogrid/operations/calendar_support.py": "959d2ff39aa54dd33389aa1374edec944e6d720643b51c41f3a96621860a7883",
-        "chronogrid/operations/availability.py": "bb6ad66dfeff23618f20e563f532bf6c60f1e75c39990754c4d5d16f0d05594e",
-        "chronogrid/operations/feature_contracts.py": "267e032bfd4fa6a975b5cd4f8a02c3547dbc67c2bf73d115ddad2e1be65e015f"
+        "chronogrid/features/engineer.py": "f45c421a57978505a23540325b5f49feec667d84fb9b02623650c96353df0c42",
+        "chronogrid/features/temporal.py": "1d43c7454977f25aa77b1d341d6dc7088596b51e5fa114c2a7792e6b7b0aef37",
+        "chronogrid/features/autoregressive.py": "13a69be6353019fce2eed27d102aec39d97c343cec7cf4635c3d3da7c3cd3a77",
+        "chronogrid/features/weather_features.py": "4b7290b08e596c85769a82be961ff7812e3f186e46feed5ca0a41c2ebc431619",
+        "chronogrid/operations/local_calendar.py": "3df80469fb002d2e6a529be04bfd1d63a30ce0153868afd2f40ac249fe5f7dd1",
+        "chronogrid/operations/calendar_support.py": "ef147f073bf4dafe61fe586598719fb2f84b17fed24097ca7b97ddf065300eb1",
+        "chronogrid/operations/availability.py": "bbab3e6680791270494eb8c356d003751f657bc6aa38148e7da48d0e7ba77435",
+        "chronogrid/operations/feature_contracts.py": "73ce52771203229f55fba1616eb6431482a401d6585271ff2c6c2c4c200846d6"
       },
       "dependencies": {
         "sin_hour": [],
@@ -928,14 +928,14 @@
         "fallback_metadata.json": "1b2c48cd2e5c0d2134e6b3a99d88c2c1a2bc835207f8c75c29b32954b48bc41e"
       },
       "sources": {
-        "chronogrid/features/engineer.py": "0319b8316d9b0c85e25e224953e98ee999d2a234dbdb4326c32a41ed927e3662",
-        "chronogrid/features/temporal.py": "469915fbf9f72cb7685bc5515e1df1fdd7fa1fcb16680a6198928490d58b6344",
-        "chronogrid/features/autoregressive.py": "7662807c365a36277291e43b67abdce7e9169628ff5880cb37ad1637d5bdd80f",
-        "chronogrid/features/weather_features.py": "b6842acec7d6cd572712a3825d13f95946593190a1b74ad019b6a926443aa94e",
-        "chronogrid/operations/local_calendar.py": "d9ca7d90a1f8a5b529f40b5c961a4950b99f453711e1d18d4114cf1d4ba96872",
-        "chronogrid/operations/calendar_support.py": "959d2ff39aa54dd33389aa1374edec944e6d720643b51c41f3a96621860a7883",
-        "chronogrid/operations/availability.py": "bb6ad66dfeff23618f20e563f532bf6c60f1e75c39990754c4d5d16f0d05594e",
-        "chronogrid/operations/feature_contracts.py": "267e032bfd4fa6a975b5cd4f8a02c3547dbc67c2bf73d115ddad2e1be65e015f"
+        "chronogrid/features/engineer.py": "f45c421a57978505a23540325b5f49feec667d84fb9b02623650c96353df0c42",
+        "chronogrid/features/temporal.py": "1d43c7454977f25aa77b1d341d6dc7088596b51e5fa114c2a7792e6b7b0aef37",
+        "chronogrid/features/autoregressive.py": "13a69be6353019fce2eed27d102aec39d97c343cec7cf4635c3d3da7c3cd3a77",
+        "chronogrid/features/weather_features.py": "4b7290b08e596c85769a82be961ff7812e3f186e46feed5ca0a41c2ebc431619",
+        "chronogrid/operations/local_calendar.py": "3df80469fb002d2e6a529be04bfd1d63a30ce0153868afd2f40ac249fe5f7dd1",
+        "chronogrid/operations/calendar_support.py": "ef147f073bf4dafe61fe586598719fb2f84b17fed24097ca7b97ddf065300eb1",
+        "chronogrid/operations/availability.py": "bbab3e6680791270494eb8c356d003751f657bc6aa38148e7da48d0e7ba77435",
+        "chronogrid/operations/feature_contracts.py": "73ce52771203229f55fba1616eb6431482a401d6585271ff2c6c2c4c200846d6"
       },
       "dependencies": {
         "sin_hour": [],

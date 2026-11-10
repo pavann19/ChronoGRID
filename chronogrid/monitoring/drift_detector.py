@@ -6,13 +6,15 @@ and Residual Concept Drift with Evidently-compatible HTML and JSON reporting.
 
 import json
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 from scipy import stats
+
 from chronogrid.db.database import get_session
 from chronogrid.db.models import DriftReportRecord
 
@@ -45,6 +47,7 @@ class DriftDetector:
     """
     Evaluates covariate and concept drift between reference and current windows.
     """
+
     def __init__(
         self,
         psi_threshold_warning: float = 0.10,
@@ -57,7 +60,9 @@ class DriftDetector:
         self.ks_alpha = ks_alpha
         self.mape_degradation_alert = mape_degradation_alert
 
-    def calculate_psi(self, reference: np.ndarray, current: np.ndarray, num_buckets: int = 10) -> float:
+    def calculate_psi(
+        self, reference: np.ndarray, current: np.ndarray, num_buckets: int = 10
+    ) -> float:
         """
         Calculates Population Stability Index (PSI) between reference and current samples.
         """
@@ -88,10 +93,12 @@ class DriftDetector:
         ref_pct /= np.sum(ref_pct)
         curr_pct /= np.sum(curr_pct)
 
-        psi_val = np.sum((curr_pct - ref_pct) * np.log(curr_pct / ref_pct))
+        psi_val: float = np.sum((curr_pct - ref_pct) * np.log(curr_pct / ref_pct))
         return float(max(0.0, psi_val))
 
-    def evaluate_feature(self, feature_name: str, ref_series: pd.Series, curr_series: pd.Series) -> FeatureDriftResult:
+    def evaluate_feature(
+        self, feature_name: str, ref_series: pd.Series, curr_series: pd.Series
+    ) -> FeatureDriftResult:
         """
         Evaluates drift metrics for a single feature.
         """
@@ -106,7 +113,7 @@ class DriftDetector:
                 psi=0.0,
                 wasserstein_distance=0.0,
                 drift_detected=False,
-                status="STABLE"
+                status="STABLE",
             )
 
         # 1. Kolmogorov-Smirnov test
@@ -124,7 +131,9 @@ class DriftDetector:
             w_dist = 0.0
 
         # Drift decision logic
-        if psi >= self.psi_threshold_alert or (ks_pval < self.ks_alpha and psi >= self.psi_threshold_warning):
+        if psi >= self.psi_threshold_alert or (
+            ks_pval < self.ks_alpha and psi >= self.psi_threshold_warning
+        ):
             status = "ALERT"
             drift_detected = True
         elif psi >= self.psi_threshold_warning or ks_pval < self.ks_alpha:
@@ -163,7 +172,10 @@ class DriftDetector:
 
         # CUSUM statistic on current residuals
         residuals = y_curr - y_curr_pred
-        cusum_stat = float(np.max(np.abs(np.cumsum(residuals - np.mean(residuals)))) / (np.std(residuals) * np.sqrt(len(residuals)) + 1e-5))
+        cusum_stat = float(
+            np.max(np.abs(np.cumsum(residuals - np.mean(residuals))))
+            / (np.std(residuals) * np.sqrt(len(residuals)) + 1e-5)
+        )
 
         return {
             "ref_mae": round(ref_mae, 2),
@@ -172,16 +184,18 @@ class DriftDetector:
             "curr_mape": round(curr_mape, 3),
             "mae_degradation_pct": round(degradation_pct * 100.0, 2),
             "cusum_score": round(cusum_stat, 3),
-            "concept_drift_detected": bool(degradation_pct >= self.mape_degradation_alert or cusum_stat > 3.0),
+            "concept_drift_detected": bool(
+                degradation_pct >= self.mape_degradation_alert or cusum_stat > 3.0
+            ),
         }
 
     def compute_drift(
         self,
         ref_df: pd.DataFrame,
         curr_df: pd.DataFrame,
-        features: Optional[List[str]] = None,
-        y_ref_tuple: Optional[Tuple[np.ndarray, np.ndarray]] = None,
-        y_curr_tuple: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        features: Optional[List[str]] | None = None,
+        y_ref_tuple: Optional[Tuple[np.ndarray, np.ndarray]] | None = None,
+        y_curr_tuple: Optional[Tuple[np.ndarray, np.ndarray]] | None = None,
         report_output_html: str = "artifacts/reports/drift_report.html",
     ) -> DriftReport:
         """
@@ -191,7 +205,14 @@ class DriftDetector:
         if features is None:
             # Default to key numeric columns
             features = [
-                c for c in ["temperature_c", "grid_load_mw", "wind_speed_ms", "solar_radiation_wm2", "humidity_pct"]
+                c
+                for c in [
+                    "temperature_c",
+                    "grid_load_mw",
+                    "wind_speed_ms",
+                    "solar_radiation_wm2",
+                    "humidity_pct",
+                ]
                 if c in ref_df.columns and c in curr_df.columns
             ]
 
@@ -207,7 +228,9 @@ class DriftDetector:
             elif res.status == "WARNING":
                 warning_count += 1
 
-        overall_drift_score = float(np.mean([m.psi for m in feature_metrics.values()])) if feature_metrics else 0.0
+        overall_drift_score = (
+            float(np.mean([m.psi for m in feature_metrics.values()])) if feature_metrics else 0.0
+        )
 
         # Evaluate residual drift if predictions provided
         residual_metrics = None
@@ -216,11 +239,13 @@ class DriftDetector:
             residual_metrics = self.evaluate_residual_drift(
                 y_ref_tuple[0], y_ref_tuple[1], y_curr_tuple[0], y_curr_tuple[1]
             )
-            concept_drift = residual_metrics["concept_drift_detected"]
+            concept_drift = bool(residual_metrics["concept_drift_detected"])
 
         # Trigger retraining if: >= 1 feature ALERT, or overall PSI > 0.25, or concept drift detected
         drift_detected = bool(alert_count > 0 or warning_count >= 2 or concept_drift)
-        retraining_triggered = bool(alert_count > 0 or overall_drift_score >= self.psi_threshold_alert or concept_drift)
+        retraining_triggered = bool(
+            alert_count > 0 or overall_drift_score >= self.psi_threshold_alert or concept_drift
+        )
 
         report = DriftReport(
             report_id=report_id,
@@ -240,14 +265,24 @@ class DriftDetector:
             with get_session() as session:
                 rec = DriftReportRecord(
                     report_id=report_id,
-                    reference_start=pd.to_datetime(ref_df["timestamp"].min()).to_pydatetime() if "timestamp" in ref_df.columns else datetime.utcnow(),
-                    reference_end=pd.to_datetime(ref_df["timestamp"].max()).to_pydatetime() if "timestamp" in ref_df.columns else datetime.utcnow(),
-                    current_start=pd.to_datetime(curr_df["timestamp"].min()).to_pydatetime() if "timestamp" in curr_df.columns else datetime.utcnow(),
-                    current_end=pd.to_datetime(curr_df["timestamp"].max()).to_pydatetime() if "timestamp" in curr_df.columns else datetime.utcnow(),
+                    reference_start=pd.to_datetime(ref_df["timestamp"].min()).to_pydatetime()
+                    if "timestamp" in ref_df.columns
+                    else datetime.utcnow(),
+                    reference_end=pd.to_datetime(ref_df["timestamp"].max()).to_pydatetime()
+                    if "timestamp" in ref_df.columns
+                    else datetime.utcnow(),
+                    current_start=pd.to_datetime(curr_df["timestamp"].min()).to_pydatetime()
+                    if "timestamp" in curr_df.columns
+                    else datetime.utcnow(),
+                    current_end=pd.to_datetime(curr_df["timestamp"].max()).to_pydatetime()
+                    if "timestamp" in curr_df.columns
+                    else datetime.utcnow(),
                     overall_drift_score=report.overall_drift_score,
                     drift_detected=report.drift_detected,
                     retraining_triggered=report.retraining_triggered,
-                    feature_metrics_json=json.dumps({k: asdict(v) for k, v in feature_metrics.items()}),
+                    feature_metrics_json=json.dumps(
+                        {k: asdict(v) for k, v in feature_metrics.items()}
+                    ),
                     evidently_report_path=str(report_output_html),
                 )
                 session.add(rec)
@@ -256,14 +291,20 @@ class DriftDetector:
 
         return report
 
-    def _export_html_report(self, report: DriftReport, ref_df: pd.DataFrame, curr_df: pd.DataFrame, output_path: str):
+    def _export_html_report(
+        self, report: DriftReport, ref_df: pd.DataFrame, curr_df: pd.DataFrame, output_path: str
+    ):
         """Generates a standalone, styled HTML drift dashboard."""
         out_p = Path(output_path)
         out_p.parent.mkdir(parents=True, exist_ok=True)
 
         rows_html = ""
         for feat, m in report.feature_metrics.items():
-            badge_color = "#dc2626" if m.status == "ALERT" else ("#d97706" if m.status == "WARNING" else "#16a34a")
+            badge_color = (
+                "#dc2626"
+                if m.status == "ALERT"
+                else ("#d97706" if m.status == "WARNING" else "#16a34a")
+            )
             rows_html += f"""
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 12px; font-weight: 600;">{feat}</td>
@@ -282,19 +323,23 @@ class DriftDetector:
             residual_html = f"""
             <div style="margin-top: 24px; padding: 18px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0;">
                 <h3 style="margin-top: 0; color: #1e293b;">Model Concept & Residual Drift</h3>
-                <p>Status: <span style="background: {res_badge}; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{'DRIFT DETECTED' if res['concept_drift_detected'] else 'STABLE'}</span></p>
+                <p>Status: <span style="background: {res_badge}; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{"DRIFT DETECTED" if res["concept_drift_detected"] else "STABLE"}</span></p>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px;">
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Ref MAE:</strong> {res['ref_mae']} MW</div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Current MAE:</strong> {res['curr_mae']} MW</div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Degradation:</strong> {res['mae_degradation_pct']}%</div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>CUSUM Score:</strong> {res['cusum_score']}</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Ref MAE:</strong> {res["ref_mae"]} MW</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Current MAE:</strong> {res["curr_mae"]} MW</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>Degradation:</strong> {res["mae_degradation_pct"]}%</div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;"><strong>CUSUM Score:</strong> {res["cusum_score"]}</div>
                 </div>
             </div>
             """
 
         status_banner = "#fef2f2" if report.retraining_triggered else "#f0fdf4"
         banner_border = "#f87171" if report.retraining_triggered else "#4ade80"
-        banner_title = "RETRAINING TRIGGERED: SIGNIFICANT DRIFT DETECTED" if report.retraining_triggered else "STABLE: NO ACTION REQUIRED"
+        banner_title = (
+            "RETRAINING TRIGGERED: SIGNIFICANT DRIFT DETECTED"
+            if report.retraining_triggered
+            else "STABLE: NO ACTION REQUIRED"
+        )
 
         html_content = f"""<!DOCTYPE html>
 <html>
@@ -351,4 +396,3 @@ class DriftDetector:
         with open(out_p, "w", encoding="utf-8") as f:
             f.write(html_content)
         logger.info(f"Drift report exported to {out_p}")
-

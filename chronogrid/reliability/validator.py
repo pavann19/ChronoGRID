@@ -6,6 +6,7 @@ Inspects incoming weather telemetry against physical, temporal, schema, and comp
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import pandas as pd
 
@@ -13,6 +14,7 @@ import pandas as pd
 @dataclass
 class ValidationReport:
     """Detailed audit report produced by WeatherInputValidator."""
+
     is_valid: bool
     quality_score: float  # [0.0, 1.0]
     violations: List[str] = field(default_factory=list)
@@ -28,12 +30,13 @@ class WeatherInputValidator:
     Deterministic validator for external weather telemetry.
     Checks physical boundaries (WMO standards), schema, completeness, and temporal freshness.
     """
+
     # WMO physical validity ranges for Central Europe / Germany
     PHYSICAL_BOUNDS = {
-        "temperature_c": (-40.0, 48.0),          # Ambient air temperature (°C)
-        "wind_speed_ms": (0.0, 60.0),             # 10m wind speed (m/s)
-        "solar_radiation_wm2": (0.0, 1250.0),     # Surface solar irradiance (W/m²)
-        "humidity_pct": (0.0, 100.0),             # Relative humidity (%)
+        "temperature_c": (-40.0, 48.0),  # Ambient air temperature (°C)
+        "wind_speed_ms": (0.0, 60.0),  # 10m wind speed (m/s)
+        "solar_radiation_wm2": (0.0, 1250.0),  # Surface solar irradiance (W/m²)
+        "humidity_pct": (0.0, 100.0),  # Relative humidity (%)
     }
 
     REQUIRED_CHANNELS = ["temperature_c", "wind_speed_ms", "solar_radiation_wm2", "humidity_pct"]
@@ -51,8 +54,8 @@ class WeatherInputValidator:
     def validate(
         self,
         weather_data: Optional[Union[Dict[str, Any], List[Dict[str, Any]], pd.DataFrame]],
-        current_time: Optional[datetime] = None,
-        data_timestamp: Optional[Union[str, datetime]] = None,
+        current_time: Optional[datetime] | None = None,
+        data_timestamp: Optional[Union[str, datetime]] | None = None,
     ) -> ValidationReport:
         """
         Validates a weather telemetry payload.
@@ -146,7 +149,9 @@ class WeatherInputValidator:
                 violations.append(f"Channel '{ch}' completely missing")
             elif ch_outlier > 0:
                 channel_states[ch] = "OUTLIER"
-                violations.append(f"Channel '{ch}' contains {ch_outlier} physical outlier(s) outside [{low_b}, {high_b}]")
+                violations.append(
+                    f"Channel '{ch}' contains {ch_outlier} physical outlier(s) outside [{low_b}, {high_b}]"
+                )
             elif ch_missing > 0:
                 channel_states[ch] = "PARTIAL"
                 violations.append(f"Channel '{ch}' has {ch_missing}/{len(rows)} missing values")
@@ -173,7 +178,11 @@ class WeatherInputValidator:
                     except Exception:
                         ts = pd.to_datetime(data_timestamp, utc=True).to_pydatetime()
                 elif isinstance(data_timestamp, datetime):
-                    ts = data_timestamp if data_timestamp.tzinfo is not None else data_timestamp.replace(tzinfo=timezone.utc)
+                    ts = (
+                        data_timestamp
+                        if data_timestamp.tzinfo is not None
+                        else data_timestamp.replace(tzinfo=timezone.utc)
+                    )
                 else:
                     ts = None
 
@@ -220,23 +229,28 @@ class WeatherInputValidator:
             channel_states.get("temperature_c") == "OK"
             and missing_rate <= self.max_missing_rate
             and outlier_rate == 0.0
-            and (freshness_age_hours is None or (0.0 <= freshness_age_hours <= self.max_freshness_hours))
+            and (
+                freshness_age_hours is None
+                or (0.0 <= freshness_age_hours <= self.max_freshness_hours)
+            )
             and not any("future" in v.lower() for v in violations)
         )
 
-        is_valid = (len(violations) == 0)
+        is_valid = len(violations) == 0
 
         return ValidationReport(
             is_valid=is_valid,
             quality_score=round(q_score, 3),
             violations=violations,
             missing_rate=round(missing_rate, 3),
-            freshness_age_hours=round(freshness_age_hours, 1) if freshness_age_hours is not None else None,
+            freshness_age_hours=round(freshness_age_hours, 1)
+            if freshness_age_hours is not None
+            else None,
             channel_states=channel_states,
             can_interpolate=can_interpolate,
             details={
                 "n_rows": len(rows),
                 "type_errors": type_error_count,
                 "outlier_count": outlier_count,
-            }
+            },
         )

@@ -4,16 +4,15 @@ Verifies deterministic validation, state transitions, dual-head routing, anti-fl
 and high-concurrency resilience across all 10 failure regimes.
 """
 
-from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from chronogrid.reliability.state_machine import ReliabilityState
-from chronogrid.reliability.validator import WeatherInputValidator
-from chronogrid.reliability.recovery import HysteresisRecoveryManager
 from chronogrid.reliability.router import DualHeadInferenceRouter
+from chronogrid.reliability.state_machine import ReliabilityState
 
 
 @pytest.fixture
@@ -75,7 +74,10 @@ def test_ddir_regime_2_complete_missingness(router, sample_feature_df):
     result = router.route_and_predict(sample_feature_df, weather_payload=None)
     assert result.routing_state == ReliabilityState.UNAVAILABLE
     assert result.active_head == "FALLBACK_LOAD_ONLY"
-    assert "unavailable" in result.fallback_reason.lower() or "missing" in result.fallback_reason.lower()
+    assert (
+        "unavailable" in result.fallback_reason.lower()
+        or "missing" in result.fallback_reason.lower()
+    )
     assert result.weather_quality_score == 0.0
     assert len(result.predictions) == 1
     assert result.predictions[0] > 0
@@ -133,7 +135,10 @@ def test_ddir_regime_5_malformed_schema(router, sample_feature_df):
     result = router.route_and_predict(sample_feature_df, weather_payload=corrupt_payload)
     assert result.routing_state == ReliabilityState.INVALID
     assert result.active_head == "FALLBACK_LOAD_ONLY"
-    assert "corrupted" in result.fallback_reason.lower() or "malformed" in result.fallback_reason.lower()
+    assert (
+        "corrupted" in result.fallback_reason.lower()
+        or "malformed" in result.fallback_reason.lower()
+    )
     assert len(result.predictions) == 1
 
 
@@ -143,9 +148,9 @@ def test_ddir_regime_5_malformed_schema(router, sample_feature_df):
 def test_ddir_regime_6_physical_outliers(router, sample_feature_df):
     outlier_payload = {
         "temperature_c": 999.0,  # Physically impossible for Central Europe
-        "wind_speed_ms": -5.0,   # Negative wind speed
-        "solar_radiation_wm2": -100.0, # Negative solar radiation
-        "humidity_pct": 180.0,   # > 100% humidity
+        "wind_speed_ms": -5.0,  # Negative wind speed
+        "solar_radiation_wm2": -100.0,  # Negative solar radiation
+        "humidity_pct": 180.0,  # > 100% humidity
     }
     result = router.route_and_predict(sample_feature_df, weather_payload=outlier_payload)
     assert result.routing_state == ReliabilityState.INVALID
@@ -190,7 +195,11 @@ def test_ddir_regime_9_hysteresis_recovery(router, sample_feature_df, valid_weat
     now_utc = datetime.now(timezone.utc)
     p_healthy_0 = {**valid_weather_payload, "timestamp": (now_utc - timedelta(hours=4)).isoformat()}
     p_healthy_1 = {**valid_weather_payload, "timestamp": (now_utc - timedelta(hours=3)).isoformat()}
-    p_healthy_2 = {**valid_weather_payload, "timestamp": (now_utc - timedelta(hours=2)).isoformat(), "temperature_c": 19.1}
+    p_healthy_2 = {
+        **valid_weather_payload,
+        "timestamp": (now_utc - timedelta(hours=2)).isoformat(),
+        "temperature_c": 19.1,
+    }
     p_duplicate = {**p_healthy_1}  # Duplicate of 1
 
     # 1. Start Healthy at T-4h
@@ -249,7 +258,11 @@ def test_ddir_regime_10_concurrent_requests(router, sample_feature_df, valid_wea
         # Every single request must successfully return valid predictions (100% FCR)
         assert len(r.predictions) == 1
         assert r.predictions[0] > 0
-        assert r.routing_state in [ReliabilityState.HEALTHY, ReliabilityState.UNAVAILABLE, ReliabilityState.INVALID]
+        assert r.routing_state in [
+            ReliabilityState.HEALTHY,
+            ReliabilityState.UNAVAILABLE,
+            ReliabilityState.INVALID,
+        ]
 
 
 # ==============================================================================

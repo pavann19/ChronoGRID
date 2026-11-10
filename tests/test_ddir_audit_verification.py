@@ -5,20 +5,18 @@ and session reuse remain verified.
 """
 
 import json
-import hashlib
-from pathlib import Path
-from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-import pytest
-import numpy as np
 import pandas as pd
+import pytest
 
 from chronogrid.features.engineer import FeatureEngineer
-from chronogrid.serving.onnx_engine import OnnxInferenceEngine
-from chronogrid.reliability.state_machine import ReliabilityState
 from chronogrid.reliability.recovery import HysteresisRecoveryManager
 from chronogrid.reliability.router import DualHeadInferenceRouter
+from chronogrid.reliability.state_machine import ReliabilityState
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -50,7 +48,9 @@ def test_audit_artifact_checksums_and_schemas(paths):
 
     assert len(c_feats) == 43, f"Expected 43 champion features, got {len(c_feats)}"
     assert len(f_feats) == 34, f"Expected 34 fallback features, got {len(f_feats)}"
-    assert set(f_feats).issubset(set(c_feats)), "Fallback features must be strict subset of champion"
+    assert set(f_feats).issubset(set(c_feats)), (
+        "Fallback features must be strict subset of champion"
+    )
 
     diff = set(c_feats) - set(f_feats)
     assert len(diff) == 9
@@ -69,7 +69,9 @@ def test_audit_fallback_parity_and_correctness(paths):
     direct_fall_engine = OnnxInferenceEngine(str(paths["fall_onnx"]), str(paths["fall_meta"]))
 
     # Synthetic sample row
-    fe_pers = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
+    fe_pers = FeatureEngineer(
+        allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence"
+    )
     df_raw = pd.read_parquet(paths["raw"]).iloc[:500]
     df_pers = fe_pers.fit_transform(df_raw, drop_warmup=True)
     sample_pers = df_pers.iloc[0:1]
@@ -78,14 +80,44 @@ def test_audit_fallback_parity_and_correctness(paths):
     fe_load = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="load_only")
     df_load = fe_load.fit_transform(df_raw, drop_warmup=True)
     sample_load = df_load.iloc[0:1]
-    ref_fallback_pred = round(float(direct_fall_engine.predict(sample_load[direct_fall_engine.feature_names].values)[0]), 1)
+    ref_fallback_pred = round(
+        float(direct_fall_engine.predict(sample_load[direct_fall_engine.feature_names].values)[0]),
+        1,
+    )
 
     now_utc = datetime.now(timezone.utc)
     scenarios = [
         ("missing_weather", None),
-        ("stale_weather", {"timestamp": (now_utc - timedelta(hours=48)).isoformat(), "temperature_c": 15.0, "wind_speed_ms": 3.0, "solar_radiation_wm2": 100.0, "humidity_pct": 50.0}),
-        ("invalid_outlier", {"timestamp": now_utc.isoformat(), "temperature_c": 999.0, "wind_speed_ms": 3.0, "solar_radiation_wm2": 100.0, "humidity_pct": 50.0}),
-        ("partial_missing", {"timestamp": now_utc.isoformat(), "temperature_c": 15.0, "wind_speed_ms": None, "solar_radiation_wm2": None, "humidity_pct": 50.0}),
+        (
+            "stale_weather",
+            {
+                "timestamp": (now_utc - timedelta(hours=48)).isoformat(),
+                "temperature_c": 15.0,
+                "wind_speed_ms": 3.0,
+                "solar_radiation_wm2": 100.0,
+                "humidity_pct": 50.0,
+            },
+        ),
+        (
+            "invalid_outlier",
+            {
+                "timestamp": now_utc.isoformat(),
+                "temperature_c": 999.0,
+                "wind_speed_ms": 3.0,
+                "solar_radiation_wm2": 100.0,
+                "humidity_pct": 50.0,
+            },
+        ),
+        (
+            "partial_missing",
+            {
+                "timestamp": now_utc.isoformat(),
+                "temperature_c": 15.0,
+                "wind_speed_ms": None,
+                "solar_radiation_wm2": None,
+                "humidity_pct": 50.0,
+            },
+        ),
     ]
 
     for sc_name, payload in scenarios:
@@ -102,7 +134,9 @@ def test_audit_hysteresis_anti_replay_and_flapping():
 
     # 1. Healthy baseline at T-4h
     t0 = (now_ref - timedelta(hours=4)).isoformat()
-    _, head0, _ = mgr.process_state(ReliabilityState.HEALTHY, "OK", source_timestamp=t0, payload_fingerprint="fp0")
+    _, head0, _ = mgr.process_state(
+        ReliabilityState.HEALTHY, "OK", source_timestamp=t0, payload_fingerprint="fp0"
+    )
     assert head0 == "PRIMARY_WEATHER"
 
     # 2. Failure occurs -> Immediate demotion
@@ -112,20 +146,26 @@ def test_audit_hysteresis_anti_replay_and_flapping():
 
     # 3. Healthy update 1 at T-3h -> held on fallback (K=1 < 2)
     t1 = (now_ref - timedelta(hours=3)).isoformat()
-    _, head2, r2 = mgr.process_state(ReliabilityState.HEALTHY, "OK", source_timestamp=t1, payload_fingerprint="fp1")
+    _, head2, r2 = mgr.process_state(
+        ReliabilityState.HEALTHY, "OK", source_timestamp=t1, payload_fingerprint="fp1"
+    )
     assert head2 == "FALLBACK_LOAD_ONLY"
     assert mgr.consecutive_healthy_count == 1
     assert "recovery in progress" in r2.lower()
 
     # 4. Duplicate replay of T-3h -> anti-replay blocks increment!
-    _, head_rep, r_rep = mgr.process_state(ReliabilityState.HEALTHY, "OK", source_timestamp=t1, payload_fingerprint="fp1")
+    _, head_rep, r_rep = mgr.process_state(
+        ReliabilityState.HEALTHY, "OK", source_timestamp=t1, payload_fingerprint="fp1"
+    )
     assert head_rep == "FALLBACK_LOAD_ONLY"
     assert mgr.consecutive_healthy_count == 1
     assert "recovery held" in r_rep.lower()
 
     # 5. Advancing healthy update 2 at T-2h -> promotes to primary!
     t2 = (now_ref - timedelta(hours=2)).isoformat()
-    st3, head3, _ = mgr.process_state(ReliabilityState.HEALTHY, "OK", source_timestamp=t2, payload_fingerprint="fp2")
+    st3, head3, _ = mgr.process_state(
+        ReliabilityState.HEALTHY, "OK", source_timestamp=t2, payload_fingerprint="fp2"
+    )
     assert head3 == "PRIMARY_WEATHER"
     assert st3 == ReliabilityState.HEALTHY
     assert mgr.consecutive_healthy_count == 2
@@ -149,7 +189,16 @@ def test_audit_session_reuse_and_thread_safety(paths):
     row = fe.fit_transform(df_raw, drop_warmup=True).iloc[0:1]
 
     def worker(idx):
-        pay = None if idx % 2 == 0 else {"temperature_c": 18.0, "wind_speed_ms": 4.0, "solar_radiation_wm2": 250.0, "humidity_pct": 55.0}
+        pay = (
+            None
+            if idx % 2 == 0
+            else {
+                "temperature_c": 18.0,
+                "wind_speed_ms": 4.0,
+                "solar_radiation_wm2": 250.0,
+                "humidity_pct": 55.0,
+            }
+        )
         return router.route_and_predict(row, weather_payload=pay)
 
     with ThreadPoolExecutor(max_workers=8) as ex:
@@ -158,4 +207,3 @@ def test_audit_session_reuse_and_thread_safety(paths):
     assert len(results) == 50
     assert id(router.primary_engine.session) == sess_pri_id
     assert id(router.fallback_engine.session) == sess_fall_id
-

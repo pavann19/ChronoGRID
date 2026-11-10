@@ -3,14 +3,15 @@ Data Validation Module for SMARD & DWD Datasets (P5.2).
 Validates schema, physical ranges, temporal continuity, and completeness.
 """
 
-from typing import Dict, List, Tuple
-import numpy as np
+from typing import Any, Dict
+
 import pandas as pd
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class HourlyRecordValidator(BaseModel):
     """Pydantic validator for an individual hourly record."""
+
     timestamp: pd.Timestamp
     grid_load_mw: float = Field(ge=20000.0, le=120000.0)
     temperature_c: float = Field(ge=-35.0, le=50.0)
@@ -18,15 +19,14 @@ class HourlyRecordValidator(BaseModel):
     wind_speed_ms: float = Field(ge=0.0, le=65.0)
     solar_radiation_wm2: float = Field(ge=0.0, le=1300.0)
 
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
+    model_config = {"arbitrary_types_allowed": True}
 
 
 class DataValidator:
     """
     Comprehensive dataset validation suite.
     """
+
     RANGES = {
         "grid_load_mw": (20000.0, 120000.0),
         "temperature_c": (-35.0, 50.0),
@@ -38,11 +38,11 @@ class DataValidator:
     def __init__(self, max_null_fraction: float = 0.05):
         self.max_null_fraction = max_null_fraction
 
-    def validate(self, df: pd.DataFrame) -> Dict[str, any]:
+    def validate(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
         Runs complete validation suite. Returns detailed validation summary report.
         """
-        report = {
+        report: dict[str, Any] = {
             "total_rows": len(df),
             "is_valid": True,
             "errors": [],
@@ -100,7 +100,9 @@ class DataValidator:
         is_monotonic = ts_series.is_monotonic_increasing
         report["temporal_issues"]["is_monotonic_increasing"] = bool(is_monotonic)
         if not is_monotonic:
-            report["warnings"].append("Timestamps are not strictly monotonically increasing (re-sorting required).")
+            report["warnings"].append(
+                "Timestamps are not strictly monotonically increasing (re-sorting required)."
+            )
 
         # Temporal Gaps Check on sorted unique timestamps
         sorted_unique_ts = ts_series.drop_duplicates().sort_values()
@@ -111,7 +113,8 @@ class DataValidator:
             report["temporal_issues"]["gap_count"] = gap_count
             if gap_count > 0:
                 max_gap = diffs.max()
-                report["warnings"].append(f"Found {gap_count} temporal gaps (largest gap: {max_gap}).")
+                report["warnings"].append(
+                    f"Found {gap_count} temporal gaps (largest gap: {max_gap})."
+                )
 
         return report
-

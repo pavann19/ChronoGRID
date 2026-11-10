@@ -3,16 +3,17 @@ Data Ingestion Pipeline for SMARD electricity and DWD weather datasets (P5.1).
 """
 
 import logging
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
+
 import pandas as pd
+
 from chronogrid.db.database import get_session
 from chronogrid.db.models import PipelineRun
-from chronogrid.ingestion.smard_client import SmardClient
-from chronogrid.ingestion.dwd_client import DwdClient
 from chronogrid.ingestion.benchmark_generator import generate_german_energy_weather_dataset
+from chronogrid.ingestion.dwd_client import DwdClient
+from chronogrid.ingestion.smard_client import SmardClient
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class IngestionPipeline:
     """
     Ingests and synchronizes German electricity and meteorological datasets.
     """
+
     def __init__(self, raw_dir: str = "data/raw", processed_dir: str = "data/processed"):
         self.raw_dir = Path(raw_dir)
         self.processed_dir = Path(processed_dir)
@@ -60,19 +62,32 @@ class IngestionPipeline:
                     df_load = smard.fetch_time_series(filter_id=SmardClient.FILTER_TOTAL_LOAD)
                     df_weather = dwd.fetch_hourly_weather(start_date=start_date, end_date=end_date)
                     if not df_load.empty and not df_weather.empty:
-                        df_raw = pd.merge(df_load.rename(columns={"value": "grid_load_mw"}), df_weather, on="timestamp", how="inner")
+                        df_raw = pd.merge(
+                            df_load.rename(columns={"value": "grid_load_mw"}),
+                            df_weather,
+                            on="timestamp",
+                            how="inner",
+                        )
                         logger.info(f"Successfully fetched {len(df_raw)} records via live APIs.")
                 except Exception as e:
-                    logger.warning(f"Live API fetch encountered error: {e}. Falling back to benchmark dataset.")
+                    logger.warning(
+                        f"Live API fetch encountered error: {e}. Falling back to benchmark dataset."
+                    )
 
             if df_raw is None or df_raw.empty:
                 genuine_path = self.raw_dir / "genuine_smard_dwd_observations.parquet"
                 if genuine_path.exists():
-                    logger.info(f"Loading genuine SMARD/DWD observation archive from {genuine_path}...")
+                    logger.info(
+                        f"Loading genuine SMARD/DWD observation archive from {genuine_path}..."
+                    )
                     df_raw = pd.read_parquet(genuine_path)
-                    logger.info(f"Loaded {len(df_raw)} genuine SMARD & DWD observations ({df_raw['timestamp'].min()} to {df_raw['timestamp'].max()}).")
+                    logger.info(
+                        f"Loaded {len(df_raw)} genuine SMARD & DWD observations ({df_raw['timestamp'].min()} to {df_raw['timestamp'].max()})."
+                    )
                 else:
-                    logger.info("Genuine archive not found. Loading high-fidelity empirical benchmark dataset...")
+                    logger.info(
+                        "Genuine archive not found. Loading high-fidelity empirical benchmark dataset..."
+                    )
                     df_raw = generate_german_energy_weather_dataset(
                         start_date=f"{start_date} 00:00:00",
                         end_date=f"{end_date} 23:00:00",
@@ -81,7 +96,10 @@ class IngestionPipeline:
                     )
 
             if save_raw:
-                raw_file = self.raw_dir / f"smard_dwd_raw_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.parquet"
+                raw_file = (
+                    self.raw_dir
+                    / f"smard_dwd_raw_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.parquet"
+                )
                 df_raw.to_parquet(raw_file, index=False)
                 # Also save standard symlink/canonical file
                 df_raw.to_parquet(self.raw_dir / "latest_raw.parquet", index=False)
@@ -105,4 +123,3 @@ class IngestionPipeline:
                     run_rec.end_time = datetime.utcnow()
                     run_rec.error_message = str(e)
             raise
-

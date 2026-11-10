@@ -1,3 +1,5 @@
+# Repository scripts bootstrap the checkout before importing the installed package.
+# ruff: noqa: E402
 """
 Train and Export Fallback Load-Only Model to ONNX.
 Matches the HistGradientBoosting champion architecture using 34 load-only features.
@@ -6,16 +8,24 @@ Saves to artifacts/models/load_only_model.onnx and artifacts/models/load_only_me
 
 import sys
 from pathlib import Path
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-import json
 import pandas as pd
-import numpy as np
-from chronogrid.features.engineer import FeatureEngineer
-from chronogrid.models.tree_models import HistGradientBoostingModel
-from chronogrid.serving.onnx_exporter import export_to_onnx
-from chronogrid.models.evaluation import compute_metrics
+
+from chronogrid.features.engineer import (
+    FeatureEngineer,
+)
+from chronogrid.models.evaluation import (
+    compute_metrics,
+)
+from chronogrid.models.tree_models import (
+    HistGradientBoostingModel,
+)
+from chronogrid.serving.onnx_exporter import (
+    export_to_onnx,
+)
 
 
 def train_and_export_fallback():
@@ -41,12 +51,16 @@ def train_and_export_fallback():
     y_test = test_df["grid_load_mw"].values
 
     print(f"Training set: {len(X_train):,} hours | Test set: {len(X_test):,} hours")
-    model = HistGradientBoostingModel(max_iter=200, learning_rate=0.05, max_leaf_nodes=31, random_state=42)
+    model = HistGradientBoostingModel(
+        max_iter=200, learning_rate=0.05, max_leaf_nodes=31, random_state=42
+    )
     model.fit(X_train, y_train)
 
     test_preds = model.predict(X_test)
     metrics = compute_metrics(y_test, test_preds)
-    print(f"Fallback Model Test Performance: MAE={metrics['mae']:.2f} MW | RMSE={metrics['rmse']:.2f} MW | MAPE={metrics['mape']:.3f}%")
+    print(
+        f"Fallback Model Test Performance: MAE={metrics['mae']:.2f} MW | RMSE={metrics['rmse']:.2f} MW | MAPE={metrics['mape']:.3f}%"
+    )
 
     # Fit on all available historical data (or keep train split) and export to ONNX
     onnx_out = ROOT_DIR / "artifacts/models/load_only_model.onnx"
@@ -64,4 +78,3 @@ def train_and_export_fallback():
 
 if __name__ == "__main__":
     train_and_export_fallback()
-

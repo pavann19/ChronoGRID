@@ -4,14 +4,13 @@ Eliminates flapping by requiring K consecutive healthy cycles before transitioni
 Includes static/frozen telemetry sensor detection and persistent state backing.
 """
 
-from datetime import datetime, timezone
 import logging
-from pathlib import Path
 import threading
+from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
 
+from chronogrid.reliability.persistence import DDIRPersistedState, DDIRStatePersistence
 from chronogrid.reliability.state_machine import ReliabilityState
-from chronogrid.reliability.persistence import DDIRStatePersistence, DDIRPersistedState
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class HysteresisRecoveryManager:
         self,
         recovery_threshold: int = 2,
         start_healthy: bool = True,
-        state_file_path: Optional[str] = None,
+        state_file_path: Optional[str] | None = None,
     ):
         self.recovery_threshold = max(1, recovery_threshold)
         self.state_file_path = state_file_path
@@ -70,7 +69,9 @@ class HysteresisRecoveryManager:
                 effective_state=self.current_effective_state.value,
                 consecutive_healthy_count=self.consecutive_healthy_count,
                 recovery_threshold=self.recovery_threshold,
-                last_healthy_timestamp=str(self.last_healthy_timestamp) if self.last_healthy_timestamp else None,
+                last_healthy_timestamp=str(self.last_healthy_timestamp)
+                if self.last_healthy_timestamp
+                else None,
                 last_healthy_fingerprint=self.last_healthy_fingerprint,
                 last_healthy_content_fingerprint=self.last_healthy_content_fingerprint,
                 updated_at=datetime.now(timezone.utc).isoformat(),
@@ -81,9 +82,9 @@ class HysteresisRecoveryManager:
         self,
         raw_state: ReliabilityState,
         raw_reason: str,
-        source_timestamp: Any = None,
-        payload_fingerprint: Optional[str] = None,
-        content_fingerprint: Optional[str] = None,
+        source_timestamp: Any | None = None,
+        payload_fingerprint: Optional[str] | None = None,
+        content_fingerprint: Optional[str] | None = None,
     ) -> Tuple[ReliabilityState, str, str]:
         """
         Processes a raw evaluated state through the hysteresis window.
@@ -100,9 +101,14 @@ class HysteresisRecoveryManager:
                 duplicate_msg = ""
 
                 # Check duplicate raw payload fingerprint
-                if payload_fingerprint is not None and payload_fingerprint == self.last_healthy_fingerprint:
+                if (
+                    payload_fingerprint is not None
+                    and payload_fingerprint == self.last_healthy_fingerprint
+                ):
                     is_duplicate = True
-                    duplicate_msg = "Duplicate payload fingerprint detected; distinct source update required"
+                    duplicate_msg = (
+                        "Duplicate payload fingerprint detected; distinct source update required"
+                    )
 
                 # Check non-advancing timestamp
                 if source_timestamp is not None and self.last_healthy_timestamp is not None:
@@ -198,7 +204,9 @@ class HysteresisRecoveryManager:
     def reset(self, initial_state: ReliabilityState = ReliabilityState.HEALTHY):
         """Resets the recovery manager state."""
         with self._lock:
-            self.consecutive_healthy_count = self.recovery_threshold if initial_state == ReliabilityState.HEALTHY else 0
+            self.consecutive_healthy_count = (
+                self.recovery_threshold if initial_state == ReliabilityState.HEALTHY else 0
+            )
             self.current_effective_state = initial_state
             self.last_healthy_timestamp = None
             self.last_healthy_fingerprint = None

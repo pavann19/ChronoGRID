@@ -3,7 +3,6 @@ Statistical and Machine Learning Baselines (P5.4).
 Provides standard benchmark references: Naive 24h, Weekly Seasonal Naive, Moving Average, and Ridge.
 """
 
-from typing import Optional
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
@@ -11,11 +10,12 @@ from sklearn.linear_model import Ridge
 
 class NaivePersistence24h:
     """Predicts yesterday's same-hour value: y_hat(t) = y(t-24)."""
+
     def __init__(self, target_col: str = "grid_load_mw"):
         self.target_col = target_col
         self.name = "Naive_Persistence_24h"
 
-    def fit(self, X: pd.DataFrame, y: np.ndarray = None):
+    def fit(self, X: pd.DataFrame, y: np.ndarray | None = None):
         return self
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -27,11 +27,12 @@ class NaivePersistence24h:
 
 class WeeklySeasonalPersistence168h:
     """Predicts last week's same-day and hour value: y_hat(t) = y(t-168)."""
+
     def __init__(self, target_col: str = "grid_load_mw"):
         self.target_col = target_col
         self.name = "Weekly_Seasonal_168h"
 
-    def fit(self, X: pd.DataFrame, y: np.ndarray = None):
+    def fit(self, X: pd.DataFrame, y: np.ndarray | None = None):
         return self
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -43,11 +44,12 @@ class WeeklySeasonalPersistence168h:
 
 class MovingAverageBaseline:
     """Predicts rolling mean of past 24 hours."""
+
     def __init__(self, target_col: str = "grid_load_mw"):
         self.target_col = target_col
         self.name = "Moving_Average_24h"
 
-    def fit(self, X: pd.DataFrame, y: np.ndarray = None):
+    def fit(self, X: pd.DataFrame, y: np.ndarray | None = None):
         return self
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -59,6 +61,7 @@ class MovingAverageBaseline:
 
 class RidgeBaseline:
     """Standard regularized linear regression baseline."""
+
     def __init__(self, alpha: float = 10.0):
         self.alpha = alpha
         self.name = "Ridge_Regression_Baseline"

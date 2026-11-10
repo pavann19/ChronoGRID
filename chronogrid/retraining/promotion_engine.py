@@ -3,19 +3,15 @@ Legacy champion/challenger metric review. Automatic artifact and registry mutati
 is retired; use explicit diagnostic ArtifactRegistry bundles for local lifecycle work.
 """
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import pandas as pd
-import numpy as np
+from typing import Any, Dict, List
 
-from chronogrid.db.database import get_session
-from chronogrid.db.models import ModelRegistryRecord
+import pandas as pd
+
+from chronogrid.db.database import get_session as get_session
 from chronogrid.models.evaluation import compute_metrics, diebold_mariano_test
-from chronogrid.models.tree_models import LightGBMModel, XGBoostModel
-from chronogrid.serving.onnx_exporter import export_to_onnx
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +20,10 @@ class PromotionEngine:
     """
     Legacy metric evaluator. Passing metrics do not authorize a production release.
     """
+
     def __init__(
         self,
-        min_improvement_pct: float = 0.02, # Must improve MAE by >= 2%
+        min_improvement_pct: float = 0.02,  # Must improve MAE by >= 2%
         significance_alpha: float = 0.05,
         max_peak_error_degradation_pct: float = 0.05,
         model_name: str = "ChronoGrid_LoadForecaster",
@@ -44,14 +41,14 @@ class PromotionEngine:
 
     def evaluate_and_promote(
         self,
-        champion_model: any,
-        challenger_model: any,
+        champion_model: Any,
+        challenger_model: Any,
         df_eval: pd.DataFrame,
         feature_cols: List[str],
         target_col: str = "grid_load_mw",
         challenger_model_type: str = "LightGBM",
-        challenger_params: Dict[str, any] = None,
-    ) -> Dict[str, any]:
+        challenger_params: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
         """
         Returns a metric review; passing metrics never executes an artifact promotion.
         """
@@ -108,10 +105,12 @@ class PromotionEngine:
             "challenger_metrics": chall_metrics,
         }
 
-        logger.info(f"Promotion gate decision: {decision_report['decision']} (Improvement: {decision_report['improvement_pct']}%, p={p_value:.4f})")
+        logger.info(
+            f"Promotion gate decision: {decision_report['decision']} (Improvement: {decision_report['improvement_pct']}%, p={p_value:.4f})"
+        )
 
         if passed_gate:
-            logger.info('Metric gate passed; automatic legacy artifact mutation is retired.')
+            logger.info("Metric gate passed; automatic legacy artifact mutation is retired.")
         else:
             self._log_rejected_challenger(
                 challenger_model_type=challenger_model_type,
@@ -125,27 +124,30 @@ class PromotionEngine:
 
     def _execute_atomic_promotion(
         self,
-        challenger_model: any,
+        challenger_model: Any,
         challenger_model_type: str,
         feature_cols: List[str],
-        metrics: Dict[str, any],
-        params: Dict[str, any],
+        metrics: Dict[str, Any],
+        params: Dict[str, Any],
     ):
         """Retired: file swaps and SQL transactions are not one atomic release."""
-        raise RuntimeError('Legacy multi-file promotion/rollback is retired; use ArtifactRegistry diagnostic bundles.')
+        raise RuntimeError(
+            "Legacy multi-file promotion/rollback is retired; use ArtifactRegistry diagnostic bundles."
+        )
 
-    def rollback_to_previous_champion(self) -> Dict[str, any]:
+    def rollback_to_previous_champion(self) -> Dict[str, Any]:
         """Retired: file swaps and SQL transactions are not one atomic release."""
-        raise RuntimeError('Legacy multi-file promotion/rollback is retired; use ArtifactRegistry diagnostic bundles.')
+        raise RuntimeError(
+            "Legacy multi-file promotion/rollback is retired; use ArtifactRegistry diagnostic bundles."
+        )
 
     def _log_rejected_challenger(
         self,
         challenger_model_type: str,
         feature_cols: List[str],
-        metrics: Dict[str, any],
-        params: Dict[str, any],
-        decision_report: Dict[str, any],
+        metrics: Dict[str, Any],
+        params: Dict[str, Any],
+        decision_report: Dict[str, Any],
     ):
         """Legacy registry writes are retired; the caller retains the returned review report."""
-        logger.info('Rejected challenger review returned without mutating the legacy registry.')
-
+        logger.info("Rejected challenger review returned without mutating the legacy registry.")

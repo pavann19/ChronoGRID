@@ -12,7 +12,9 @@ from typing import Any
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT = ROOT / "artifacts/engineering/v1_improvement_phase/legacy_artifact_binding_audit_v1.json"
+DEFAULT_OUTPUT = (
+    ROOT / "artifacts/engineering/v1_improvement_phase/legacy_artifact_binding_audit_v1.json"
+)
 ARM_INPUTS = {
     "primary": {
         "served_model": "artifacts/models/champion_model.onnx",
@@ -58,7 +60,9 @@ def inspect_registry(database_path: Path) -> dict[str, Any]:
             index_name = row["name"]
             index_columns = [
                 column["name"]
-                for column in connection.execute(f"PRAGMA index_info({_quote_identifier(index_name)})")
+                for column in connection.execute(
+                    f"PRAGMA index_info({_quote_identifier(index_name)})"
+                )
             ]
             definition = connection.execute(
                 "SELECT sql FROM sqlite_master WHERE type = ? AND name = ?",
@@ -168,7 +172,9 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
         }
 
     registry = inspect_registry(root / "data/chronogrid.db")
-    all_served_bindings_match = all(arm["calibration_matches_served_model"] for arm in arms.values())
+    all_served_bindings_match = all(
+        arm["calibration_matches_served_model"] for arm in arms.values()
+    )
     feature_bindings_present = all(
         bool(arm["calibration"]["feature_code_sha256"]) for arm in arms.values()
     )

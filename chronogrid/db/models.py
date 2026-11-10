@@ -4,46 +4,46 @@ Supports both PostgreSQL and SQLite.
 """
 
 from datetime import datetime
-from typing import Optional
-from sqlalchemy import (
-    Column, Integer, Float, String, Boolean, DateTime, Text, Index
-)
-from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+from sqlalchemy import Boolean, Column, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class ElectricityRecord(Base):
     """Hourly electricity and weather aligned record."""
+
     __tablename__ = "electricity_records"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime, nullable=False, unique=True, index=True)
-    
+
     # SMARD electricity metrics
     grid_load_mw = Column(Float, nullable=False)
     day_ahead_price_eur_mwh = Column(Float, nullable=True)
     solar_generation_mw = Column(Float, nullable=True)
     wind_generation_mw = Column(Float, nullable=True)
-    
+
     # DWD weather metrics
     temperature_c = Column(Float, nullable=True)
     humidity_pct = Column(Float, nullable=True)
     wind_speed_ms = Column(Float, nullable=True)
     solar_radiation_wm2 = Column(Float, nullable=True)
-    
+
     # Data Quality flags
     is_interpolated = Column(Boolean, default=False, nullable=False)
     quality_flag = Column(String(32), default="VALID", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    __table_args__ = (
-        Index("idx_records_timestamp", "timestamp"),
-    )
+    __table_args__ = (Index("idx_records_timestamp", "timestamp"),)
 
 
 class PipelineRun(Base):
     """Tracks execution of data pipelines (P5.2)."""
+
     __tablename__ = "pipeline_runs"
 
     run_id = Column(String(64), primary_key=True)
@@ -59,6 +59,7 @@ class PipelineRun(Base):
 
 class ModelRegistryRecord(Base):
     """Tracks model versions and deployment lifecycle stages (P5.7 & P5.10)."""
+
     __tablename__ = "model_registry"
 
     model_id = Column(String(64), primary_key=True)
@@ -80,6 +81,7 @@ class ModelRegistryRecord(Base):
 
 class DriftReportRecord(Base):
     """Stores historical drift monitoring evaluations (P5.9)."""
+
     __tablename__ = "drift_reports"
 
     report_id = Column(String(64), primary_key=True)
@@ -93,4 +95,3 @@ class DriftReportRecord(Base):
     retraining_triggered = Column(Boolean, default=False, nullable=False)
     feature_metrics_json = Column(Text, nullable=False)
     evidently_report_path = Column(String(255), nullable=True)
-

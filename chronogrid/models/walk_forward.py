@@ -3,23 +3,26 @@ Walk-Forward Validation Engine for Time Series Forecasting (P5.6).
 Implements expanding and rolling window CV with purge/embargo gap to prevent leakage.
 """
 
-from typing import Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
+
 import numpy as np
 import pandas as pd
-from chronogrid.models.evaluation import compute_metrics, compute_bootstrap_confidence_intervals
+
+from chronogrid.models.evaluation import compute_bootstrap_confidence_intervals, compute_metrics
 
 
 class TimeSeriesWalkForwardValidator:
     """
     Chronological Walk-Forward Cross-Validation.
     """
+
     def __init__(
         self,
         n_splits: int = 5,
-        test_size_hours: int = 168,       # 1 week per fold test set
-        min_train_size_hours: int = 2160, # 90 days minimum initial training
-        purge_gap_hours: int = 24,        # 24h day-ahead embargo gap
-        window_type: str = "expanding",   # "expanding" or "rolling"
+        test_size_hours: int = 168,  # 1 week per fold test set
+        min_train_size_hours: int = 2160,  # 90 days minimum initial training
+        purge_gap_hours: int = 24,  # 24h day-ahead embargo gap
+        window_type: str = "expanding",  # "expanding" or "rolling"
     ):
         self.n_splits = n_splits
         self.test_size_hours = test_size_hours
@@ -33,7 +36,7 @@ class TimeSeriesWalkForwardValidator:
         """
         n_total = len(df)
         total_test_span = self.n_splits * self.test_size_hours
-        
+
         # Determine starting index for first test fold
         first_test_start = n_total - total_test_span
         if first_test_start < self.min_train_size_hours + self.purge_gap_hours:
@@ -64,7 +67,7 @@ class TimeSeriesWalkForwardValidator:
         df: pd.DataFrame,
         feature_cols: List[str],
         target_col: str = "grid_load_mw",
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Runs walk-forward validation across all folds for a given model factory.
         Collects out-of-fold predictions and summary statistics.
@@ -94,10 +97,24 @@ class TimeSeriesWalkForwardValidator:
 
             metrics = compute_metrics(y_test, preds, timestamps=ts_test)
             metrics["fold"] = fold_idx + 1
-            metrics["train_start"] = str(df_train["timestamp"].iloc[0]) if "timestamp" in df_train.columns else train_idx[0]
-            metrics["train_end"] = str(df_train["timestamp"].iloc[-1]) if "timestamp" in df_train.columns else train_idx[-1]
-            metrics["test_start"] = str(df_test["timestamp"].iloc[0]) if "timestamp" in df_test.columns else test_idx[0]
-            metrics["test_end"] = str(df_test["timestamp"].iloc[-1]) if "timestamp" in df_test.columns else test_idx[-1]
+            metrics["train_start"] = (
+                str(df_train["timestamp"].iloc[0])
+                if "timestamp" in df_train.columns
+                else train_idx[0]
+            )
+            metrics["train_end"] = (
+                str(df_train["timestamp"].iloc[-1])
+                if "timestamp" in df_train.columns
+                else train_idx[-1]
+            )
+            metrics["test_start"] = (
+                str(df_test["timestamp"].iloc[0]) if "timestamp" in df_test.columns else test_idx[0]
+            )
+            metrics["test_end"] = (
+                str(df_test["timestamp"].iloc[-1])
+                if "timestamp" in df_test.columns
+                else test_idx[-1]
+            )
             fold_metrics.append(metrics)
 
             oof_predictions.extend(preds)
@@ -107,7 +124,9 @@ class TimeSeriesWalkForwardValidator:
 
         oof_act = np.array(oof_actuals)
         oof_pred = np.array(oof_predictions)
-        overall_metrics = compute_metrics(oof_act, oof_pred, timestamps=np.array(oof_timestamps) if oof_timestamps else None)
+        overall_metrics = compute_metrics(
+            oof_act, oof_pred, timestamps=np.array(oof_timestamps) if oof_timestamps else None
+        )
         bootstrap_ci = compute_bootstrap_confidence_intervals(oof_act, oof_pred)
         overall_metrics.update(bootstrap_ci)
 
@@ -118,4 +137,3 @@ class TimeSeriesWalkForwardValidator:
             "oof_predictions": oof_pred,
             "oof_timestamps": oof_timestamps,
         }
-

@@ -5,11 +5,13 @@ Maps ValidationReport to explicit deterministic states: HEALTHY, DEGRADED, STALE
 
 from enum import Enum
 from typing import Tuple
+
 from chronogrid.reliability.validator import ValidationReport
 
 
 class ReliabilityState(str, Enum):
     """Explicit operational states for external weather telemetry."""
+
     HEALTHY = "HEALTHY"
     DEGRADED = "DEGRADED"
     STALE = "STALE"
@@ -45,9 +47,19 @@ class ReliabilityStateMachine:
         # 3. Corrupt / Outliers / Schema Mismatch -> INVALID
         outlier_count = report.details.get("outlier_count", 0)
         type_errors = report.details.get("type_errors", 0)
-        if outlier_count > 0 or type_errors > 0 or any("OUTLIER" in s for s in report.channel_states.values()):
-            reasons = [v for v in report.violations if "outlier" in v.lower() or "malformed" in v.lower()]
-            reason = f"Corrupted telemetry: {'; '.join(reasons)}" if reasons else "Physical boundary outliers detected"
+        if (
+            outlier_count > 0
+            or type_errors > 0
+            or any("OUTLIER" in s for s in report.channel_states.values())
+        ):
+            reasons = [
+                v for v in report.violations if "outlier" in v.lower() or "malformed" in v.lower()
+            ]
+            reason = (
+                f"Corrupted telemetry: {'; '.join(reasons)}"
+                if reasons
+                else "Physical boundary outliers detected"
+            )
             return ReliabilityState.INVALID, reason
 
         # 3. Staleness / Delayed Ingestion -> STALE
@@ -65,7 +77,9 @@ class ReliabilityStateMachine:
 
         # 4. Partial Missingness with Intercept Feasibility -> DEGRADED
         if report.can_interpolate and 0.0 < report.missing_rate <= 0.15:
-            reasons = [v for v in report.violations if "missing" in v.lower() or "partial" in v.lower()]
+            reasons = [
+                v for v in report.violations if "missing" in v.lower() or "partial" in v.lower()
+            ]
             return (
                 ReliabilityState.DEGRADED,
                 f"Minor channel missingness ({report.missing_rate * 100:.1f}%): {'; '.join(reasons)}",
@@ -80,11 +94,19 @@ class ReliabilityStateMachine:
 
         # 6. 100% Intact & Fresh -> HEALTHY
         if report.is_valid and report.quality_score >= 0.95:
-            return ReliabilityState.HEALTHY, "Weather telemetry is fully intact, fresh, and within valid boundaries"
+            return (
+                ReliabilityState.HEALTHY,
+                "Weather telemetry is fully intact, fresh, and within valid boundaries",
+            )
 
         # Fallback for minor infractions
         if report.quality_score >= 0.70:
-            return ReliabilityState.DEGRADED, f"Telemetry degraded (Quality score {report.quality_score:.2f})"
+            return (
+                ReliabilityState.DEGRADED,
+                f"Telemetry degraded (Quality score {report.quality_score:.2f})",
+            )
         else:
-            return ReliabilityState.INVALID, f"Telemetry invalid (Quality score {report.quality_score:.2f})"
-
+            return (
+                ReliabilityState.INVALID,
+                f"Telemetry invalid (Quality score {report.quality_score:.2f})",
+            )

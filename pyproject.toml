@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chronogrid"
-version = "2.0.0.dev0"
+version = "0.2.0"
 description = "German day-ahead load forecasting and evidence research platform"
-readme = "OPERATIONS.md"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-authors = [{name = "ChronoGrid Engineering Team"}]
+authors = [{name = "Pavan Kumar Gannoju"}]
 keywords = ["time-series", "forecasting", "uncertainty", "energy", "research"]
 dependencies = [
     "holidays==0.108",
@@ -28,7 +28,7 @@ tracking = ["mlflow-skinny>=3.0", "SQLAlchemy==2.1.8"]
 parquet = ["pyarrow==26.0.1"]
 postgres = ["psycopg2-binary>=2.9.9", "SQLAlchemy==2.1.8"]
 dashboard = ["streamlit>=1.44", "SQLAlchemy==2.1.8", "prometheus-client==0.26.0"]
-dev = ["pytest>=9.2", "pytest-cov>=6.0", "hypothesis>=6.100", "ruff>=0.4", "httpx==0.28.1", "pip-audit>=2.10.1"]
+dev = ["pytest>=9.0", "pytest-cov>=6.0", "hypothesis>=6.100", "ruff>=0.4", "httpx==0.28.1", "pip-audit>=2.10.1", "mypy>=1.18", "build>=1.2", "pre-commit>=4.0"]
 
 [project.scripts]
 chronogrid-ops = "chronogrid.operations.cli:main"
@@ -53,3 +53,14 @@ addopts = "-v --strict-markers"
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "skip"

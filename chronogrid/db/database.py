@@ -5,15 +5,18 @@ Database engine and session management for ChronoGrid.
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any, Iterator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
+
 from chronogrid.db.models import Base
 
-_ENGINE = None
-_SESSION_FACTORY = None
+_ENGINE: Any = None
+_SESSION_FACTORY: Any = None
 
 
-def get_engine(db_url: str = None):
+def get_engine(db_url: str | None = None):
     """Initializes or returns singleton SQLAlchemy engine."""
     global _ENGINE, _SESSION_FACTORY
     if _ENGINE is not None:
@@ -26,25 +29,17 @@ def get_engine(db_url: str = None):
         # Ensure parent directory exists for SQLite
         db_path = db_url.replace("sqlite:///", "")
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        _ENGINE = create_engine(
-            db_url,
-            connect_args={"check_same_thread": False},
-            echo=False
-        )
+        _ENGINE = create_engine(db_url, connect_args={"check_same_thread": False}, echo=False)
     else:
         _ENGINE = create_engine(
-            db_url,
-            pool_size=5,
-            max_overflow=10,
-            pool_pre_ping=True,
-            echo=False
+            db_url, pool_size=5, max_overflow=10, pool_pre_ping=True, echo=False
         )
 
     _SESSION_FACTORY = sessionmaker(autocommit=False, autoflush=False, bind=_ENGINE)
     return _ENGINE
 
 
-def init_db(db_url: str = None):
+def init_db(db_url: str | None = None):
     """Creates all database tables."""
     engine = get_engine(db_url)
     Base.metadata.create_all(bind=engine)
@@ -52,7 +47,7 @@ def init_db(db_url: str = None):
 
 
 @contextmanager
-def get_session(db_url: str = None) -> Session:
+def get_session(db_url: str | None = None) -> Iterator[Session]:
     """Context manager for atomic database sessions."""
     global _SESSION_FACTORY
     if _SESSION_FACTORY is None:
@@ -67,4 +62,3 @@ def get_session(db_url: str = None) -> Session:
         raise
     finally:
         session.close()
-

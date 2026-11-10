@@ -4,15 +4,16 @@ Verifies multi-process isolation, cold-start state inversion, frozen sensor bypa
 future timestamp validation anomaly, observability blast radius, and bounded metric cardinality.
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
-import pytest
+
 import pandas as pd
+import pytest
 
 from chronogrid.reliability.router import DualHeadInferenceRouter
-from chronogrid.reliability.validator import WeatherInputValidator
 from chronogrid.reliability.state_machine import ReliabilityState
-from chronogrid.serving.app import load_engine, forecast_resilient, DDIR_REQUEST_COUNT
+from chronogrid.reliability.validator import WeatherInputValidator
+from chronogrid.serving.app import DDIR_REQUEST_COUNT, forecast_resilient, load_engine
 from chronogrid.serving.schemas import ResilientForecastRequest
 
 
@@ -70,12 +71,25 @@ def test_frozen_sensor_timestamp_remediation():
     raw_df = pd.DataFrame([{f: 1.0 for f in router.primary_engine.feature_names}])
 
     # Sensor reading is frozen, but timestamps advance
-    frozen = {"temperature_c": 15.0, "wind_speed_ms": 4.0, "solar_radiation_wm2": 250.0, "humidity_pct": 60.0}
-    r1 = router.route_and_predict(raw_df, weather_payload={"timestamp": (now_ref - timedelta(hours=2)).isoformat(), **frozen}, current_time=now_ref)
+    frozen = {
+        "temperature_c": 15.0,
+        "wind_speed_ms": 4.0,
+        "solar_radiation_wm2": 250.0,
+        "humidity_pct": 60.0,
+    }
+    r1 = router.route_and_predict(
+        raw_df,
+        weather_payload={"timestamp": (now_ref - timedelta(hours=2)).isoformat(), **frozen},
+        current_time=now_ref,
+    )
     assert r1.active_head == "FALLBACK_LOAD_ONLY"
     assert r1.consecutive_healthy_count == 1
 
-    r2 = router.route_and_predict(raw_df, weather_payload={"timestamp": (now_ref - timedelta(hours=1)).isoformat(), **frozen}, current_time=now_ref)
+    r2 = router.route_and_predict(
+        raw_df,
+        weather_payload={"timestamp": (now_ref - timedelta(hours=1)).isoformat(), **frozen},
+        current_time=now_ref,
+    )
     # Remediation Verified: Identical physical readings with advancing timestamps are flagged as static/frozen!
     # Recovery is held on Fallback, preventing frozen sensor from hijacking Primary!
     assert r2.active_head == "FALLBACK_LOAD_ONLY"
@@ -88,13 +102,16 @@ def test_future_timestamp_validation_remediation():
     now_ref = datetime(2026, 11, 3, 16, 0, 0, tzinfo=timezone.utc)
     future_ts = (now_ref + timedelta(days=365)).isoformat()
 
-    report = validator.validate({
-        "timestamp": future_ts,
-        "temperature_c": 18.0,
-        "wind_speed_ms": 4.0,
-        "solar_radiation_wm2": 300.0,
-        "humidity_pct": 50.0,
-    }, current_time=now_ref)
+    report = validator.validate(
+        {
+            "timestamp": future_ts,
+            "temperature_c": 18.0,
+            "wind_speed_ms": 4.0,
+            "solar_radiation_wm2": 300.0,
+            "humidity_pct": 50.0,
+        },
+        current_time=now_ref,
+    )
 
     # Remediation Verified: Future timestamp is rejected with invalid temporal provenance
     assert report.is_valid is False
@@ -104,12 +121,12 @@ def test_future_timestamp_validation_remediation():
 
 def test_observability_unhandled_exception_blast_radius_remediation(initialized_engine):
     req = ResilientForecastRequest(
-        start_timestamp="2024-07-20T14:00:00Z",
-        horizon_hours=24,
-        weather_payload=None
+        start_timestamp="2024-07-20T14:00:00Z", horizon_hours=24, weather_payload=None
     )
     # Remediation Verified: Even if Prometheus throws an internal error, the forecast request succeeds!
-    with patch.object(DDIR_REQUEST_COUNT, "labels", side_effect=RuntimeError("Prometheus Lock Error")):
+    with patch.object(
+        DDIR_REQUEST_COUNT, "labels", side_effect=RuntimeError("Prometheus Lock Error")
+    ):
         resp = forecast_resilient(req)
         assert len(resp.forecast_load_mw) == 24
         assert resp.active_head == "FALLBACK_LOAD_ONLY"
@@ -122,4 +139,3 @@ def test_metric_cardinality_is_strictly_bounded():
     assert len(labels) == 2
     assert "timestamp" not in labels
     assert "request_id" not in labels
-

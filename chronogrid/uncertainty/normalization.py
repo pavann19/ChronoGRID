@@ -3,7 +3,8 @@ Normalization engine for Data-Quality-Conditioned Conformal Prediction (DQ-CP).
 Computes delivery-hour Median Absolute Deviation (MAD) scales strictly from training-period residuals.
 """
 
-from typing import Dict, List, Union, Optional
+from typing import Any, Dict, Optional, Union
+
 import numpy as np
 import pandas as pd
 
@@ -18,9 +19,9 @@ class DeliveryHourMADNormalizer:
 
     def __init__(
         self,
-        hour_mad: Optional[Dict[int, float]] = None,
-        global_mad: Optional[float] = None,
-        epsilon: float = 1.0
+        hour_mad: Optional[Dict[int, float]] | None = None,
+        global_mad: Optional[float] | None = None,
+        epsilon: float = 1.0,
     ):
         """
         Initialize the normalizer.
@@ -34,7 +35,9 @@ class DeliveryHourMADNormalizer:
         self.global_mad: float = global_mad if global_mad is not None else 500.0
         self.epsilon: float = max(1e-6, float(epsilon))
 
-    def fit(self, training_residuals: np.ndarray, delivery_hours: np.ndarray) -> "DeliveryHourMADNormalizer":
+    def fit(
+        self, training_residuals: np.ndarray, delivery_hours: np.ndarray
+    ) -> "DeliveryHourMADNormalizer":
         """
         Fit MAD scales from training residuals.
 
@@ -46,7 +49,9 @@ class DeliveryHourMADNormalizer:
             raise ValueError("Cannot fit normalizer on empty training residuals.")
 
         if len(training_residuals) != len(delivery_hours):
-            raise ValueError(f"Length mismatch: {len(training_residuals)} residuals vs {len(delivery_hours)} hours.")
+            raise ValueError(
+                f"Length mismatch: {len(training_residuals)} residuals vs {len(delivery_hours)} hours."
+            )
 
         res_clean = np.asarray(training_residuals, dtype=np.float64)
         hours_clean = np.asarray(delivery_hours, dtype=np.int64)
@@ -80,10 +85,7 @@ class DeliveryHourMADNormalizer:
         return float(scale)
 
     def normalize(
-        self,
-        actuals: np.ndarray,
-        predictions: np.ndarray,
-        delivery_hours: np.ndarray
+        self, actuals: np.ndarray, predictions: np.ndarray, delivery_hours: np.ndarray
     ) -> np.ndarray:
         """
         Compute normalized non-conformity scores:
@@ -94,7 +96,9 @@ class DeliveryHourMADNormalizer:
         h = np.asarray(delivery_hours, dtype=np.int64)
 
         if y.shape != y_hat.shape or y.shape != h.shape:
-            raise ValueError(f"Shape mismatch: actuals {y.shape}, preds {y_hat.shape}, hours {h.shape}")
+            raise ValueError(
+                f"Shape mismatch: actuals {y.shape}, preds {y_hat.shape}, hours {h.shape}"
+            )
 
         if not np.all(np.isfinite(y)) or not np.all(np.isfinite(y_hat)):
             raise ValueError("Inputs contain non-finite values.")
@@ -103,11 +107,8 @@ class DeliveryHourMADNormalizer:
         return np.abs(y - y_hat) / scales
 
     def scale_intervals(
-        self,
-        point_predictions: np.ndarray,
-        delivery_hours: np.ndarray,
-        conformal_quantile: float
-    ) -> (np.ndarray, np.ndarray):
+        self, point_predictions: np.ndarray, delivery_hours: np.ndarray, conformal_quantile: float
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Invert normalized conformal quantile to absolute MW interval bounds:
             L = y_hat - q * scale(h)
@@ -132,14 +133,13 @@ class DeliveryHourMADNormalizer:
         return {
             "hour_mad": {int(k): float(v) for k, v in self.hour_mad.items()},
             "global_mad": float(self.global_mad),
-            "epsilon": float(self.epsilon)
+            "epsilon": float(self.epsilon),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Union[Dict[int, float], float]]) -> "DeliveryHourMADNormalizer":
+    def from_dict(cls, data: Dict[str, Any]) -> "DeliveryHourMADNormalizer":
         hour_mad_raw = data.get("hour_mad", {})
         hour_mad = {int(k): float(v) for k, v in hour_mad_raw.items()}
         global_mad = float(data.get("global_mad", 500.0))
         epsilon = float(data.get("epsilon", 1.0))
         return cls(hour_mad=hour_mad, global_mad=global_mad, epsilon=epsilon)
-

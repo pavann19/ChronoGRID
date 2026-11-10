@@ -3,42 +3,40 @@ FastAPI Model Serving Application (P5.8 & P5.11).
 Ultra-low latency inference via ONNX Runtime with Prometheus metrics integration.
 """
 
+import json
+import logging
 import os
 import secrets
-import hashlib
-import json
 import time
-import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from prometheus_client import (
-    Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-)
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 
-from chronogrid.serving.schemas import (
-    PredictRequest,
-    PredictResponse,
-    DayAheadForecastRequest,
-    DayAheadForecastResponse,
-    HealthResponse,
-    ResilientForecastRequest,
-    ResilientForecastResponse,
-    DQCPForecastRequest,
-    DQCPForecastResponse,
-    DQCPFeedbackRequest,
-    DQCPFeedbackResponse,
-)
-from chronogrid.serving.onnx_engine import OnnxInferenceEngine
 from chronogrid.db.database import get_session, init_db
 from chronogrid.db.models import ModelRegistryRecord
-from chronogrid.uncertainty import load_dqcp_engine, DQCPUncertaintyEngine
+from chronogrid.serving.onnx_engine import OnnxInferenceEngine
+from chronogrid.serving.schemas import (
+    DayAheadForecastRequest,
+    DayAheadForecastResponse,
+    DQCPFeedbackRequest,
+    DQCPFeedbackResponse,
+    DQCPForecastRequest,
+    DQCPForecastResponse,
+    HealthResponse,
+    PredictRequest,
+    PredictResponse,
+    ResilientForecastRequest,
+    ResilientForecastResponse,
+)
+from chronogrid.uncertainty import DQCPUncertaintyEngine, load_dqcp_engine
 
 logger = logging.getLogger(__name__)
 
@@ -46,91 +44,105 @@ logger = logging.getLogger(__name__)
 REQUEST_COUNT = Counter(
     "chronogrid_inference_requests_total",
     "Total number of inference requests served",
-    ["endpoint", "status"]
+    ["endpoint", "status"],
 )
 REQUEST_LATENCY = Histogram(
     "chronogrid_inference_latency_seconds",
     "Inference latency in seconds",
     ["endpoint"],
-    buckets=[0.0005, 0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
+    buckets=[0.0005, 0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0],
 )
 PREDICTION_LOAD = Histogram(
     "chronogrid_predicted_load_mw",
     "Distribution of predicted grid load in MW",
-    buckets=[30000, 40000, 50000, 60000, 70000, 80000, 90000]
+    buckets=[30000, 40000, 50000, 60000, 70000, 80000, 90000],
 )
 CHAMPION_VERSION = Gauge(
-    "chronogrid_champion_model_version",
-    "Version number of the current active champion model"
+    "chronogrid_champion_model_version", "Version number of the current active champion model"
 )
 DDIR_REQUEST_COUNT = Counter(
     "chronogrid_ddir_requests_total",
     "Total number of DDIR resilient inference requests",
-    ["state", "head"]
+    ["state", "head"],
 )
 DDIR_QUALITY_GAUGE = Gauge(
-    "chronogrid_ddir_weather_quality_score",
-    "Current weather telemetry quality score (0.0 to 1.0)"
+    "chronogrid_ddir_weather_quality_score", "Current weather telemetry quality score (0.0 to 1.0)"
 )
 
 # DQ-CP Research Uncertainty Metrics
 DQCP_CALIBRATION_POOL_SIZE = Gauge(
     "chronogrid_dqcp_calibration_pool_size",
     "Number of calibration samples in the active pool",
-    ["head"]
+    ["head"],
 )
 DQCP_INTERVAL_WIDTH = Histogram(
     "chronogrid_dqcp_interval_width_mw",
     "Distribution of prediction interval widths in MW",
-    buckets=[500, 1000, 2000, 3000, 4000, 5000, 7500, 10000]
+    buckets=[500, 1000, 2000, 3000, 4000, 5000, 7500, 10000],
 )
 DQCP_ACI_ALPHA = Gauge(
-    "chronogrid_dqcp_aci_alpha",
-    "Current active ACI miscoverage parameter alpha"
+    "chronogrid_dqcp_aci_alpha", "Current active ACI miscoverage parameter alpha"
 )
 DQCP_FEEDBACK_COUNT = Counter(
     "chronogrid_dqcp_coverage_feedback_total",
     "Total ground-truth feedback settlements received",
-    ["status"]
+    ["status"],
 )
 DQCP_FALLBACK_INTERVAL_COUNT = Counter(
     "chronogrid_dqcp_fallback_interval_total",
-    "Total intervals generated using fallback calibration pool"
+    "Total intervals generated using fallback calibration pool",
 )
 DQCP_UNBOUNDED_INTERVAL_COUNT = Counter(
     "chronogrid_dqcp_unbounded_interval_total",
-    "Total unbounded prediction intervals generated when k exceeds pool size"
+    "Total unbounded prediction intervals generated when k exceeds pool size",
 )
 DQCP_CALIBRATION_VERSION_INFO = Gauge(
     "chronogrid_dqcp_calibration_version_info",
     "Version indicator of the active DQ-CP calibration table",
-    ["version"]
+    ["version"],
 )
 
 # Global engine and router instances
 ENGINE: Optional[OnnxInferenceEngine] = None
 ROUTER: Optional[Any] = None
 DQCP_ENGINE: Optional[DQCPUncertaintyEngine] = None
-CHAMPION_META = {"version": None, "model_type": "Unknown", "promoted_at": None, "registry_identity_verified": False}
+CHAMPION_META = {
+    "version": None,
+    "model_type": "Unknown",
+    "promoted_at": None,
+    "registry_identity_verified": False,
+}
 
 
 def load_engine():
     """Initializes ONNX engine, DDIR router, and registry metadata."""
     global ENGINE, ROUTER, CHAMPION_META, DQCP_ENGINE
     ENGINE = ROUTER = DQCP_ENGINE = None
-    CHAMPION_META = {"version": None, "model_type": "Unknown", "promoted_at": None, "registry_identity_verified": False}
-    CHAMPION_VERSION.set(0) # zero is the unverified registry-version sentinel, not a model release
-    if os.getenv('CHRONOGRID_ARTIFACT_REGISTRY'):
+    CHAMPION_META = {
+        "version": None,
+        "model_type": "Unknown",
+        "promoted_at": None,
+        "registry_identity_verified": False,
+    }
+    CHAMPION_VERSION.set(0)  # zero is the unverified registry-version sentinel, not a model release
+    if os.getenv("CHRONOGRID_ARTIFACT_REGISTRY"):
         from chronogrid.operations.artifact_registry import ArtifactRegistry
-        registry = ArtifactRegistry(os.environ['CHRONOGRID_ARTIFACT_REGISTRY'])
-        bundle = registry.active_bundle(os.getenv('CHRONOGRID_REGISTRY_MODEL', 'ChronoGrid_LoadForecaster'))
-        ENGINE = OnnxInferenceEngine.from_bytes(bundle['model_bytes'], bundle['metadata_bytes'])
-        CHAMPION_META = dict(version=bundle['revision'], model_type=ENGINE.metadata.get('model_type', 'Unknown'),
-                             registry_identity_verified=True, bundle_id=bundle['bundle_id'],
-                             artifact_sha256=bundle['manifest']['model_sha256'],
-                             metadata_sha256=bundle['manifest']['metadata_sha256'],
-                             scope='immutable caller-feature diagnostic bundle; no calibration or prospective approval')
-        CHAMPION_VERSION.set(bundle['revision'])
+
+        registry = ArtifactRegistry(os.environ["CHRONOGRID_ARTIFACT_REGISTRY"])
+        bundle = registry.active_bundle(
+            os.getenv("CHRONOGRID_REGISTRY_MODEL", "ChronoGrid_LoadForecaster")
+        )
+        ENGINE = OnnxInferenceEngine.from_bytes(bundle["model_bytes"], bundle["metadata_bytes"])
+        CHAMPION_META = dict(
+            version=bundle["revision"],
+            model_type=ENGINE.metadata.get("model_type", "Unknown"),
+            registry_identity_verified=True,
+            bundle_id=bundle["bundle_id"],
+            artifact_sha256=bundle["manifest"]["model_sha256"],
+            metadata_sha256=bundle["manifest"]["metadata_sha256"],
+            scope="immutable caller-feature diagnostic bundle; no calibration or prospective approval",
+        )
+        CHAMPION_VERSION.set(bundle["revision"])
         return  # Never fall back to legacy files/router/calibration when opt-in registry fails.
     onnx_file = Path("artifacts/models/champion_model.onnx")
     meta_file = Path("artifacts/models/champion_metadata.json")
@@ -139,6 +151,7 @@ def load_engine():
 
     if onnx_file.exists():
         from chronogrid.serving.registry_binding import verify_model_binding
+
         verify_model_binding(onnx_file, meta_file)
         if fallback_onnx.exists():
             verify_model_binding(fallback_onnx, fallback_meta)
@@ -147,10 +160,18 @@ def load_engine():
             metadata_path=str(meta_file),
         )
         actual_sha = ENGINE.model_sha256
-        CHAMPION_META = {"version": None, "model_type": ENGINE.metadata.get("model_type", "Unknown"), "promoted_at": None, "artifact_sha256": actual_sha, "metadata_sha256": ENGINE.metadata_sha256, "registry_identity_verified": False}
+        CHAMPION_META = {
+            "version": None,
+            "model_type": ENGINE.metadata.get("model_type", "Unknown"),
+            "promoted_at": None,
+            "artifact_sha256": actual_sha,
+            "metadata_sha256": ENGINE.metadata_sha256,
+            "registry_identity_verified": False,
+        }
         if fallback_onnx.exists():
             try:
                 from chronogrid.reliability.router import DualHeadInferenceRouter
+
                 state_file = os.environ.get("DDIR_STATE_FILE", "data/ddir_runtime_state.json")
                 ROUTER = DualHeadInferenceRouter(
                     primary_onnx_path=str(onnx_file),
@@ -169,10 +190,21 @@ def load_engine():
             with get_session() as session:
                 rec = session.query(ModelRegistryRecord).filter_by(is_champion=True).first()
                 if rec:
-                    CHAMPION_META["registry_record"] = {"version": rec.version, "model_type": rec.model_type, "onnx_uri": rec.onnx_uri}
+                    CHAMPION_META["registry_record"] = {
+                        "version": rec.version,
+                        "model_type": rec.model_type,
+                        "onnx_uri": rec.onnx_uri,
+                    }
                     registry_metadata = json.loads(rec.metadata_json or "{}")
-                    if registry_metadata.get("onnx_sha256") == actual_sha and registry_metadata.get("metadata_sha256") == ENGINE.metadata_sha256:
-                        CHAMPION_META.update(version=rec.version, promoted_at=str(rec.promoted_at), registry_identity_verified=True)
+                    if (
+                        registry_metadata.get("onnx_sha256") == actual_sha
+                        and registry_metadata.get("metadata_sha256") == ENGINE.metadata_sha256
+                    ):
+                        CHAMPION_META.update(
+                            version=rec.version,
+                            promoted_at=str(rec.promoted_at),
+                            registry_identity_verified=True,
+                        )
                         CHAMPION_VERSION.set(rec.version)
         except Exception:
             pass
@@ -203,7 +235,7 @@ def load_engine():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    if not os.getenv('CHRONOGRID_ARTIFACT_REGISTRY'):
+    if not os.getenv("CHRONOGRID_ARTIFACT_REGISTRY"):
         init_db()
     load_engine()
     yield
@@ -213,41 +245,81 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ChronoGrid Legacy Model Diagnostics",
     description="Caller-feature ONNX inference and explicitly authorized research replay/simulation. Prospective evidence uses the registered operations worker.",
-    version="2.0-research-diagnostics",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in os.getenv("CHRONOGRID_CORS_ORIGINS", "http://127.0.0.1:8765,http://localhost:8765").split(",") if origin.strip() and origin.strip()!="*"],
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv(
+            "CHRONOGRID_CORS_ORIGINS", "http://127.0.0.1:8765,http://localhost:8765"
+        ).split(",")
+        if origin.strip() and origin.strip() != "*"
+    ],
     allow_credentials=False,
-    allow_methods=["GET","POST"],
-    allow_headers=["Authorization","Content-Type"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
-LEGACY_REPLAY_ROUTES = {"/forecast/day-ahead", "/forecast/resilient", "/forecast/dqcp", "/forecast/dqcp/feedback"}
+LEGACY_REPLAY_ROUTES = {
+    "/forecast/day-ahead",
+    "/forecast/resilient",
+    "/forecast/dqcp",
+    "/forecast/dqcp/feedback",
+}
+
 
 @app.middleware("http")
 async def research_boundary(request: Request, call_next):
     # Protect future diagnostic routes by default; probes reveal only service readiness.
-    if request.method != "OPTIONS" and request.url.path not in {"/health", "/ready"} and not request.url.path.startswith("/forecast"):
+    if (
+        request.method != "OPTIONS"
+        and request.url.path not in {"/health", "/ready"}
+        and not request.url.path.startswith("/forecast")
+    ):
         expected = os.getenv("CHRONOGRID_DIAGNOSTICS_TOKEN", "")
         if not expected.strip():
-            return JSONResponse(status_code=503, content={"detail": "Diagnostic authentication is not configured."})
+            return JSONResponse(
+                status_code=503, content={"detail": "Diagnostic authentication is not configured."}
+            )
         supplied = request.headers.get("Authorization", "")
-        if not secrets.compare_digest(supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8")):
-            return JSONResponse(status_code=401, content={"detail": "Diagnostic authorization required."}, headers={"WWW-Authenticate": "Bearer"})
+        if not secrets.compare_digest(
+            supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8")
+        ):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Diagnostic authorization required."},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     legacy = request.url.path.startswith("/forecast")
     if legacy:
         expected = os.getenv("CHRONOGRID_LEGACY_REPLAY_TOKEN", "")
         if not expected.strip():
-            return JSONResponse(status_code=503, content={"detail":"Legacy replay requires an explicitly configured authorization token."})
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": "Legacy replay requires an explicitly configured authorization token."
+                },
+            )
         supplied = request.headers.get("Authorization", "")
-        if not secrets.compare_digest(supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8")):
-            return JSONResponse(status_code=401, content={"detail":"Replay authorization required."},headers={"WWW-Authenticate":"Bearer"})
+        if not secrets.compare_digest(
+            supplied.encode("utf-8"), ("Bearer " + expected).encode("utf-8")
+        ):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Replay authorization required."},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         if os.getenv("CHRONOGRID_ENABLE_LEGACY_REPLAY") != "1":
-            return JSONResponse(status_code=410, content={"detail":"Legacy simulated/replay forecasting is retired by default. Use the registered prospective capture worker."})
+            return JSONResponse(
+                status_code=410,
+                content={
+                    "detail": "Legacy simulated/replay forecasting is retired by default. Use the registered prospective capture worker."
+                },
+            )
     response = await call_next(request)
     if legacy:
         response.headers["X-ChronoGrid-Evidence-Kind"] = "legacy_replay_or_synthetic"
@@ -287,7 +359,10 @@ def ready():
     """Readiness probe."""
     if ENGINE is None:
         raise HTTPException(status_code=503, detail="ONNX model is not loaded yet.")
-    return {"ready": True, "scope": "ONNX engine loaded; not prospective forecast validity or production readiness"}
+    return {
+        "ready": True,
+        "scope": "ONNX engine loaded; not prospective forecast validity or production readiness",
+    }
 
 
 @app.get("/model/info")
@@ -331,7 +406,9 @@ def predict(payload: PredictRequest, response: Response):
 
         # Response headers
         response.headers["X-Inference-Time-Ms"] = f"{latency_ms:.2f}"
-        response.headers["X-Model-Version"] = str(CHAMPION_META["version"]) if CHAMPION_META["version"] is not None else "unverified"
+        response.headers["X-Model-Version"] = (
+            str(CHAMPION_META["version"]) if CHAMPION_META["version"] is not None else "unverified"
+        )
 
         return PredictResponse(
             predictions=[round(float(p), 1) for p in preds],
@@ -359,12 +436,21 @@ def forecast_day_ahead(payload: DayAheadForecastRequest):
     try:
         df = pd.read_parquet("data/processed/smard_dwd_hourly.parquet")
     except Exception:
-        raise HTTPException(status_code=500, detail="Processed dataset not available for day-ahead forecast.")
+        raise HTTPException(
+            status_code=500, detail="Processed dataset not available for day-ahead forecast."
+        )
 
-    start_ts = pd.to_datetime(payload.start_timestamp, utc=True) if payload.start_timestamp else df["timestamp"].max()
-    future_timestamps = pd.date_range(start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC")
+    start_ts = (
+        pd.to_datetime(payload.start_timestamp, utc=True)
+        if payload.start_timestamp
+        else df["timestamp"].max()
+    )
+    future_timestamps = pd.date_range(
+        start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC"
+    )
 
     from chronogrid.features.engineer import FeatureEngineer
+
     fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24)
     fe.feature_cols = ENGINE.feature_names
     fe.fitted = True
@@ -372,21 +458,25 @@ def forecast_day_ahead(payload: DayAheadForecastRequest):
     # Build simulated future frame using recent history for lags (at least 168h + 24h lag depth)
     recent_history = df.tail(336).copy()
     future_rows = []
-    
+
     last_known_load = recent_history["grid_load_mw"].iloc[-1]
-    
+
     for i, ts in enumerate(future_timestamps):
         # Look up or simulate weather for ts
         simulated_temp = 15.0 + 5.0 * np.cos(2 * np.pi * (ts.hour - 15) / 24)
-        simulated_solar = max(0.0, 700.0 * np.sin(np.pi * (ts.hour - 5) / 14)) if 5 <= ts.hour <= 19 else 0.0
-        future_rows.append({
-            "timestamp": ts,
-            "grid_load_mw": last_known_load,  # Placeholder, will use lag
-            "temperature_c": simulated_temp,
-            "solar_radiation_wm2": simulated_solar,
-            "wind_speed_ms": 4.5,
-            "humidity_pct": 65.0,
-        })
+        simulated_solar = (
+            max(0.0, 700.0 * np.sin(np.pi * (ts.hour - 5) / 14)) if 5 <= ts.hour <= 19 else 0.0
+        )
+        future_rows.append(
+            {
+                "timestamp": ts,
+                "grid_load_mw": last_known_load,  # Placeholder, will use lag
+                "temperature_c": simulated_temp,
+                "solar_radiation_wm2": simulated_solar,
+                "wind_speed_ms": 4.5,
+                "humidity_pct": 65.0,
+            }
+        )
 
     future_df = pd.DataFrame(future_rows)
     combined = pd.concat([recent_history, future_df], ignore_index=True)
@@ -420,12 +510,21 @@ def forecast_resilient(payload: ResilientForecastRequest):
     try:
         df = pd.read_parquet("data/processed/smard_dwd_hourly.parquet")
     except Exception:
-        raise HTTPException(status_code=500, detail="Processed dataset not available for day-ahead forecast.")
+        raise HTTPException(
+            status_code=500, detail="Processed dataset not available for day-ahead forecast."
+        )
 
-    start_ts = pd.to_datetime(payload.start_timestamp, utc=True) if payload.start_timestamp else df["timestamp"].max()
-    future_timestamps = pd.date_range(start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC")
+    start_ts = (
+        pd.to_datetime(payload.start_timestamp, utc=True)
+        if payload.start_timestamp
+        else df["timestamp"].max()
+    )
+    future_timestamps = pd.date_range(
+        start=start_ts + pd.Timedelta(hours=1), periods=horizon, freq="1h", tz="UTC"
+    )
 
     from chronogrid.features.engineer import FeatureEngineer
+
     fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24)
     fe.feature_cols = ROUTER.primary_engine.feature_names
     fe.fitted = True
@@ -447,14 +546,16 @@ def forecast_resilient(payload: ResilientForecastRequest):
 
     for i, ts in enumerate(future_timestamps):
         w_dict = weather_by_ts.get(ts, {})
-        future_rows.append({
-            "timestamp": ts,
-            "grid_load_mw": last_known_load,
-            "temperature_c": w_dict.get("temperature_c", 15.0),
-            "solar_radiation_wm2": w_dict.get("solar_radiation_wm2", 0.0),
-            "wind_speed_ms": w_dict.get("wind_speed_ms", 4.0),
-            "humidity_pct": w_dict.get("humidity_pct", 65.0),
-        })
+        future_rows.append(
+            {
+                "timestamp": ts,
+                "grid_load_mw": last_known_load,
+                "temperature_c": w_dict.get("temperature_c", 15.0),
+                "solar_radiation_wm2": w_dict.get("solar_radiation_wm2", 0.0),
+                "wind_speed_ms": w_dict.get("wind_speed_ms", 4.0),
+                "humidity_pct": w_dict.get("humidity_pct", 65.0),
+            }
+        )
 
     future_df = pd.DataFrame(future_rows)
     combined = pd.concat([recent_history, future_df], ignore_index=True)
@@ -526,6 +627,7 @@ def forecast_dqcp(payload: DQCPForecastRequest):
     future_timestamps = [start_ts + pd.Timedelta(hours=i) for i in range(horizon)]
 
     from chronogrid.features.engineer import FeatureEngineer
+
     fe = FeatureEngineer(allow_post_gate_lags=True, min_lag_hours=24, weather_mode="persistence")
     recent_history = df.tail(336).copy()
     last_known_load = recent_history["grid_load_mw"].iloc[-1]
@@ -543,14 +645,16 @@ def forecast_dqcp(payload: DQCPForecastRequest):
 
     for ts in future_timestamps:
         w_dict = weather_by_ts.get(ts, {})
-        future_rows.append({
-            "timestamp": ts,
-            "grid_load_mw": last_known_load,
-            "temperature_c": w_dict.get("temperature_c", 15.0),
-            "solar_radiation_wm2": w_dict.get("solar_radiation_wm2", 0.0),
-            "wind_speed_ms": w_dict.get("wind_speed_ms", 4.0),
-            "humidity_pct": w_dict.get("humidity_pct", 65.0),
-        })
+        future_rows.append(
+            {
+                "timestamp": ts,
+                "grid_load_mw": last_known_load,
+                "temperature_c": w_dict.get("temperature_c", 15.0),
+                "solar_radiation_wm2": w_dict.get("solar_radiation_wm2", 0.0),
+                "wind_speed_ms": w_dict.get("wind_speed_ms", 4.0),
+                "humidity_pct": w_dict.get("humidity_pct", 65.0),
+            }
+        )
 
     future_df = pd.DataFrame(future_rows)
     combined = pd.concat([recent_history, future_df], ignore_index=True)
@@ -575,14 +679,18 @@ def forecast_dqcp(payload: DQCPForecastRequest):
         forecast_head=res.active_head,
         calibration_method=payload.calibration_method,
         target_coverage=payload.target_coverage,
-        forecast_origin=forecast_origin
+        forecast_origin=forecast_origin,
     )
 
     t_total_ms = (time.perf_counter() - t_start) * 1000.0
 
     # Record Prometheus metrics safely
     try:
-        if unc_res.uncertainty_available and unc_res.mean_interval_width_mw and not unc_res.is_unbounded:
+        if (
+            unc_res.uncertainty_available
+            and unc_res.mean_interval_width_mw
+            and not unc_res.is_unbounded
+        ):
             DQCP_INTERVAL_WIDTH.observe(unc_res.mean_interval_width_mw)
         if unc_res.is_unbounded:
             DQCP_UNBOUNDED_INTERVAL_COUNT.inc()
@@ -626,7 +734,9 @@ def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
 
     actuals = np.array(payload.actual_load_mw, dtype=np.float64)
     if len(actuals) != 24:
-        raise HTTPException(status_code=400, detail=f"Expected 24 hourly load actuals, got {len(actuals)}.")
+        raise HTTPException(
+            status_code=400, detail=f"Expected 24 hourly load actuals, got {len(actuals)}."
+        )
 
     try:
         rec = DQCP_ENGINE.submit_feedback(
@@ -634,7 +744,7 @@ def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
             actuals=actuals,
             settlement_timestamp=payload.settlement_timestamp,
             effective_delay_days=payload.effective_delay_days,
-            head=payload.head
+            head=payload.head,
         )
     except ValueError as val_err:
         raise HTTPException(status_code=422, detail=str(val_err))
@@ -656,7 +766,7 @@ def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
             alpha_before=alpha_curr,
             alpha_after=alpha_curr,
             gamma=DQCP_ENGINE.primary_aci_manager.gamma,
-            status="duplicate_ignored"
+            status="duplicate_ignored",
         )
     elif rec.status == "REJECTED_REVISION":
         try:
@@ -672,7 +782,7 @@ def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
             alpha_before=rec.alpha_before,
             alpha_after=rec.alpha_after,
             gamma=rec.gamma,
-            status="rejected_revision"
+            status="rejected_revision",
         )
 
     try:
@@ -691,7 +801,7 @@ def submit_dqcp_feedback(payload: DQCPFeedbackRequest):
         alpha_before=rec.alpha_before,
         alpha_after=rec.alpha_after,
         gamma=rec.gamma,
-        status="processed"
+        status="processed",
     )
 
 
@@ -700,10 +810,10 @@ def metrics():
     """Prometheus metrics endpoint with multiprocess support."""
     if "PROMETHEUS_MULTIPROC_DIR" in os.environ:
         from prometheus_client import CollectorRegistry, multiprocess
+
         registry = CollectorRegistry()
         multiprocess.MultiProcessCollector(registry)
         data = generate_latest(registry)
     else:
         data = generate_latest()
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
-

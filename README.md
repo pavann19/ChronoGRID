@@ -1,15 +1,11 @@
+[![CI](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml/badge.svg)](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml)
+[License: Apache-2.0](LICENSE)
+
 # ChronoGrid — Production ML Forecasting & MLOps Platform
 
 > **Research status (2026-11-04): CONDITIONAL research use.** Historical evaluation reconciles primary marginal coverage to **814/840 = 96.9048%**, minimum daily coverage **15/24 = 62.5%**. The 26.35 MW weather improvement is inconclusive (two-day-block 95% interval **[-24.00, 81.58] MW**). Simultaneous [100%,100%] bootstrap intervals are degenerate, not future guarantees. The 35 origins are chronological, not demonstrated independent. Hourly audit evidence was reconstructed because an original archived hourly file was unavailable; it is not an archived prospective prediction record. See the [closure addendum](docs/research/research_closure_addendum.md), [corrected audit](docs/research/ddir_sprint_3_3_1_numerical_reconciliation.md), and [prospective protocol](docs/research/prospective_evaluation_protocol.md). Historical reports remain preserved. No production readiness is established by this research.
 
 
-[![Tests](https://img.shields.io/badge/tests-34%2F34%20passed-brightgreen.svg)]()
-[![Inference Latency](https://img.shields.io/badge/ONNX%20p50%20latency-0.016ms-blue.svg)]()
-[![Throughput](https://img.shields.io/badge/Throughput-51%2C421%20QPS-blue.svg)]()
-[![Dataset](https://img.shields.io/badge/Dataset-13%2C607%20genuine%20hours-orange.svg)]()
-[![information-boundary](https://img.shields.io/badge/Leakage%20Verification-15%2F15%20Passed-success.svg)]()
-[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)]()
-[![Release](https://img.shields.io/badge/release-v1.0.0-green.svg)]()
 
 > **ChronoGrid** is an research day-ahead electricity grid load forecasting and MLOps platform engineered for the German electricity transmission system. It combines Bundesnetzagentur (**SMARD**) electrical market data with Deutscher Wetterdienst (**DWD**) meteorological observations under strict Day-Ahead Market (DAM) gate closure rules.
 

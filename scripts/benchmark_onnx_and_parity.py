@@ -22,10 +22,11 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from typing import Dict, List, Tuple
-import numpy as np
-import pandas as pd
-import onnxruntime as ort
+from typing import Dict, List  # noqa: E402  # imports follow repository bootstrap
+
+import numpy as np  # noqa: E402  # imports follow repository bootstrap
+import onnxruntime as ort  # noqa: E402  # imports follow repository bootstrap
+import pandas as pd  # noqa: E402  # imports follow repository bootstrap
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("OnnxBenchmark")
@@ -34,10 +35,12 @@ logger = logging.getLogger("OnnxBenchmark")
 def get_memory_usage_mb() -> float:
     try:
         import psutil
+
         process = psutil.Process(os.getpid())
         return float(process.memory_info().rss / (1024 * 1024))
     except Exception:
         import tracemalloc
+
         current, peak = tracemalloc.get_traced_memory() if tracemalloc.is_tracing() else (0, 0)
         return float(current / (1024 * 1024))
 
@@ -66,7 +69,9 @@ def run_onnx_performance_benchmark(
     so = ort.SessionOptions()
     so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     so.intra_op_num_threads = 2
-    session = ort.InferenceSession(str(out_file), sess_options=so, providers=["CPUExecutionProvider"])
+    session = ort.InferenceSession(
+        str(out_file), sess_options=so, providers=["CPUExecutionProvider"]
+    )
     load_time_ms = (time.perf_counter() - t0_load) * 1000.0
 
     input_name = session.get_inputs()[0].name
@@ -117,7 +122,7 @@ def run_onnx_performance_benchmark(
             t_b0 = time.perf_counter()
             session.run([output_name], {input_name: x_batch})
             batch_times[j] = (time.perf_counter() - t_b0) * 1000.0
-        
+
         b_mean = float(np.mean(batch_times))
         batch_results[f"batch_{b}"] = {
             "batch_size": b,
@@ -131,17 +136,20 @@ def run_onnx_performance_benchmark(
     # a. Raw ONNX: mean_lat
     # b. Feature transformation latency
     from chronogrid.features.engineer import FeatureEngineer
-    sample_df = pd.DataFrame([{f: 1.0 for f in feature_names}] * 24)
+
+    pd.DataFrame([{f: 1.0 for f in feature_names}] * 24)
     # create synthetic minimal frame
     sample_ts = pd.date_range("2024-01-01", periods=200, freq="1h", tz="UTC")
-    synth_hist = pd.DataFrame({
-        "timestamp": sample_ts,
-        "grid_load_mw": 50000.0 + np.random.randn(200) * 5000,
-        "temperature_c": 10.0 + np.random.randn(200) * 5,
-        "humidity_pct": 65.0,
-        "wind_speed_ms": 4.0,
-        "solar_radiation_wm2": 100.0,
-    })
+    synth_hist = pd.DataFrame(
+        {
+            "timestamp": sample_ts,
+            "grid_load_mw": 50000.0 + np.random.randn(200) * 5000,
+            "temperature_c": 10.0 + np.random.randn(200) * 5,
+            "humidity_pct": 65.0,
+            "wind_speed_ms": 4.0,
+            "solar_radiation_wm2": 100.0,
+        }
+    )
     fe = FeatureEngineer()
     fe.feature_cols = feature_names
     fe.fitted = True
@@ -176,7 +184,9 @@ def run_onnx_performance_benchmark(
         "batch_scalability": batch_results,
         "latency_component_breakdown_ms": {
             "raw_onnx_single_query": round(mean_lat, 4),
-            "raw_onnx_24h_batch": round(batch_results.get("batch_32", {}).get("mean_batch_latency_ms", 0.1), 4),
+            "raw_onnx_24h_batch": round(
+                batch_results.get("batch_32", {}).get("mean_batch_latency_ms", 0.1), 4
+            ),
             "feature_transformation_168h_window": round(feat_latency_ms, 2),
             "complete_24h_day_ahead_generation": round(gen_latency_ms, 2),
         },
@@ -185,7 +195,7 @@ def run_onnx_performance_benchmark(
             "process_rss_after": round(mem_after, 2),
         },
         "benchmark_timestamp": pd.Timestamp.now(tz="UTC").isoformat(),
-        "status": "LOCAL_CHECKS_COMPLETED"
+        "status": "LOCAL_CHECKS_COMPLETED",
     }
 
     report_path = Path("artifacts/reports/onnx_performance.json")
@@ -202,7 +212,7 @@ def run_onnx_parity_verification(
     meta_path: str = "artifacts/models/champion_metadata.json",
     data_path: str = "data/processed/smard_dwd_hourly.parquet",
     tolerance_rel: float = 1e-4,
-    tolerance_abs: float = 0.5, # 0.5 MW tolerance on 60,000 MW grid load
+    tolerance_abs: float = 0.5,  # 0.5 MW tolerance on 60,000 MW grid load
 ) -> Dict[str, any]:
     """
     Verifies numerical parity between Python model and ONNX Runtime predictions
@@ -221,6 +231,7 @@ def run_onnx_parity_verification(
     # Load data for real sample evaluation
     df = pd.read_parquet(data_path)
     from chronogrid.features.engineer import FeatureEngineer
+
     fe = FeatureEngineer()
     fe.feature_cols = feature_names
     fe.fitted = True
@@ -229,17 +240,20 @@ def run_onnx_parity_verification(
 
     # Train / re-instantiate identical model
     model_type = meta.get("model_type", "HistGradientBoosting")
-    from sklearn.ensemble import HistGradientBoostingRegressor
-    from sklearn.ensemble import RandomForestRegressor
-    import xgboost as xgb
     import lightgbm as lgb
+    import xgboost as xgb
+    from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 
     if "HistGradient" in model_type:
         py_model = HistGradientBoostingRegressor(max_iter=150, learning_rate=0.05, random_state=42)
     elif "XGB" in model_type:
-        py_model = xgb.XGBRegressor(n_estimators=200, learning_rate=0.05, max_depth=6, random_state=42)
+        py_model = xgb.XGBRegressor(
+            n_estimators=200, learning_rate=0.05, max_depth=6, random_state=42
+        )
     elif "LightGBM" in model_type or "LGBM" in model_type:
-        py_model = lgb.LGBMRegressor(n_estimators=200, learning_rate=0.05, num_leaves=31, random_state=42)
+        py_model = lgb.LGBMRegressor(
+            n_estimators=200, learning_rate=0.05, num_leaves=31, random_state=42
+        )
     else:
         py_model = RandomForestRegressor(n_estimators=100, max_depth=12, random_state=42)
 
@@ -249,6 +263,7 @@ def run_onnx_parity_verification(
 
     # Re-export to temporary onnx to test export reproducibility
     from chronogrid.serving.onnx_exporter import export_to_onnx
+
     test_onnx = "artifacts/models/test_repro.onnx"
     test_meta = "artifacts/models/test_repro.json"
     export_to_onnx(py_model, feature_names, test_onnx, test_meta)
@@ -311,7 +326,9 @@ def run_onnx_parity_verification(
         Path(test_meta).unlink()
 
     parity_report = {
-        "status": "PARITY_VERIFIED" if (norm_passed and peak_passed and low_passed and bound_passed) else "PARITY_FAILED",
+        "status": "PARITY_VERIFIED"
+        if (norm_passed and peak_passed and low_passed and bound_passed)
+        else "PARITY_FAILED",
         "model_type": model_type,
         "n_features": n_features,
         "tolerance_absolute_mw": tolerance_abs,
@@ -319,26 +336,26 @@ def run_onnx_parity_verification(
             "normal_samples": {
                 "n_samples": len(X_norm),
                 "max_absolute_difference_mw": round(max_diff_norm, 6),
-                "passed": norm_passed
+                "passed": norm_passed,
             },
             "peak_load_samples": {
                 "n_samples": len(X_peak),
                 "max_absolute_difference_mw": round(max_diff_peak, 6),
-                "passed": peak_passed
+                "passed": peak_passed,
             },
             "low_load_samples": {
                 "n_samples": len(X_low),
                 "max_absolute_difference_mw": round(max_diff_low, 6),
-                "passed": low_passed
+                "passed": low_passed,
             },
             "boundary_extreme_conditions": {
                 "n_samples": len(X_boundary),
                 "max_absolute_difference_mw": round(max_diff_bound, 6),
-                "passed": bound_passed
-            }
+                "passed": bound_passed,
+            },
         },
         "export_reproducibility": True,
-        "timestamp": pd.Timestamp.now(tz="UTC").isoformat()
+        "timestamp": pd.Timestamp.now(tz="UTC").isoformat(),
     }
 
     report_path = Path("artifacts/reports/onnx_parity.json")
@@ -356,6 +373,10 @@ if __name__ == "__main__":
     logger.info("Executing numerical parity verification...")
     parity = run_onnx_parity_verification()
     print("\nBENCHMARK & PARITY SUMMARY:")
-    print(f"p50: {perf['single_prediction_latency_ms']['p50']} ms | p95: {perf['single_prediction_latency_ms']['p95']} ms | p99: {perf['single_prediction_latency_ms']['p99']} ms")
-    print(f"Throughput: {perf['single_prediction_latency_ms']['throughput_queries_per_sec']} queries/sec")
+    print(
+        f"p50: {perf['single_prediction_latency_ms']['p50']} ms | p95: {perf['single_prediction_latency_ms']['p95']} ms | p99: {perf['single_prediction_latency_ms']['p99']} ms"
+    )
+    print(
+        f"Throughput: {perf['single_prediction_latency_ms']['throughput_queries_per_sec']} queries/sec"
+    )
     print(f"Parity: {parity['status']}")

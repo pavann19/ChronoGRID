@@ -3,14 +3,17 @@ Time Series Forecasting Evaluation Metrics (P5.4, P5.5, P5.6).
 Computes MAE, RMSE, MAPE, sMAPE, R2, Peak-Hour Error, Bootstrap CIs, and Diebold-Mariano test.
 """
 
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
+
 import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
-def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, timestamps: np.ndarray = None) -> Dict[str, float]:
+def compute_metrics(
+    y_true: np.ndarray, y_pred: np.ndarray, timestamps: np.ndarray | None = None
+) -> Dict[str, Any]:
     """
     Computes comprehensive energy forecasting metrics.
     """
@@ -25,14 +28,14 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, timestamps: np.ndarr
     mae = float(mean_absolute_error(y_true, y_pred))
     rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
     mape = float(np.mean(np.abs((yt - yp) / yt)) * 100.0)
-    
+
     # Symmetric MAPE (sMAPE)
     smape = float(np.mean(2.0 * np.abs(yt - yp) / (np.abs(yt) + np.abs(yp))) * 100.0)
-    
+
     # R-squared
     r2 = float(r2_score(y_true, y_pred))
 
-    metrics = {
+    metrics: dict[str, Any] = {
         "mae": round(mae, 2),
         "rmse": round(rmse, 2),
         "mape": round(mape, 3),
@@ -45,7 +48,9 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, timestamps: np.ndarr
         ts_hours = pd.to_datetime(timestamps).hour
         peak_mask = (ts_hours == 11) | (ts_hours == 19)
         if peak_mask.any():
-            metrics["peak_hours_mae"] = round(float(mean_absolute_error(y_true[peak_mask], y_pred[peak_mask])), 2)
+            metrics["peak_hours_mae"] = round(
+                float(mean_absolute_error(y_true[peak_mask], y_pred[peak_mask])), 2
+            )
 
     return metrics
 
@@ -73,8 +78,14 @@ def compute_bootstrap_confidence_intervals(
         rmse_samples[i] = np.sqrt(mean_squared_error(sample_true, sample_pred))
 
     alpha = (1.0 - confidence_level) / 2.0
-    mae_ci = (float(np.percentile(mae_samples, alpha * 100)), float(np.percentile(mae_samples, (1.0 - alpha) * 100)))
-    rmse_ci = (float(np.percentile(rmse_samples, alpha * 100)), float(np.percentile(rmse_samples, (1.0 - alpha) * 100)))
+    mae_ci = (
+        float(np.percentile(mae_samples, alpha * 100)),
+        float(np.percentile(mae_samples, (1.0 - alpha) * 100)),
+    )
+    rmse_ci = (
+        float(np.percentile(rmse_samples, alpha * 100)),
+        float(np.percentile(rmse_samples, (1.0 - alpha) * 100)),
+    )
 
     return {
         "mae_ci_95": (round(mae_ci[0], 2), round(mae_ci[1], 2)),
@@ -117,7 +128,7 @@ def diebold_mariano_test(
         return 0.0, 1.0
 
     mean_d = float(np.mean(d))
-    
+
     # Bartlett-weighted autocovariance for h-step horizon to ensure positive semi-definiteness
     gamma_0 = float(np.mean((d - mean_d) ** 2))
     long_run_var = gamma_0
@@ -136,7 +147,9 @@ def diebold_mariano_test(
 
     # Harvey, Leybourne, Newbold (1997) small sample adjustment
     if use_hln_correction and n > max_lag:
-        hln_factor = np.sqrt(max(1e-9, (n + 1.0 - 2.0 * max_lag + (max_lag * (max_lag - 1.0)) / float(n)) / float(n)))
+        hln_factor = np.sqrt(
+            max(1e-9, (n + 1.0 - 2.0 * max_lag + (max_lag * (max_lag - 1.0)) / float(n)) / float(n))
+        )
         dm_stat *= hln_factor
         df = n - 1
         p_value = float(2.0 * (1.0 - stats.t.cdf(np.abs(dm_stat), df=df)))
@@ -163,13 +176,15 @@ def compute_pairwise_statistical_comparisons(
             m_a = models[i]
             m_b = models[j]
             dm_stat, p_val = diebold_mariano_test(y_true, predictions[m_a], predictions[m_b], h=h)
-            results.append({
-                "model_a": m_a,
-                "model_b": m_b,
-                "dm_statistic": round(dm_stat, 4),
-                "raw_p_value": p_val,
-                "better_model": m_b if dm_stat < 0 else m_a,
-            })
+            results.append(
+                {
+                    "model_a": m_a,
+                    "model_b": m_b,
+                    "dm_statistic": round(dm_stat, 4),
+                    "raw_p_value": p_val,
+                    "better_model": m_b if dm_stat < 0 else m_a,
+                }
+            )
 
     df = pd.DataFrame(results)
     if df.empty:
@@ -180,7 +195,6 @@ def compute_pairwise_statistical_comparisons(
     sorted_indices = df["raw_p_value"].argsort()
     adjusted_p_values = np.zeros(m_tests)
 
-    running_min = 1.0
     # Walk backward or forward with (m - k + 1) multiplier
     for rank, idx in enumerate(sorted_indices):
         raw_p = df.loc[idx, "raw_p_value"]

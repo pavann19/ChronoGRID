@@ -4,7 +4,6 @@ market dynamics (SMARD) synchronized with meteorological conditions (DWD).
 Provides 100% reproducible historical data from 2023-01-01 through 2024-06-30 (13,128 hours).
 """
 
-from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
@@ -20,7 +19,7 @@ def generate_german_energy_weather_dataset(
     Grounded in authentic physics, German industrial activity, and European grid operations.
     """
     rng = np.random.RandomState(random_seed)
-    
+
     # 1. Hourly timestamp grid in UTC
     timestamps = pd.date_range(start=start_date, end=end_date, freq="1h", tz="UTC")
     n_hours = len(timestamps)
@@ -28,21 +27,34 @@ def generate_german_energy_weather_dataset(
     # 2. German Calendar & Holiday Flags
     # German federal public holidays (fixed & movable)
     german_holidays = {
-        (2023, 1, 1), (2023, 4, 7), (2023, 4, 10), (2023, 5, 1),
-        (2023, 5, 18), (2023, 5, 29), (2023, 10, 3), (2023, 12, 25), (2023, 12, 26),
-        (2024, 1, 1), (2024, 3, 29), (2024, 4, 1), (2024, 5, 1),
-        (2024, 5, 9), (2024, 5, 20), (2024, 10, 3), (2024, 12, 25), (2024, 12, 26),
+        (2023, 1, 1),
+        (2023, 4, 7),
+        (2023, 4, 10),
+        (2023, 5, 1),
+        (2023, 5, 18),
+        (2023, 5, 29),
+        (2023, 10, 3),
+        (2023, 12, 25),
+        (2023, 12, 26),
+        (2024, 1, 1),
+        (2024, 3, 29),
+        (2024, 4, 1),
+        (2024, 5, 1),
+        (2024, 5, 9),
+        (2024, 5, 20),
+        (2024, 10, 3),
+        (2024, 12, 25),
+        (2024, 12, 26),
     }
 
     hours = timestamps.hour.values
     dayofweek = timestamps.dayofweek.values
     dayofyear = timestamps.dayofyear.values
-    is_weekend = (dayofweek >= 5).astype(int)
-    
-    is_holiday = np.array([
-        1 if (ts.year, ts.month, ts.day) in german_holidays else 0
-        for ts in timestamps
-    ])
+    (dayofweek >= 5).astype(int)
+
+    is_holiday = np.array(
+        [1 if (ts.year, ts.month, ts.day) in german_holidays else 0 for ts in timestamps]
+    )
 
     # 3. Weather Simulation (German Central Climate - Frankfurt/Kassel centroid)
     # Seasonal temperature: T_season(t) = 10.5 - 9.5 * cos(2*pi*(doy - 25)/365)
@@ -61,8 +73,12 @@ def generate_german_energy_weather_dataset(
     solar_elevation = np.maximum(0.0, np.sin(np.pi * (hours - 5) / 14))
     seasonal_solar_factor = 0.3 + 0.7 * np.sin(np.pi * (dayofyear - 80) / 365.25)
     seasonal_solar_factor = np.clip(seasonal_solar_factor, 0.2, 1.0)
-    cloud_cover = np.clip(0.5 + 0.3 * np.sin(dayofyear / 20) + rng.normal(0, 0.2, n_hours), 0.0, 1.0)
-    solar_radiation_wm2 = 900.0 * solar_elevation * seasonal_solar_factor * (1.0 - 0.75 * cloud_cover)
+    cloud_cover = np.clip(
+        0.5 + 0.3 * np.sin(dayofyear / 20) + rng.normal(0, 0.2, n_hours), 0.0, 1.0
+    )
+    solar_radiation_wm2 = (
+        900.0 * solar_elevation * seasonal_solar_factor * (1.0 - 0.75 * cloud_cover)
+    )
     solar_radiation_wm2 = np.maximum(0.0, solar_radiation_wm2)
 
     # Wind Speed (m/s): Weibull-like distribution, higher in winter
@@ -93,7 +109,7 @@ def generate_german_energy_weather_dataset(
     day_multiplier = np.ones(n_hours)
     day_multiplier[dayofweek == 5] = 0.84  # Saturday
     day_multiplier[dayofweek == 6] = 0.75  # Sunday
-    day_multiplier[is_holiday == 1] = 0.76 # Holidays
+    day_multiplier[is_holiday == 1] = 0.76  # Holidays
 
     # Temperature sensitivity: Heating degree effect (< 18C) and cooling degree effect (> 22C)
     heating_effect = np.maximum(0.0, 18.0 - temperature_c) * 420.0  # 420 MW per degC below 18
@@ -116,8 +132,8 @@ def generate_german_energy_weather_dataset(
     # 5. Renewable Generation & Day-Ahead Spot Price
     solar_gen_mw = np.clip(solar_radiation_wm2 * 45.0 + rng.normal(0, 200, n_hours), 0, 38000)
     solar_gen_mw[solar_elevation <= 0] = 0.0
-    
-    wind_gen_mw = np.clip((wind_speed_ms ** 2.2) * 220.0 + rng.normal(0, 400, n_hours), 500, 48000)
+
+    wind_gen_mw = np.clip((wind_speed_ms**2.2) * 220.0 + rng.normal(0, 400, n_hours), 500, 48000)
 
     # Day-ahead wholesale spot market price (EUR/MWh)
     # Price rises with load, drops with wind/solar ("merit order effect")
@@ -125,26 +141,30 @@ def generate_german_energy_weather_dataset(
     price_eur_mwh = 20.0 + 0.0022 * residual_load + rng.normal(0, 12.0, n_hours)
     price_eur_mwh = np.clip(price_eur_mwh, -25.0, 280.0)
 
-    df = pd.DataFrame({
-        "timestamp": timestamps,
-        "grid_load_mw": np.round(grid_load_mw, 1),
-        "day_ahead_price_eur_mwh": np.round(price_eur_mwh, 2),
-        "solar_generation_mw": np.round(solar_gen_mw, 1),
-        "wind_generation_mw": np.round(wind_gen_mw, 1),
-        "temperature_c": np.round(temperature_c, 2),
-        "humidity_pct": np.round(humidity_pct, 1),
-        "wind_speed_ms": np.round(wind_speed_ms, 2),
-        "solar_radiation_wm2": np.round(solar_radiation_wm2, 1),
-        "is_interpolated": False,
-        "quality_flag": "VALID",
-    })
+    df = pd.DataFrame(
+        {
+            "timestamp": timestamps,
+            "grid_load_mw": np.round(grid_load_mw, 1),
+            "day_ahead_price_eur_mwh": np.round(price_eur_mwh, 2),
+            "solar_generation_mw": np.round(solar_gen_mw, 1),
+            "wind_generation_mw": np.round(wind_gen_mw, 1),
+            "temperature_c": np.round(temperature_c, 2),
+            "humidity_pct": np.round(humidity_pct, 1),
+            "wind_speed_ms": np.round(wind_speed_ms, 2),
+            "solar_radiation_wm2": np.round(solar_radiation_wm2, 1),
+            "is_interpolated": False,
+            "quality_flag": "VALID",
+        }
+    )
 
     # 6. Inject minor realistic sensor anomalies/gaps (< 0.2%) to validate P5.2 cleaning
     if inject_minor_anomalies:
         # Gap 1: 2-hour sensor glitch on 2023-03-14 02:00 - 03:00
-        mask_gap1 = (df["timestamp"] >= "2023-03-14 02:00:00+00:00") & (df["timestamp"] <= "2023-03-14 03:00:00+00:00")
+        mask_gap1 = (df["timestamp"] >= "2023-03-14 02:00:00+00:00") & (
+            df["timestamp"] <= "2023-03-14 03:00:00+00:00"
+        )
         df.loc[mask_gap1, "grid_load_mw"] = np.nan
-        
+
         # Gap 2: 1-hour missing temperature on 2023-08-10 14:00
         mask_gap2 = df["timestamp"] == "2023-08-10 14:00:00+00:00"
         df.loc[mask_gap2, "temperature_c"] = np.nan
@@ -156,4 +176,3 @@ def generate_german_energy_weather_dataset(
         df = df.sample(frac=1.0, random_state=random_seed).reset_index(drop=True)
 
     return df
-

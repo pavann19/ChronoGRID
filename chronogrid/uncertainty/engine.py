@@ -5,15 +5,19 @@ delayed-feedback ACI, and DDIR reliability-state conditioning.
 """
 
 import math
-from typing import List, Optional, Dict, Any
 from pathlib import Path
+from typing import Dict, Optional
+
 import numpy as np
 
 from chronogrid.reliability.state_machine import ReliabilityState
-from chronogrid.uncertainty.schemas import UncertaintyResult, CalibrationTable, DelayedFeedbackRecord
-from chronogrid.uncertainty.normalization import DeliveryHourMADNormalizer
-from chronogrid.uncertainty.conformal import ConformalCalibrationPool
 from chronogrid.uncertainty.aci import DelayedFeedbackACIManager
+from chronogrid.uncertainty.conformal import ConformalCalibrationPool
+from chronogrid.uncertainty.schemas import (
+    CalibrationTable,
+    DelayedFeedbackRecord,
+    UncertaintyResult,
+)
 
 
 class DQCPUncertaintyEngine:
@@ -32,18 +36,22 @@ class DQCPUncertaintyEngine:
 
     def __init__(
         self,
-        primary_pool: Optional[ConformalCalibrationPool] = None,
-        fallback_pool: Optional[ConformalCalibrationPool] = None,
-        primary_aci_manager: Optional[DelayedFeedbackACIManager] = None,
-        fallback_aci_manager: Optional[DelayedFeedbackACIManager] = None,
-        aci_manager: Optional[DelayedFeedbackACIManager] = None,
-        version: str = "v1.0-research"
+        primary_pool: Optional[ConformalCalibrationPool] | None = None,
+        fallback_pool: Optional[ConformalCalibrationPool] | None = None,
+        primary_aci_manager: Optional[DelayedFeedbackACIManager] | None = None,
+        fallback_aci_manager: Optional[DelayedFeedbackACIManager] | None = None,
+        aci_manager: Optional[DelayedFeedbackACIManager] | None = None,
+        version: str = "v1.0-research",
     ):
         self.primary_pool = primary_pool
         self.fallback_pool = fallback_pool
         # Isolate primary and fallback ACI state managers
-        self.primary_aci_manager = primary_aci_manager or aci_manager or DelayedFeedbackACIManager(head="primary")
-        self.fallback_aci_manager = fallback_aci_manager or DelayedFeedbackACIManager(head="fallback")
+        self.primary_aci_manager = (
+            primary_aci_manager or aci_manager or DelayedFeedbackACIManager(head="primary")
+        )
+        self.fallback_aci_manager = fallback_aci_manager or DelayedFeedbackACIManager(
+            head="fallback"
+        )
         self.version = version
 
     @property
@@ -59,7 +67,7 @@ class DQCPUncertaintyEngine:
         forecast_head: str = "primary",
         calibration_method: str = "pooled_marginal_mad",
         target_coverage: float = 0.90,
-        forecast_origin: Optional[str] = None
+        forecast_origin: Optional[str] | None = None,
     ) -> UncertaintyResult:
         """
         Generate calibrated uncertainty bounds conditioned on DDIR reliability state.
@@ -83,7 +91,10 @@ class DQCPUncertaintyEngine:
             raise ValueError(f"DQ-CP requires exactly 24 hourly steps, got {len(preds)}.")
 
         # Route to appropriate model head, pool, and isolated ACI manager
-        is_fallback = (forecast_head == "fallback" or (reliability_state in (ReliabilityState.STALE, ReliabilityState.DEGRADED) and forecast_head == "fallback"))
+        is_fallback = forecast_head == "fallback" or (
+            reliability_state in (ReliabilityState.STALE, ReliabilityState.DEGRADED)
+            and forecast_head == "fallback"
+        )
         active_aci = self.fallback_aci_manager if is_fallback else self.primary_aci_manager
         current_alpha = active_aci.get_current_alpha()
 
@@ -103,7 +114,7 @@ class DQCPUncertaintyEngine:
                 is_unbounded=False,
                 mean_interval_width_mw=None,
                 current_alpha=current_alpha,
-                degradation_flag="Input validation failed: INVALID state."
+                degradation_flag="Input validation failed: INVALID state.",
             )
 
         # Handle UNAVAILABLE state - DO NOT invent an interval!
@@ -122,7 +133,7 @@ class DQCPUncertaintyEngine:
                 is_unbounded=False,
                 mean_interval_width_mw=None,
                 current_alpha=current_alpha,
-                degradation_flag="Weather telemetry completely unavailable; uncertainty generation halted."
+                degradation_flag="Weather telemetry completely unavailable; uncertainty generation halted.",
             )
 
         if is_fallback:
@@ -147,7 +158,7 @@ class DQCPUncertaintyEngine:
                 is_unbounded=False,
                 mean_interval_width_mw=None,
                 current_alpha=current_alpha,
-                degradation_flag="Calibration pool not loaded for requested head."
+                degradation_flag="Calibration pool not loaded for requested head.",
             )
 
         # Compute conformal quantile
@@ -162,8 +173,8 @@ class DQCPUncertaintyEngine:
         # Check for infinite quantile / unbounded interval
         is_unbounded = math.isinf(q)
         if is_unbounded:
-            lowers = np.full(len(preds), -np.inf, dtype=np.float64)
-            uppers = np.full(len(preds), np.inf, dtype=np.float64)
+            lowers: np.ndarray = np.full(len(preds), -np.inf, dtype=np.float64)
+            uppers: np.ndarray = np.full(len(preds), np.inf, dtype=np.float64)
             mean_width = float("inf")
         else:
             lowers, uppers = active_pool.normalizer.scale_intervals(preds, hours, q)
@@ -172,13 +183,20 @@ class DQCPUncertaintyEngine:
         # Build degradation annotation if applicable
         degradation_flag = None
         if reliability_state == ReliabilityState.DEGRADED:
-            degradation_flag = f"Telemetry degraded; active head '{forecast_head}' using separate {model_id} pool."
+            degradation_flag = (
+                f"Telemetry degraded; active head '{forecast_head}' using separate {model_id} pool."
+            )
         elif reliability_state == ReliabilityState.STALE:
             degradation_flag = "Weather telemetry stale; DDIR routed to fallback pool."
         if is_exploratory:
-            degradation_flag = (degradation_flag + " " if degradation_flag else "") + "[EXPLORATORY: 95% simultaneous daily band]"
+            degradation_flag = (
+                degradation_flag + " " if degradation_flag else ""
+            ) + "[EXPLORATORY: 95% simultaneous daily band]"
         if is_unbounded:
-            degradation_flag = (degradation_flag + " " if degradation_flag else "") + "[UNBOUNDED: Required finite-sample rank exceeds sample size (k > n). Interval is infinite.]"
+            degradation_flag = (
+                (degradation_flag + " " if degradation_flag else "")
+                + "[UNBOUNDED: Required finite-sample rank exceeds sample size (k > n). Interval is infinite.]"
+            )
 
         # Register forecast with head-specific ACI manager
         if forecast_origin:
@@ -198,7 +216,7 @@ class DQCPUncertaintyEngine:
             is_unbounded=is_unbounded,
             mean_interval_width_mw=mean_width,
             current_alpha=current_alpha,
-            degradation_flag=degradation_flag
+            degradation_flag=degradation_flag,
         )
 
     def submit_feedback(
@@ -207,16 +225,22 @@ class DQCPUncertaintyEngine:
         actuals: np.ndarray,
         settlement_timestamp: str,
         effective_delay_days: int = 2,
-        head: Optional[str] = None
+        head: Optional[str] | None = None,
     ) -> Optional[DelayedFeedbackRecord]:
         """Submit ground-truth settlement for delayed ACI feedback to the appropriate model head."""
         origin_key = str(forecast_origin).strip()
         target_head = head
         if not target_head:
             # Deterministically identify which manager holds this forecast origin
-            if origin_key in self.primary_aci_manager.pending_forecasts or origin_key in self.primary_aci_manager.processed_origins:
+            if (
+                origin_key in self.primary_aci_manager.pending_forecasts
+                or origin_key in self.primary_aci_manager.processed_origins
+            ):
                 target_head = "primary"
-            elif origin_key in self.fallback_aci_manager.pending_forecasts or origin_key in self.fallback_aci_manager.processed_origins:
+            elif (
+                origin_key in self.fallback_aci_manager.pending_forecasts
+                or origin_key in self.fallback_aci_manager.processed_origins
+            ):
                 target_head = "fallback"
             else:
                 target_head = "primary"
@@ -226,21 +250,21 @@ class DQCPUncertaintyEngine:
             origin_date=forecast_origin,
             actuals=actuals,
             settlement_timestamp=settlement_timestamp,
-            effective_delay_days=effective_delay_days
+            effective_delay_days=effective_delay_days,
         )
 
 
 def load_dqcp_engine(
-    calibration_dir: Optional[Path] = None,
-    aci_state_file: Optional[Path] = None,
-    model_paths: Optional[Dict[str, Path]] = None,
+    calibration_dir: Optional[Path] | None = None,
+    aci_state_file: Optional[Path] | None = None,
+    model_paths: Optional[Dict[str, Path]] | None = None,
 ) -> Optional[DQCPUncertaintyEngine]:
     """
     Factory to load and initialize DQCPUncertaintyEngine from serialized calibration tables.
     Maintains isolated persistence files for primary and fallback ACI managers.
     """
-    import json
     import hashlib
+    import json
     from pathlib import Path
 
     calib_path = Path(calibration_dir) if calibration_dir else Path("artifacts/calibration")
@@ -260,10 +284,14 @@ def load_dqcp_engine(
         table_fall = CalibrationTable(**fall_data)
 
         # Verify identity before constructing pools or touching adaptive state.
-        paths = model_paths if model_paths is not None else {
-            "primary": Path("artifacts/models/champion_model.onnx"),
-            "fallback": Path("artifacts/models/load_only_model.onnx"),
-        }
+        paths = (
+            model_paths
+            if model_paths is not None
+            else {
+                "primary": Path("artifacts/models/champion_model.onnx"),
+                "fallback": Path("artifacts/models/load_only_model.onnx"),
+            }
+        )
         if set(paths) != {"primary", "fallback"}:
             raise ValueError("Both primary and fallback model artifact paths are required")
         for head, table in (("primary", table_prim), ("fallback", table_fall)):
@@ -279,18 +307,10 @@ def load_dqcp_engine(
         fall_state_file = base_state.with_name(f"{base_state.stem}_fallback{base_state.suffix}")
 
         primary_aci = DelayedFeedbackACIManager(
-            target_alpha=0.10,
-            gamma=0.01,
-            delay_days=2,
-            head="primary",
-            state_file=prim_state_file
+            target_alpha=0.10, gamma=0.01, delay_days=2, head="primary", state_file=prim_state_file
         )
         fallback_aci = DelayedFeedbackACIManager(
-            target_alpha=0.10,
-            gamma=0.01,
-            delay_days=2,
-            head="fallback",
-            state_file=fall_state_file
+            target_alpha=0.10, gamma=0.01, delay_days=2, head="fallback", state_file=fall_state_file
         )
 
         return DQCPUncertaintyEngine(
@@ -298,9 +318,10 @@ def load_dqcp_engine(
             fallback_pool=pool_fall,
             primary_aci_manager=primary_aci,
             fallback_aci_manager=fallback_aci,
-            version=table_prim.version
+            version=table_prim.version,
         )
     except Exception as exc:
         import logging
+
         logging.getLogger(__name__).warning(f"Failed to load DQCP engine: {exc}")
         return None

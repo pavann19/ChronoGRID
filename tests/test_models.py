@@ -4,14 +4,14 @@ Tests for Models, Baselines, and Metrics (P5.4, P5.5, P5.6).
 
 import numpy as np
 import pandas as pd
+
 from chronogrid.models.evaluation import compute_metrics, diebold_mariano_test
-from chronogrid.models.baselines import NaivePersistence24h, WeeklySeasonalPersistence168h
 from chronogrid.models.tree_models import LightGBMModel, XGBoostModel
 
 
 def test_metrics_calculation():
     y_true = np.array([100.0, 200.0, 300.0])
-    y_pred = np.array([110.0, 190.0, 310.0]) # Errors: +10, -10, +10 -> MAE=10
+    y_pred = np.array([110.0, 190.0, 310.0])  # Errors: +10, -10, +10 -> MAE=10
     m = compute_metrics(y_true, y_pred)
     assert m["mae"] == 10.0
     assert m["rmse"] == 10.0
@@ -27,8 +27,8 @@ def test_diebold_mariano_significance():
     pred_cand = y_true + np.random.normal(0, 100, 200)
 
     dm_stat, p_val = diebold_mariano_test(y_true, pred_base, pred_cand)
-    assert dm_stat < 0.0 # Candidate has lower loss
-    assert p_val < 0.001 # Highly significant
+    assert dm_stat < 0.0  # Candidate has lower loss
+    assert p_val < 0.001  # Highly significant
 
 
 def test_tree_models_fit_predict():
@@ -44,4 +44,3 @@ def test_tree_models_fit_predict():
     xgb_m.fit(X, y)
     p_xgb = xgb_m.predict(X)
     assert len(p_xgb) == 50
-

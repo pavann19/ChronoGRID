@@ -9,21 +9,25 @@ Verifies all 5 highest-priority fixes supported by reproducible audit evidence:
 6. Prometheus Multiprocess Metric Collector Integration (RISK-03)
 """
 
-from datetime import datetime, timezone, timedelta
-import json
 import os
-from pathlib import Path
 import tempfile
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
-import pytest
-import pandas as pd
 
+import pandas as pd
+import pytest
+
+from chronogrid.reliability.persistence import DDIRPersistedState, DDIRStatePersistence
 from chronogrid.reliability.router import DualHeadInferenceRouter
-from chronogrid.reliability.validator import WeatherInputValidator
 from chronogrid.reliability.state_machine import ReliabilityState, ReliabilityStateMachine
-from chronogrid.reliability.recovery import HysteresisRecoveryManager
-from chronogrid.reliability.persistence import DDIRStatePersistence, DDIRPersistedState
-from chronogrid.serving.app import load_engine, forecast_resilient, metrics, DDIR_REQUEST_COUNT, DDIR_QUALITY_GAUGE
+from chronogrid.reliability.validator import WeatherInputValidator
+from chronogrid.serving.app import (
+    DDIR_QUALITY_GAUGE,
+    DDIR_REQUEST_COUNT,
+    forecast_resilient,
+    load_engine,
+    metrics,
+)
 from chronogrid.serving.schemas import ResilientForecastRequest
 
 
@@ -36,6 +40,7 @@ def initialized_engine():
 # 1. Observability Blast Radius Shielding (RISK-02)
 # =============================================================================
 
+
 def test_remediation_observability_shielding_counter_failure(initialized_engine):
     """
     Audit Finding: RISK-02 (CRITICAL). Unhandled exceptions in Prometheus metric collection abort forecasts.
@@ -47,7 +52,9 @@ def test_remediation_observability_shielding_counter_failure(initialized_engine)
         horizon_hours=24,
         weather_payload=None,
     )
-    with patch.object(DDIR_REQUEST_COUNT, "labels", side_effect=RuntimeError("Prometheus Lock Error")):
+    with patch.object(
+        DDIR_REQUEST_COUNT, "labels", side_effect=RuntimeError("Prometheus Lock Error")
+    ):
         resp = forecast_resilient(req)
         assert resp is not None
         assert len(resp.forecast_load_mw) == 24
@@ -74,6 +81,7 @@ def test_remediation_observability_shielding_gauge_failure(initialized_engine):
 # 2. Future Timestamp Validation & Routing to INVALID (RISK-05)
 # =============================================================================
 
+
 def test_remediation_future_timestamp_rejected():
     """
     Audit Finding: RISK-05 (HIGH). Clamping negative age to 0.0h allows far-future timestamps to be accepted.
@@ -83,13 +91,16 @@ def test_remediation_future_timestamp_rejected():
     now_ref = datetime(2026, 11, 3, 16, 0, 0, tzinfo=timezone.utc)
     future_ts = (now_ref + timedelta(days=365)).isoformat()
 
-    report = validator.validate({
-        "timestamp": future_ts,
-        "temperature_c": 18.0,
-        "wind_speed_ms": 4.0,
-        "solar_radiation_wm2": 300.0,
-        "humidity_pct": 50.0,
-    }, current_time=now_ref)
+    report = validator.validate(
+        {
+            "timestamp": future_ts,
+            "temperature_c": 18.0,
+            "wind_speed_ms": 4.0,
+            "solar_radiation_wm2": 300.0,
+            "humidity_pct": 50.0,
+        },
+        current_time=now_ref,
+    )
 
     assert report.is_valid is False
     assert report.quality_score == 0.0
@@ -123,12 +134,16 @@ def test_remediation_future_timestamp_routes_to_fallback():
 
     assert res.active_head == "FALLBACK_LOAD_ONLY"
     assert res.routing_state == ReliabilityState.INVALID
-    assert "temporal provenance" in res.fallback_reason.lower() or "future" in res.fallback_reason.lower()
+    assert (
+        "temporal provenance" in res.fallback_reason.lower()
+        or "future" in res.fallback_reason.lower()
+    )
 
 
 # =============================================================================
 # 3. Frozen Sensor Reading Detection & Anti-Replay Hardening (RISK-06)
 # =============================================================================
+
 
 def test_remediation_frozen_sensor_held_on_fallback():
     """
@@ -142,22 +157,44 @@ def test_remediation_frozen_sensor_held_on_fallback():
     now_ref = datetime(2026, 11, 3, 16, 0, 0, tzinfo=timezone.utc)
     raw_df = pd.DataFrame([{f: 1.0 for f in router.primary_engine.feature_names}])
 
-    frozen_vals = {"temperature_c": 15.0, "wind_speed_ms": 4.0, "solar_radiation_wm2": 250.0, "humidity_pct": 60.0}
+    frozen_vals = {
+        "temperature_c": 15.0,
+        "wind_speed_ms": 4.0,
+        "solar_radiation_wm2": 250.0,
+        "humidity_pct": 60.0,
+    }
 
     # Update 1: T-2h
-    r1 = router.route_and_predict(raw_df, weather_payload={"timestamp": (now_ref - timedelta(hours=2)).isoformat(), **frozen_vals}, current_time=now_ref)
+    r1 = router.route_and_predict(
+        raw_df,
+        weather_payload={"timestamp": (now_ref - timedelta(hours=2)).isoformat(), **frozen_vals},
+        current_time=now_ref,
+    )
     assert r1.active_head == "FALLBACK_LOAD_ONLY"
     assert r1.consecutive_healthy_count == 1
 
     # Update 2: T-1h (advancing timestamp, but identical readings)
-    r2 = router.route_and_predict(raw_df, weather_payload={"timestamp": (now_ref - timedelta(hours=1)).isoformat(), **frozen_vals}, current_time=now_ref)
+    r2 = router.route_and_predict(
+        raw_df,
+        weather_payload={"timestamp": (now_ref - timedelta(hours=1)).isoformat(), **frozen_vals},
+        current_time=now_ref,
+    )
     assert r2.active_head == "FALLBACK_LOAD_ONLY"
     assert r2.consecutive_healthy_count == 1
     assert "frozen" in r2.fallback_reason.lower() or "variance" in r2.fallback_reason.lower()
 
     # Update 3: Genuine fresh readings with variance (T-0.5h) -> Recovery succeeds!
-    varied_vals = {"temperature_c": 16.4, "wind_speed_ms": 4.8, "solar_radiation_wm2": 290.0, "humidity_pct": 57.0}
-    r3 = router.route_and_predict(raw_df, weather_payload={"timestamp": (now_ref - timedelta(minutes=30)).isoformat(), **varied_vals}, current_time=now_ref)
+    varied_vals = {
+        "temperature_c": 16.4,
+        "wind_speed_ms": 4.8,
+        "solar_radiation_wm2": 290.0,
+        "humidity_pct": 57.0,
+    }
+    r3 = router.route_and_predict(
+        raw_df,
+        weather_payload={"timestamp": (now_ref - timedelta(minutes=30)).isoformat(), **varied_vals},
+        current_time=now_ref,
+    )
     assert r3.active_head == "PRIMARY_WEATHER"
     assert r3.consecutive_healthy_count == 2
     assert r3.routing_state == ReliabilityState.HEALTHY
@@ -166,6 +203,7 @@ def test_remediation_frozen_sensor_held_on_fallback():
 # =============================================================================
 # 4. Cold-Start State Inversion Prevention via Atomic Persistence (RISK-04)
 # =============================================================================
+
 
 def test_remediation_cold_start_state_inversion_eliminated():
     """
@@ -225,6 +263,7 @@ def test_atomic_state_persistence_file_safety():
 # 5. Fail-Safe Exception Handling in Validation & State Machine (Tests 4.4 & 4.5)
 # =============================================================================
 
+
 def test_remediation_validator_exception_fail_safe():
     """
     Audit Finding: Test 4.4. Unhandled validator exceptions crash the entire inference pipeline.
@@ -233,12 +272,17 @@ def test_remediation_validator_exception_fail_safe():
     router = DualHeadInferenceRouter()
     raw_df = pd.DataFrame([{f: 1.0 for f in router.primary_engine.feature_names}])
 
-    with patch.object(router.validator, "validate", side_effect=ZeroDivisionError("Internal Math Bug")):
+    with patch.object(
+        router.validator, "validate", side_effect=ZeroDivisionError("Internal Math Bug")
+    ):
         res = router.route_and_predict(raw_df, weather_payload={"temperature_c": 15.0})
         # Verifies fail-safe fallback: Does NOT crash; serves load-only forecast!
         assert res.active_head == "FALLBACK_LOAD_ONLY"
         assert res.routing_state == ReliabilityState.INVALID
-        assert "ZeroDivisionError" in res.fallback_reason or "Internal validation error" in res.fallback_reason
+        assert (
+            "ZeroDivisionError" in res.fallback_reason
+            or "Internal validation error" in res.fallback_reason
+        )
         assert len(res.predictions) == len(raw_df)
 
 
@@ -250,7 +294,9 @@ def test_remediation_state_machine_exception_fail_safe():
     router = DualHeadInferenceRouter()
     raw_df = pd.DataFrame([{f: 1.0 for f in router.primary_engine.feature_names}])
 
-    with patch.object(ReliabilityStateMachine, "evaluate", side_effect=TypeError("Unexpected State Machine Bug")):
+    with patch.object(
+        ReliabilityStateMachine, "evaluate", side_effect=TypeError("Unexpected State Machine Bug")
+    ):
         res = router.route_and_predict(raw_df, weather_payload={"temperature_c": 15.0})
         assert res.active_head == "FALLBACK_LOAD_ONLY"
         assert res.routing_state == ReliabilityState.INVALID
@@ -260,6 +306,7 @@ def test_remediation_state_machine_exception_fail_safe():
 # =============================================================================
 # 6. Prometheus Multiprocess Mode Integration (RISK-03)
 # =============================================================================
+
 
 def test_remediation_prometheus_multiprocess_metrics_endpoint():
     """

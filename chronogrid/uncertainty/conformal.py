@@ -4,11 +4,12 @@ Implements finite-sample Marginal Split Conformal and Simultaneous Daily Sup-Nor
 """
 
 import math
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
+
 import numpy as np
 
-from chronogrid.uncertainty.schemas import CalibrationTable
 from chronogrid.uncertainty.normalization import DeliveryHourMADNormalizer
+from chronogrid.uncertainty.schemas import CalibrationTable
 
 
 def compute_finite_sample_rank(n: int, alpha: float) -> Tuple[int, Optional[int]]:
@@ -47,16 +48,24 @@ class ConformalCalibrationPool:
         self,
         model_id: str,
         normalizer: DeliveryHourMADNormalizer,
-        marginal_scores: Optional[np.ndarray] = None,
-        daily_sup_norm_scores: Optional[np.ndarray] = None,
+        marginal_scores: Optional[np.ndarray] | None = None,
+        daily_sup_norm_scores: Optional[np.ndarray] | None = None,
         n_origins: int = 0,
-        precomputed_marginal_quantiles: Optional[Dict[str, float]] = None,
-        precomputed_simultaneous_quantiles: Optional[Dict[str, float]] = None
+        precomputed_marginal_quantiles: Optional[Dict[str, float]] | None = None,
+        precomputed_simultaneous_quantiles: Optional[Dict[str, float]] | None = None,
     ):
         self.model_id = model_id
         self.normalizer = normalizer
-        self.marginal_scores = np.sort(np.asarray(marginal_scores, dtype=np.float64)) if marginal_scores is not None and len(marginal_scores) > 0 else np.array([])
-        self.daily_sup_norm_scores = np.sort(np.asarray(daily_sup_norm_scores, dtype=np.float64)) if daily_sup_norm_scores is not None and len(daily_sup_norm_scores) > 0 else np.array([])
+        self.marginal_scores = (
+            np.sort(np.asarray(marginal_scores, dtype=np.float64))
+            if marginal_scores is not None and len(marginal_scores) > 0
+            else np.array([])
+        )
+        self.daily_sup_norm_scores = (
+            np.sort(np.asarray(daily_sup_norm_scores, dtype=np.float64))
+            if daily_sup_norm_scores is not None and len(daily_sup_norm_scores) > 0
+            else np.array([])
+        )
         self.n_origins = n_origins or len(self.daily_sup_norm_scores)
         self.precomputed_marginal_quantiles = precomputed_marginal_quantiles or {}
         self.precomputed_simultaneous_quantiles = precomputed_simultaneous_quantiles or {}
@@ -65,18 +74,20 @@ class ConformalCalibrationPool:
     def from_calibration_table(cls, table: CalibrationTable) -> "ConformalCalibrationPool":
         """Instantiate a calibration pool directly from a serialized CalibrationTable."""
         normalizer = DeliveryHourMADNormalizer(
-            hour_mad=table.hour_mad,
-            global_mad=table.global_mad,
-            epsilon=table.epsilon_guard
+            hour_mad=table.hour_mad, global_mad=table.global_mad, epsilon=table.epsilon_guard
         )
         return cls(
             model_id=table.model_id,
             normalizer=normalizer,
-            marginal_scores=np.array(table.marginal_scores, dtype=np.float64) if table.marginal_scores is not None else None,
-            daily_sup_norm_scores=np.array(table.daily_sup_norm_scores, dtype=np.float64) if table.daily_sup_norm_scores is not None else None,
+            marginal_scores=np.array(table.marginal_scores, dtype=np.float64)
+            if table.marginal_scores is not None
+            else None,
+            daily_sup_norm_scores=np.array(table.daily_sup_norm_scores, dtype=np.float64)
+            if table.daily_sup_norm_scores is not None
+            else None,
             n_origins=table.n_origins,
             precomputed_marginal_quantiles=table.marginal_quantiles,
-            precomputed_simultaneous_quantiles=table.simultaneous_quantiles
+            precomputed_simultaneous_quantiles=table.simultaneous_quantiles,
         )
 
     @classmethod
@@ -87,7 +98,7 @@ class ConformalCalibrationPool:
         actuals: np.ndarray,
         predictions: np.ndarray,
         delivery_hours: np.ndarray,
-        origin_ids: np.ndarray
+        origin_ids: np.ndarray,
     ) -> "ConformalCalibrationPool":
         """
         Fit an independent calibration pool from calibration set predictions.
@@ -100,19 +111,20 @@ class ConformalCalibrationPool:
             delivery_hours: 1D array of delivery hours (0..23)
             origin_ids: 1D array of daily origin identifiers (e.g. date strings or ints)
         """
-        if len(actuals) != len(predictions) or len(actuals) != len(delivery_hours) or len(actuals) != len(origin_ids):
+        if (
+            len(actuals) != len(predictions)
+            or len(actuals) != len(delivery_hours)
+            or len(actuals) != len(origin_ids)
+        ):
             raise ValueError("All calibration arrays must have identical length.")
 
         # Compute normalized non-conformity scores for every hour
         norm_scores = normalizer.normalize(actuals, predictions, delivery_hours)
 
         # Vector sup-norm per daily forecast origin
-        df_cal = pd_df = {
-            "origin": origin_ids,
-            "hour": delivery_hours,
-            "score": norm_scores
-        }
+        df_cal = {"origin": origin_ids, "hour": delivery_hours, "score": norm_scores}
         import pandas as pd
+
         df = pd.DataFrame(df_cal)
         daily_sup = df.groupby("origin")["score"].max().values
 
@@ -121,7 +133,7 @@ class ConformalCalibrationPool:
             normalizer=normalizer,
             marginal_scores=norm_scores,
             daily_sup_norm_scores=daily_sup,
-            n_origins=len(daily_sup)
+            n_origins=len(daily_sup),
         )
 
     def get_marginal_quantile(self, alpha: float) -> Tuple[float, int]:
@@ -135,7 +147,9 @@ class ConformalCalibrationPool:
         if n == 0:
             if key in self.precomputed_marginal_quantiles:
                 return float(self.precomputed_marginal_quantiles[key]), -1
-            raise ValueError(f"Calibration pool '{self.model_id}' contains 0 marginal scores and no precomputed quantile for {key}.")
+            raise ValueError(
+                f"Calibration pool '{self.model_id}' contains 0 marginal scores and no precomputed quantile for {key}."
+            )
 
         k, idx = compute_finite_sample_rank(n, alpha)
         if idx is None:
@@ -155,11 +169,13 @@ class ConformalCalibrationPool:
         """
         n = len(self.daily_sup_norm_scores)
         key = f"{1.0 - alpha:.2f}"
-        is_exploratory = (alpha <= 0.05 and (self.n_origins < 150))
+        is_exploratory = alpha <= 0.05 and (self.n_origins < 150)
         if n == 0:
             if key in self.precomputed_simultaneous_quantiles:
                 return float(self.precomputed_simultaneous_quantiles[key]), -1, is_exploratory
-            raise ValueError(f"Calibration pool '{self.model_id}' contains 0 daily origins and no precomputed quantile for {key}.")
+            raise ValueError(
+                f"Calibration pool '{self.model_id}' contains 0 daily origins and no precomputed quantile for {key}."
+            )
 
         k, idx = compute_finite_sample_rank(n, alpha)
         if idx is None:
@@ -174,7 +190,7 @@ class ConformalCalibrationPool:
         version: str,
         model_sha256: str,
         created_at: str,
-        training_cutoff: str = "2024-03-31 23:00:00+00:00"
+        training_cutoff: str = "2024-03-31 23:00:00+00:00",
     ) -> CalibrationTable:
         """Export pool state into a serializable CalibrationTable."""
         q90_marg, k90_marg = self.get_marginal_quantile(0.10)
@@ -199,8 +215,8 @@ class ConformalCalibrationPool:
                 "marginal_0.90_k": k90_marg,
                 "marginal_0.95_k": k95_marg,
                 "simultaneous_0.90_k": k90_sim,
-                "simultaneous_0.95_k": k95_sim
+                "simultaneous_0.95_k": k95_sim,
             },
             marginal_scores=[float(x) for x in self.marginal_scores],
-            daily_sup_norm_scores=[float(x) for x in self.daily_sup_norm_scores]
+            daily_sup_norm_scores=[float(x) for x in self.daily_sup_norm_scores],
         )

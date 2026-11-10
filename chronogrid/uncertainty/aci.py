@@ -7,6 +7,7 @@ preventing premature information leakage and ensuring deterministic alpha update
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
 import numpy as np
 
 from chronogrid.uncertainty.schemas import DelayedFeedbackRecord
@@ -29,7 +30,7 @@ class DelayedFeedbackACIManager:
         alpha_min: float = 0.01,
         alpha_max: float = 0.50,
         head: str = "primary",
-        state_file: Optional[Path] = None
+        state_file: Optional[Path] | None = None,
     ):
         self.target_alpha = float(target_alpha)
         self.current_alpha = float(target_alpha)
@@ -53,10 +54,7 @@ class DelayedFeedbackACIManager:
             self.load_state(self.state_file)
 
     def register_forecast(
-        self,
-        origin_date: str,
-        lower_bound: np.ndarray,
-        upper_bound: np.ndarray
+        self, origin_date: str, lower_bound: np.ndarray, upper_bound: np.ndarray
     ) -> None:
         """
         Register a generated 24-hour prediction band for future ground-truth settlement.
@@ -69,7 +67,7 @@ class DelayedFeedbackACIManager:
         origin_key = str(origin_date).strip()
         self.pending_forecasts[origin_key] = {
             "lower": [float(x) for x in lower_bound],
-            "upper": [float(x) for x in upper_bound]
+            "upper": [float(x) for x in upper_bound],
         }
         self._auto_save()
 
@@ -78,7 +76,7 @@ class DelayedFeedbackACIManager:
         origin_date: str,
         actuals: np.ndarray,
         settlement_timestamp: str,
-        effective_delay_days: Optional[int] = None
+        effective_delay_days: Optional[int] | None = None,
     ) -> Optional[DelayedFeedbackRecord]:
         """
         Process settled ground-truth load for a historical forecast origin.
@@ -97,7 +95,9 @@ class DelayedFeedbackACIManager:
         origin_key = str(origin_date).strip()
 
         # Settlement delay guard: prevent premature feedback leakage
-        observed_delay = effective_delay_days if effective_delay_days is not None else self.delay_days
+        observed_delay = (
+            effective_delay_days if effective_delay_days is not None else self.delay_days
+        )
         if observed_delay < self.delay_days:
             raise ValueError(
                 f"Premature feedback rejected: Observed delay is {observed_delay} days, "
@@ -109,7 +109,9 @@ class DelayedFeedbackACIManager:
 
         expected_len = len(self.pending_forecasts[origin_key]["lower"])
         if len(actuals) != expected_len:
-            raise ValueError(f"Actuals length {len(actuals)} does not match forecast length {expected_len}.")
+            raise ValueError(
+                f"Actuals length {len(actuals)} does not match forecast length {expected_len}."
+            )
 
         # Idempotency and revision check
         if origin_key in self.processed_origins:
@@ -126,7 +128,7 @@ class DelayedFeedbackACIManager:
                     alpha_before=self.current_alpha,
                     alpha_after=self.current_alpha,
                     gamma=self.gamma,
-                    status="DUPLICATE_IGNORED"
+                    status="DUPLICATE_IGNORED",
                 )
             else:
                 # Revision detected: reject explicitly to maintain monotonic audit trail
@@ -139,7 +141,7 @@ class DelayedFeedbackACIManager:
                     alpha_before=self.current_alpha,
                     alpha_after=self.current_alpha,
                     gamma=self.gamma,
-                    status="REJECTED_REVISION"
+                    status="REJECTED_REVISION",
                 )
 
         forecast = self.pending_forecasts[origin_key]
@@ -176,7 +178,7 @@ class DelayedFeedbackACIManager:
             alpha_before=alpha_before,
             alpha_after=new_alpha,
             gamma=self.gamma,
-            status="PROCESSED"
+            status="PROCESSED",
         )
         self.update_history.append(record)
         self._auto_save()
@@ -203,7 +205,7 @@ class DelayedFeedbackACIManager:
             "pending_forecasts": self.pending_forecasts,
             "processed_origins": list(self.processed_origins),
             "settled_actuals": self.settled_actuals,
-            "update_history": [r.dict() for r in self.update_history]
+            "update_history": [r.dict() for r in self.update_history],
         }
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = path.with_suffix(".tmp")
