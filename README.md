@@ -7,11 +7,11 @@ ChronoGRID studies day-ahead electricity-load forecasting for Germany and makes 
 
 ## What the audit changed
 
-The original 24-hour-lag result used observation intervals ending after the previous-day noon gate on 420 of 840 delivery hours. I withdrew its day-ahead accuracy and claims that no post-gate observations were used. The corrected default uses 48-hour lags. In the new expanding-fold run, Random Forest has MAE **1,146.79 MW**, compared with **1,225.04 MW** for weekly persistence. This is a lower mean error on reused historical dates; it is not evidence of a prospective or production advantage. The earlier fixed-model experiment remains preserved and uses a different training protocol.
+The original 24-hour-lag result used observation intervals ending after the previous-day noon gate on 420 of 840 delivery hours. I withdrew its day-ahead accuracy and claims that no post-gate observations were used. The corrected default uses 48-hour lags. Random Forest MAE was **1,043.55 MW** with post-gate lags and **1,146.79 MW** with the corrected pipeline. The earlier fixed-model experiment remains preserved and uses a different training protocol.
 
 ## Reproduced results
 
-I used 5 expanding folds, a 24-hour purge, and 35 reused Berlin delivery days. Each model stays fixed during its test week; features update at the daily gate. The intervals use 2,000 circular bootstrap replicates of two-day blocks. MAE, RMSE, MAPE and all interval endpoints are saved in [metrics.csv](artifacts/reports/benchmark_corrected/metrics.csv); [hourly predictions](artifacts/reports/benchmark_corrected/per_hour_predictions.csv.gz), [fold boundaries](artifacts/reports/benchmark_corrected/folds.csv), and [run metadata](artifacts/reports/benchmark_corrected/report.json) support the table.
+I used 5 expanding folds, a 24-hour purge, and 35 consecutive summer Berlin delivery days (2024-06-17 to 2024-07-21). There is no winter or heating-season evidence. Each model stays fixed during its test week; features update at the daily gate. The individual-model intervals below use 2,000 circular bootstrap replicates of two-day blocks. MAE, RMSE, MAPE and all interval endpoints are saved in [metrics.csv](artifacts/reports/benchmark_corrected/metrics.csv); [hourly predictions](artifacts/reports/benchmark_corrected/per_hour_predictions.csv.gz), [fold boundaries](artifacts/reports/benchmark_corrected/folds.csv), and [run metadata](artifacts/reports/benchmark_corrected/report.json) support the table.
 
 | Model | MAE (MW) | MAE 95% block CI | RMSE (MW) | MAPE |
 |---|---:|---:|---:|---:|
@@ -20,11 +20,20 @@ I used 5 expanding folds, a 24-hour purge, and 35 reused Berlin delivery days. E
 | LightGBM | 1,183.73 | [1,023.08, 1,339.43] | 1,501.98 | 2.392% |
 | Weekly_168h | 1,225.04 | [1,019.75, 1,444.71] | 1,613.34 | 2.452% |
 | XGBoost | 1,279.76 | [1,082.36, 1,495.53] | 1,625.82 | 2.575% |
-| TSO_latest_revision | 1,497.48 | [1,325.24, 1,695.23] | 1,833.05 | 2.963% |
 | Ridge | 1,535.64 | [1,296.82, 1,792.22] | 1,950.91 | 3.120% |
 | Naive_48h | 6,268.20 | [4,776.56, 7,647.90] | 8,144.84 | 12.888% |
 
-`TSO_latest_revision` is SMARD's published load forecast downloaded for the same hours. It is a retrospective reference: the download has no original issuance timestamp and can include revisions. Confidence intervals for individual models do not establish a paired significance claim.
+The learned models in the paired comparisons are statistically indistinguishable from weekly persistence in this window: all paired 95% intervals include zero. This does not establish equivalence or a prospective advantage.
+
+| Comparison (MAE difference) | Observed difference (MW) | Paired 95% CI (MW) | Excludes zero? |
+|---|---:|---:|---|
+| RandomForest minus Weekly_168h | -78.2489 | [-180.9474, 15.7669] | No |
+| RandomForest minus HistGradientBoosting | -11.9465 | [-110.2582, 82.8351] | No |
+| HistGradientBoosting minus Weekly_168h | -66.3024 | [-219.6237, 84.2748] | No |
+| LightGBM minus Weekly_168h | -41.3045 | [-207.1093, 115.0052] | No |
+| XGBoost minus Weekly_168h | 54.7214 | [-152.3170, 277.6310] | No |
+
+The paired differences use 10,000 circular moving-block resamples with NumPy `RandomState(42)`: 18 blocks of two complete Berlin delivery days per replicate, truncated to 35 days, with shared sampled hours across models and percentile 95% intervals. Negative differences favor the first model. Results are saved in [paired_differences.csv](artifacts/reports/benchmark_corrected/paired_differences.csv); reproduce them with `make paired-bootstrap`. The external TSO series is excluded from comparisons; see its [scope and vintage limitations](docs/evaluation.md).
 
 <details>
 <summary>Explicitly leaky 24-hour comparison â€” excluded from day-ahead claims</summary>
@@ -55,6 +64,7 @@ make lint
 make test
 make audit
 make benchmark
+make paired-bootstrap
 export CHRONOGRID_DIAGNOSTICS_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 make serve
 ```
@@ -88,7 +98,7 @@ A registry entry binds the served model and metadata bytes. Training/evaluation 
 
 ## Limits
 
-I have about 19 months of data and only 35 reused evaluation days. Weather features are persistence from a historical archive, not timestamped NWP forecast vintages. The gate audit checks completed observation intervals; it does not reconstruct actual publication delays or later revisions. The historical weather download used Open-Meteo; its legacy filename and source label do not prove direct DWD station provenance. I have no external timestamped prospective evidence and make no claim of suitability for an operated service. [Provenance and limitations](docs/provenance_and_limitations.md) records the details.
+I have about 19 months of data and only 35 consecutive summer evaluation days (2024-06-17 to 2024-07-21), with no winter or heating-season evidence. Weather features are persistence from a historical archive, not timestamped NWP forecast vintages. The gate audit checks completed observation intervals; it does not reconstruct actual publication delays or later revisions. The historical weather download used Open-Meteo; its legacy filename and source label do not prove direct DWD station provenance. I have no external timestamped prospective evidence and make no claim of suitability for an operated service. [Provenance and limitations](docs/provenance_and_limitations.md) records the details.
 
 ## Sources and licensing
 
