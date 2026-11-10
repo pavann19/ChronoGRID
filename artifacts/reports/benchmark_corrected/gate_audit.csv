@@ -1,0 +1,11 @@
+policy,fold,delivery_hours,post_gate_hours
+corrected,1,168,0
+corrected,2,168,0
+corrected,3,168,0
+corrected,4,168,0
+corrected,5,168,0
+leaky_comparison,1,168,84
+leaky_comparison,2,168,84
+leaky_comparison,3,168,84
+leaky_comparison,4,168,84
+leaky_comparison,5,168,84

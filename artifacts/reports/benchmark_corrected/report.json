@@ -1,0 +1,91 @@
+{
+  "dataset_sha256": "d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817",
+  "dataset_rows": 13607,
+  "start": "2023-01-01T23:00:00+00:00",
+  "end": "2024-07-21T21:00:00+00:00",
+  "evaluation_days": 35,
+  "folds": 5,
+  "purge_hours": 24,
+  "bootstrap": {
+    "method": "circular moving blocks of two complete Berlin delivery days",
+    "replicates": 2000,
+    "seed": 42,
+    "confidence": 0.95
+  },
+  "tso": {
+    "series": 411,
+    "status": "available_latest_revision_only",
+    "vintage": "latest downloaded revision; original issue timestamp unavailable",
+    "source": "https://www.smard.de/page/en/wiki-article/6080/206318/forecast-data",
+    "matched_hours": 840,
+    "required_hours": 840
+  },
+  "limitations": [
+    "Reused historical evaluation days; no fresh holdout",
+    "Observation event times only, not archived publication timestamps",
+    "Persistence weather, not NWP vintages",
+    "Fold models stay fixed over each test week; features updated at each daily gate"
+  ],
+  "gates": [
+    {
+      "policy": "corrected",
+      "fold": 1,
+      "delivery_hours": 168,
+      "post_gate_hours": 0
+    },
+    {
+      "policy": "corrected",
+      "fold": 2,
+      "delivery_hours": 168,
+      "post_gate_hours": 0
+    },
+    {
+      "policy": "corrected",
+      "fold": 3,
+      "delivery_hours": 168,
+      "post_gate_hours": 0
+    },
+    {
+      "policy": "corrected",
+      "fold": 4,
+      "delivery_hours": 168,
+      "post_gate_hours": 0
+    },
+    {
+      "policy": "corrected",
+      "fold": 5,
+      "delivery_hours": 168,
+      "post_gate_hours": 0
+    },
+    {
+      "policy": "leaky_comparison",
+      "fold": 1,
+      "delivery_hours": 168,
+      "post_gate_hours": 84
+    },
+    {
+      "policy": "leaky_comparison",
+      "fold": 2,
+      "delivery_hours": 168,
+      "post_gate_hours": 84
+    },
+    {
+      "policy": "leaky_comparison",
+      "fold": 3,
+      "delivery_hours": 168,
+      "post_gate_hours": 84
+    },
+    {
+      "policy": "leaky_comparison",
+      "fold": 4,
+      "delivery_hours": 168,
+      "post_gate_hours": 84
+    },
+    {
+      "policy": "leaky_comparison",
+      "fold": 5,
+      "delivery_hours": 168,
+      "post_gate_hours": 84
+    }
+  ]
+}
