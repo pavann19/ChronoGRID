@@ -87,5 +87,14 @@
       "delivery_hours": 168,
       "post_gate_hours": 84
     }
-  ]
+  ],
+  "runtime_versions": {
+    "numpy": "2.4.4",
+    "pandas": "2.2.3",
+    "scikit-learn": "1.8.0",
+    "lightgbm": "4.7.0",
+    "xgboost": "3.3.0"
+  },
+  "python_version": "3.13.3",
+  "data_months_rounded": 19
 }

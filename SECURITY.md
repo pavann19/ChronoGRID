@@ -1,22 +1,17 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+I maintain the current development code as a local research demonstration. I do not
+promise a production support policy or a response-time agreement. The old release's
+forecasting claims are superseded; its tag remains available as historical evidence.
 
-ChronoGrid follows semantic versioning. Critical security patches are provided for the following releases:
+Use GitHub's private vulnerability-reporting workflow when it is enabled for this
+repository. Include the affected component, reproduction steps and expected impact;
+keep credentials and sensitive payloads out of a public issue.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+Diagnostics and forecast replay require bearer tokens; health probes remain open.
+Registry checks bind local model and metadata bytes before loading. Pickled research
+models are trusted repository fixtures and must never come from untrusted uploads.
+Dependency audit results apply to the exact dependency set recorded with the result.
 
-## Reporting a Vulnerability
-
-We take the security of ChronoGrid and energy market infrastructure seriously. If you discover a security vulnerability or potential data integrity flaw, please report it responsibly:
-
-1. **Do not create a public GitHub issue.**
-2. Send a detailed description of the vulnerability, reproduction steps, and potential impact via a private security advisory on GitHub or directly to the project maintainers.
-3. Please include:
-   - Affected component (e.g., serving API, data ingestion, ONNX engine)
-   - Step-by-step instructions to reproduce
-   - Potential impact on model integrity or operational forecasting
-4. You will receive an acknowledgment within 48 hours and regular updates on the resolution progress.
+Current validation scope and unresolved checks are in `artifacts/reports/cleanup_report.md`.
+Local checks do not establish production security or independent evidence custody.

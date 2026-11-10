@@ -1,9 +1,13 @@
+# ruff: noqa: E402
 """Save the completed-hour gate audit for the benchmark evaluation window."""
 
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from chronogrid.features.engineer import FeatureEngineer
 from chronogrid.features.gate_audit import audit_gate_availability

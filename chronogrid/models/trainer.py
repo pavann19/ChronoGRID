@@ -11,6 +11,7 @@ import pandas as pd
 from chronogrid.models.baselines import (
     MovingAverageBaseline,
     NaivePersistence24h,
+    NaivePersistence48h,
     RidgeBaseline,
     WeeklySeasonalPersistence168h,
 )
@@ -40,7 +41,9 @@ class ModelBenchmarkTrainer:
         n_splits: int = 5,
         test_size_hours: int = 168,
         purge_gap_hours: int = 24,
+        allow_post_gate_lags: bool = False,
     ):
+        self.persistence_lag_hours = 24 if allow_post_gate_lags else 48
         self.target_col = target_col
         self.validator = TimeSeriesWalkForwardValidator(
             n_splits=n_splits,
@@ -65,7 +68,11 @@ class ModelBenchmarkTrainer:
 
         # 1. Model Factories
         model_factories: dict[str, Any] = {
-            "Naive_24h": lambda: NaivePersistence24h(self.target_col),
+            f"Naive_{self.persistence_lag_hours}h": lambda: (
+                NaivePersistence24h(self.target_col)
+                if self.persistence_lag_hours == 24
+                else NaivePersistence48h(self.target_col)
+            ),
             "Weekly_168h": lambda: WeeklySeasonalPersistence168h(self.target_col),
             "Moving_Avg_24h": lambda: MovingAverageBaseline(self.target_col),
             "Ridge_Regression": lambda: RidgeBaseline(alpha=10.0),
@@ -106,14 +113,14 @@ class ModelBenchmarkTrainer:
         summary_df = pd.DataFrame(summary_rows).sort_values("MAE (MW)").reset_index(drop=True)
 
         # 2. Diebold-Mariano test against top baseline (Naive_24h) with h=24 day-ahead horizon
-        base_oof = all_results["Naive_24h"]["oof_predictions"]
-        y_true = all_results["Naive_24h"]["oof_actuals"]
+        base_oof = all_results[f"Naive_{self.persistence_lag_hours}h"]["oof_predictions"]
+        y_true = all_results[f"Naive_{self.persistence_lag_hours}h"]["oof_actuals"]
 
         dm_stats = []
         for idx, row in summary_df.iterrows():
             m_name = row["Model"]
             cand_oof = all_results[m_name]["oof_predictions"]
-            if m_name == "Naive_24h":
+            if m_name == f"Naive_{self.persistence_lag_hours}h":
                 dm_stats.append("Baseline")
             else:
                 dm_stat, p_val = diebold_mariano_test(y_true, base_oof, cand_oof, h=24)

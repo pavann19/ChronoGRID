@@ -20,7 +20,7 @@ def create_app(database: Path | None = None, root: Path | None = None):
     from chronogrid.operations.paths import workspace
 
     root = workspace(root)
-    app = FastAPI(title="ChronoGrid Research Operations", version="2.0.0")
+    app = FastAPI(title="ChronoGrid Research Operations", version="0.2.0")
     store = Journal(
         database
         or Path(os.getenv("CHRONOGRID_JOURNAL", str(root / "data/operations/journal.sqlite")))

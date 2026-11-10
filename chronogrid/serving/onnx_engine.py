@@ -1,6 +1,5 @@
 """
-High-Performance ONNX Runtime Inference Engine (P5.8).
-Loads ONNX model and executes ultra-low latency predictions.
+ONNX Runtime inference with model metadata and input validation.
 """
 
 import hashlib
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class OnnxInferenceEngine:
     """
-    Sub-millisecond inference engine using ONNX Runtime.
+    Inference engine using ONNX Runtime.
     """
 
     def __init__(

@@ -1,0 +1,24 @@
+ChronoGRID
+Copyright Pavan Kumar Gannoju
+Code licence: Apache License 2.0 (LICENSE).
+
+Load data attribution: Bundesnetzagentur | SMARD.de
+SMARD market data: Creative Commons Attribution 4.0 International.
+https://www.smard.de/home/datennutzung
+https://creativecommons.org/licenses/by/4.0/
+I joined hourly load with weather, constructed lagged features, and computed derived
+predictions and error summaries. These changes do not imply provider endorsement.
+
+Weather data by Open-Meteo.com: https://open-meteo.com/
+API data licence and upstream attribution: https://open-meteo.com/en/licence
+The historical benchmark collector used Open-Meteo's archive; the retained DWD-labelled
+filename does not establish direct station provenance. The archive can use ECMWF/C3S
+reanalysis products. I do not assert an unrecorded source-model vintage.
+
+Deutscher Wetterdienst (DWD): credited where DWD ICON data is used by the separate
+single-run adapter. DWD CDC open-data terms specify CC BY 4.0:
+https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf
+Open-Meteo's licence page identifies its DWD data source and licence.
+
+I checked these provider terms on 2026-11-10. The code licence does not replace the
+attribution and licence obligations attached to source data.

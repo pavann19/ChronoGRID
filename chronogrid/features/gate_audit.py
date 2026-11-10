@@ -45,7 +45,17 @@ def audit_gate_availability(
             elif "_lag_" in name:
                 lag = int(name.rsplit("_lag_", 1)[1])
                 source = delivery - pd.Timedelta(hours=lag)
-            elif "_roll_" in name or name.startswith("forecast_"):
+            elif "_roll_" in name or name in {
+                "forecast_temperature_c",
+                "forecast_wind_speed_ms",
+                "forecast_solar_radiation_wm2",
+                "forecast_humidity_pct",
+                "forecast_heating_degree_hours",
+                "forecast_cooling_degree_hours",
+                "forecast_temperature_squared",
+                "forecast_wind_chill_c",
+                "forecast_temp_solar_interaction",
+            }:
                 source = delivery - pd.Timedelta(hours=min_lag_hours)
             elif "_diff_" in name:
                 lags = [int(x) for x in re.findall(r"\d+", name.rsplit("_diff_", 1)[1])]

@@ -93,9 +93,19 @@ class TimeSeriesWalkForwardValidator:
             model.fit(X_train, y_train)
 
             # Predict
-            preds = model.predict(X_test)
+            preds = np.asarray(model.predict(X_test), dtype=float)
+            # Drop unknown predictions together with their labels and timestamps.
+            # Keeping this mask here preserves alignment; predict() cannot drop X rows alone.
+            eligible = np.isfinite(preds) & np.isfinite(y_test)
+            dropped = int((~eligible).sum())
+            if not eligible.any():
+                raise ValueError("No causally available predictions in this fold")
+            preds, y_test = preds[eligible], y_test[eligible]
+            if ts_test is not None:
+                ts_test = ts_test[eligible]
 
             metrics = compute_metrics(y_test, preds, timestamps=ts_test)
+            metrics["unavailable_rows_dropped"] = dropped
             metrics["fold"] = fold_idx + 1
             metrics["train_start"] = (
                 str(df_train["timestamp"].iloc[0])

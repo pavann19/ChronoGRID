@@ -1,6 +1,5 @@
 """
-FastAPI Model Serving Application (P5.8 & P5.11).
-Ultra-low latency inference via ONNX Runtime with Prometheus metrics integration.
+Authenticated FastAPI diagnostics backed by ONNX Runtime and Prometheus metrics.
 """
 
 import json

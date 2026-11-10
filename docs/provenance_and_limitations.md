@@ -1,75 +1,17 @@
-# ChronoGrid — Dataset Sources, Provenance & Operational Limitations
+# Provenance and limitations
 
-**Document Version**: 1.0.0  
-**Audit Status**: Verified against raw artifacts  
-**Canonical File**: `data/raw/genuine_smard_dwd_observations.parquet`  
-**File SHA-256**: `d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817`  
-**Records**: 13,607 continuous hourly observations (2023-01-01 23:00 UTC to 2024-07-21 21:00 UTC)
+I evaluated `data/raw/genuine_smard_dwd_observations.parquet`, SHA-256 `d02425d161333cbc067388bdaf639287c11f90164d91aee72da8ed3de198e817`. The session read 13,607 rows spanning 2023-01-01T23:00:00+00:00 through 2024-07-21T21:00:00+00:00; these values and library versions are recorded in `artifacts/reports/benchmark_corrected/report.json`.
 
----
+The load collector requests SMARD's German hourly grid-load series. The weather collector requests Open-Meteo's historical archive without pinning a source model in the request. I cannot substantiate the earlier assertion that these are direct observations from a named DWD station. I retain the original dataset filename, labels and bytes to preserve identity, and withdraw that provenance claim. Open-Meteo documents this product as historical reanalysis: [product documentation](https://open-meteo.com/en/docs/historical-weather-api).
 
-## 1. Data Sources & Provenance
+The corrected evaluation is retrospective. It reuses 35 previously inspected local dates, with 5 expanding folds and a 24-hour embargo. The new mean errors are not interchangeable with the earlier fixed-training-cutoff experiment. I did not tune models against a fresh holdout, establish prospective reliability, or measure a managed production service.
 
-### 1.1 Electrical Grid Load: Bundesnetzagentur SMARD
-- **Provider**: Bundesnetzagentur (Federal Network Agency for Electricity, Gas, Telecommunications, Post and Railway).
-- **Service**: SMARD Strommarktdaten (German Electricity Market Data).
-- **Base Endpoint**: `https://www.smard.de/app/chart_data`
-- **Filter ID**: `410` — *Gesamte reale Netzlast* (Total Realised German Electrical Grid Load).
-- **Region**: DE (Germany Bidding Zone / Control Area of 50Hertz, Amprion, TenneT, TransnetBW).
-- **Resolution**: Hourly aggregates computed from 15-minute settlement metering periods.
-- **Units**: Megawatts (MW) — unscaled floating point values.
-- **Authenticity**: 100% genuine realised load observations; 0 synthetic records.
+Weather is persistence rather than an archived NWP vintage. A source's observation interval ending before the gate is necessary but does not prove that its value was actually published by then. Historical revisions, source availability delays and vintage identity remain unresolved. The SMARD TSO comparison uses a currently downloaded revision, not an archived issuance receipt.
 
-### 1.2 Meteorological Observations: Deutscher Wetterdienst (DWD)
-- **Provider**: Deutscher Wetterdienst (DWD) OpenData Climate Data Center (CDC).
-- **Access Route**: Direct DWD OpenData CDC archive corroborated via Open-Meteo European Weather Archive.
-- **Station Identification**:
-  - Station Name: Frankfurt am Main (Flughafen / Central Load Centroid)
-  - DWD Station ID: `01420`
-  - WMO Station Index: `10637`
-  - Cross-Reference: DWD Stations_ID 01420 and WMO Index 10637 represent the exact same primary synoptic meteorological station facility at Frankfurt am Main.
-  - Coordinates: Latitude 50.1109° N, Longitude 8.6821° E, Elevation 112.0 m.
-- **Variables**:
-  - `temperature_c`: 2-meter air temperature (°C).
-  - `humidity_pct`: Relative humidity at 2m (0–100%).
-  - `wind_speed_ms`: 10-meter wind speed (m/s).
-  - `solar_radiation_wm2`: Direct surface solar irradiance (W/m²).
+The bootstrap resamples consecutive delivery-day blocks and quantifies variation on these reused observations. It cannot create missing seasons, establish deployment performance or validate a causal explanation. All point metrics and intervals come from the saved benchmark outputs; I do not claim statistical superiority from overlapping individual intervals.
 
----
+The separate operations adapters retain compatibility guards and model/calibration/source bindings for frozen research artifacts. Their local receipts and synthetic fault tests are distinct from externally attested prospective evidence. I would next collect archived NWP forecast vintages, evaluate a complete untouched year, and compare against timestamped TSO forecasts.
 
-## 2. Descriptive Statistics
+Source attribution and licences are in [NOTICE](../NOTICE). Historical working notes are in [the archive](archive/README.md), and their superseded claims are not current results.
 
-| Metric | Grid Load (`grid_load_mw`) | Temperature (`temperature_c`) |
-|---|---:|---:|
-| Minimum | 30,902.75 MW | -7.80 °C |
-| Maximum | 75,508.25 MW | 35.00 °C |
-| Mean | 52,641.37 MW | 11.79 °C |
-| Standard Deviation | 9,155.84 MW | 7.59 °C |
-| Winter Peak | ~75.5 GW | - |
-| Summer Trough | ~30.9 GW | - |
-
----
-
-## 3. Operational Limitations & Known Issues
-
-### 3.1 Archived Numerical Weather Prediction (NWP) Vintages
-- **Limitation**: The repository does not store raw DWD ICON GRIB2 NWP binary forecast archives due to multi-terabyte storage requirements and isolated execution environments lacking external network egress.
-- **Mitigation & Impact**: The platform adopts an honest operational baseline: **Persistence Weather** ($T \le T_{\text{origin}}$). The load-only ablation study proves that even with zero meteorological data, the model achieves an MAE of 1,035.46 MW (2.083% MAPE), confirming that the diurnal and calendar lag structures carry the primary predictive signal without leakage.
-
-### 3.2 Single-Centroid Meteorological Representativeness
-- **Limitation**: Frankfurt am Main is used as the single representative meteorological centroid for all of Germany. This does not capture localized offshore North Sea wind speed ramps or southern Bavarian alpine temperature gradients.
-- **Future Direction**: Production expansion plans include a multi-station spatial weight matrix combining TenneT (North), 50Hertz (East), Amprion (West), and TransnetBW (South) station feeds.
-
-### 3.3 Sensor Missing Gap Imputation
-- **Limitation**: Short dropouts ($\le 3\text{h}$) are imputed with linear interpolation; longer gaps are forward-filled.
-- **Governance Safeguard**: Any observation derived from forward-filling $> 3\text{h}$ is automatically stamped with the telemetry flag `quality_flag = 'ESTIMATED_EXTRAPOLATION'` to alert human dispatchers.
-
-### 3.4 Day-Ahead Horizon Lead Time Variations
-- **Lead Time Spread**: Because Day-Ahead bidding takes place at 12:00 CET on $D-1$ for delivery throughout Day $D$, the forecast lead time varies from $H = 12\text{h}$ (Hour 00:00) to $H = 35\text{h}$ (Hour 23:00).
-- **DST Edge Cases**: On Spring DST transition days (last Sunday of March), the German delivery profile contains 23 local hours; on Autumn DST days (last Sunday of October), the delivery profile contains 25 local hours. The pipeline handles this seamlessly using timezone-aware `Europe/Berlin` calendar grids converted to monotonic UTC timestamps.
-
-
-
-## Post-Historical evaluation research evidence boundary
-
-The [research closure addendum](research/research_closure_addendum.md) is authoritative for corrected Historical evaluation interpretation: 814/840 = 96.9048% marginal coverage, minimum daily coverage 15/24 = 62.5%, inconclusive weather MAE benefit (two-day-block 95% interval [-24.00, 81.58] MW), and degenerate simultaneous [100%,100%] bootstrap intervals. Decision: conditional research use. The 35 origins are chronological, without demonstrated independence/exchangeability. Original hourly archived evaluation records were unavailable; reconstructed hourly rows are not originally archived predictions. All historical Historical evaluation/3.3.1 files are preserved and hashed in the closure manifest. No prospective validation or production-readiness claim follows.
+The main benchmark retains the existing UTC calendar feature convention; the separately versioned local-calendar adapter uses Europe/Berlin.

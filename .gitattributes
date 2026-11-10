@@ -52,3 +52,5 @@ artifacts/reports/research_sprint1_weather_stats.json binary
 artifacts/reports/statistical_comparison.json binary
 artifacts/reports/test_results.json binary
 artifacts/reports/weather_vintage_audit.json binary
+
+*.gz binary

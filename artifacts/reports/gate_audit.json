@@ -1,0 +1,62 @@
+{
+  "hours": 840,
+  "feature_cells": 34440,
+  "post_gate_cells": 0,
+  "scope": "Complete observation intervals; publication vintages unverified",
+  "leakage": {
+    "suite_status": "ALL_TESTS_PASSED",
+    "tests_passed": 8,
+    "total_tests": 8,
+    "details": {
+      "1_future_target_perturbation": {
+        "passed": true,
+        "rows_compared": 13602
+      },
+      "2_future_weather_perturbation": {
+        "passed": true,
+        "rows_compared": 13602
+      },
+      "3_future_load_perturbation": {
+        "passed": true,
+        "rows_compared": 13602
+      },
+      "target_excluded": {
+        "passed": true
+      },
+      "rolling_shift_6": {
+        "passed": true
+      },
+      "rolling_shift_12": {
+        "passed": true
+      },
+      "rolling_shift_24": {
+        "passed": true
+      },
+      "rolling_shift_168": {
+        "passed": true
+      }
+    }
+  },
+  "integrity": {
+    "suite_status": "ALL_TESTS_PASSED",
+    "tests_passed": 5,
+    "total_tests": 5,
+    "details": {
+      "timezone_continuity": {
+        "passed": true
+      },
+      "dst_spring": {
+        "passed": true
+      },
+      "dst_autumn": {
+        "passed": true
+      },
+      "forecast_horizon_validity": {
+        "passed": true
+      },
+      "feature_schema_parity": {
+        "passed": true
+      }
+    }
+  }
+}

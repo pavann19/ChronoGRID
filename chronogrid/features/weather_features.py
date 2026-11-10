@@ -1,8 +1,4 @@
-"""
-Weather and Thermodynamics Feature Engineering (P5.3).
-Eliminates future data leakage by using only Day-Ahead Weather Forecasts (DWD NWP)
-or 24-hour lagged persistence weather available at forecast issuance time.
-"""
+"""Lagged persistence weather transforms; this module does not retrieve NWP vintages."""
 
 import numpy as np
 import pandas as pd
@@ -13,7 +9,7 @@ def add_weather_features(
     heating_base: float = 18.0,
     cooling_base: float = 22.0,
     weather_mode: str = "persistence",  # "persistence", "load_only"
-    min_lag_hours: int = 24,
+    min_lag_hours: int = 48,
 ) -> pd.DataFrame:
     """
     Computes thermodynamic weather features available at forecast issuance time.
@@ -24,7 +20,7 @@ def add_weather_features(
     - If weather_mode == "load_only":
       Does not append weather features, returning the DataFrame untouched for load-only benchmark ablation.
 
-    Contemporaneous realised weather (t) is NEVER directly fed to the model to guarantee ZERO leakage.
+    Contemporaneous realised weather (t) is NEVER directly fed to the model to avoid contemporaneous inputs; actual publication availability remains unverified.
     Synthetic NWP noise injection is disallowed per senior data governance rules.
     """
     out = df.copy()

@@ -35,7 +35,20 @@ jobs:
             artifacts/reports/gate_audit.json
   docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [operations, service]
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f deployment/Dockerfile -t chronogrid:ci .
-      - run: docker build -f deployment/Dockerfile.operations -t chronogrid-operations:ci .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build clean committed source and probe the isolated runtime
+        run: python scripts/verify_clean_container_builds.py --profile ${{ matrix.profile }} --output output/clean-container-ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clean-container-${{ matrix.profile }}
+          path: output/clean-container-ci/

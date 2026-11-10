@@ -1,6 +1,6 @@
-"""
-Unified Feature Engineering Pipeline (P5.3).
-Enforces strict Day-Ahead forecast issuance constraints and zero data leakage.
+"""Lagged feature transforms with a separate completed-hour gate audit.
+
+Event-time causality does not establish historical publication availability.
 """
 
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -18,7 +18,7 @@ class FeatureEngineer:
     """
     Day-Ahead Time Series Feature Pipeline.
     Strictly excludes contemporaneous realised load and weather.
-    All features represent information strictly available at forecast issuance time (t - min_lag_hours).
+    The gate audit checks source interval ends; publication vintages need separate evidence.
     """
 
     def __init__(
@@ -129,7 +129,9 @@ class FeatureEngineer:
         if drop_warmup:
             max_warmup = max(self.lags + [self.min_lag_hours + w for w in self.rolling_windows])
             df_feat = (
-                df_feat.iloc[max_warmup:].dropna(subset=self.feature_cols).reset_index(drop=True)
+                df_feat.iloc[max_warmup:]
+                .dropna(subset=self.feature_cols + [self.target_col])
+                .reset_index(drop=True)
             )
 
         return df_feat
@@ -340,7 +342,11 @@ class FeatureEngineer:
             actual = self.transform(altered)[cols]
             left, right = base.iloc[:stop], actual.iloc[:stop]
             equal = np.isclose(
-                left.to_numpy(dtype=float), right.to_numpy(dtype=float), equal_nan=True
+                left.to_numpy(dtype=float),
+                right.to_numpy(dtype=float),
+                rtol=0.0,
+                atol=1e-9,
+                equal_nan=True,
             )
             details[name] = {"passed": bool(equal.all()), "rows_compared": stop}
 
@@ -365,7 +371,9 @@ class FeatureEngineer:
             col = f"{self.target_col}_roll_mean_{window}"
             expected = shifted.rolling(window, min_periods=max(1, window // 2)).mean()
             details[f"rolling_shift_{window}"] = {
-                "passed": bool(np.isclose(base[col], expected, equal_nan=True).all())
+                "passed": bool(
+                    np.isclose(base[col], expected, rtol=0.0, atol=1e-9, equal_nan=True).all()
+                )
             }
         return self._suite_result(details)
 

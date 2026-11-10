@@ -1,19 +1,15 @@
-# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
-# ChronoGrid low-level model diagnostics and explicitly authorized legacy replay.
-# The preferred GUI/journal deployment uses Dockerfile.operations.
-FROM python:3.13-slim@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 AS locked-wheels
+# Locked runtime install; compatible with classic Docker and BuildKit.
+FROM python:3.13-slim@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 AS locked-runtime
 COPY deployment/requirements-service.lock /requirements.lock
-RUN python -m pip download --no-cache-dir --only-binary=:all: --require-hashes -r /requirements.lock --dest /wheels
+RUN python -m venv /opt/venv && /opt/venv/bin/python -m pip install --no-cache-dir --require-hashes -r /requirements.lock && /opt/venv/bin/python -m pip check && /opt/venv/bin/python -m pip uninstall --yes pip
 FROM python:3.13-slim@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app \
     DATABASE_URL=sqlite:////state/registry.sqlite \
     DDIR_STATE_FILE=/state/ddir_state.json DQCP_STATE_FILE=/state/dqcp_aci_state.json
 WORKDIR /app
-COPY deployment/requirements-service.lock /app/requirements.lock
-RUN --mount=type=bind,from=locked-wheels,source=/wheels,target=/wheels,readonly \
-    pip install --no-index --find-links=/wheels --require-hashes -r requirements.lock && pip check && \
-    python -m pip uninstall --yes pip && \
-    rm -rf /usr/local/lib/python3.13/ensurepip
+RUN python -m pip uninstall --yes pip && rm -rf /usr/local/lib/python3.13/ensurepip
+COPY --from=locked-runtime /opt/venv/ /opt/venv/
+ENV PATH="/opt/venv/bin:$PATH"
 COPY chronogrid/ /app/chronogrid/
 COPY artifacts/models/ /app/artifacts/models/
 COPY artifacts/calibration/ /app/artifacts/calibration/

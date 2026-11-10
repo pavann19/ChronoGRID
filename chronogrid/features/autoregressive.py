@@ -1,8 +1,4 @@
-"""
-Autoregressive and Rolling Window Statistics Feature Engineering (P5.3).
-Strictly prevents data leakage under Day-Ahead Market (DAM) forecast issuance constraints.
-All lags and rolling statistics are strictly backward-looking from issuance time (t - min_lag_hours).
-"""
+"""Elapsed-hour load lags and shifted rolling statistics on an hourly grid."""
 
 from typing import List
 
@@ -14,18 +10,18 @@ def add_autoregressive_features(
     target_col: str = "grid_load_mw",
     lags: List[int] | None = None,
     rolling_windows: List[int] | None = None,
-    min_lag_hours: int = 24,  # Day-Ahead Gate Closure: minimum 24h lag
+    min_lag_hours: int = 48,  # Day-Ahead Gate Closure: minimum 24h lag
 ) -> pd.DataFrame:
     """
     Computes autoregressive lag features and backward-looking rolling statistics.
     For Day-Ahead forecasting (min_lag_hours=24):
     - All lags are >= min_lag_hours (e.g. 24, 25, 48, 72, 168).
     - All rolling statistics are strictly computed on df[target_col].shift(min_lag_hours).
-    This strictly guarantees ZERO data leakage from the forecast window [t - min_lag_hours + 1, t].
+    The completed-hour gate audit is separate from these delivery-relative offsets.
     """
     if lags is None:
         # Day-Ahead default lags: yesterday same hour (24), prior hour (25), 2 days ago (48), 3 days ago (72), last week (168)
-        lags = [24, 25, 48, 72, 168]
+        lags = [48, 72, 168]
 
     # Ensure all lags adhere to min_lag_hours
     lags = [lag for lag in lags if lag >= min_lag_hours]

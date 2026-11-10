@@ -25,6 +25,20 @@ class NaivePersistence24h:
         raise ValueError(f"Required lag column '{lag_col}' not found in features.")
 
 
+class NaivePersistence48h(NaivePersistence24h):
+    """Gate-compatible persistence using the completed value two days earlier."""
+
+    def __init__(self, target_col: str = "grid_load_mw"):
+        super().__init__(target_col)
+        self.name = "Naive_Persistence_48h"
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        lag_col = f"{self.target_col}_lag_48"
+        if lag_col not in X:
+            raise ValueError(f"Required lag column '{lag_col}' not found in features.")
+        return X[lag_col].ffill(limit=3).values
+
+
 class WeeklySeasonalPersistence168h:
     """Predicts last week's same-day and hour value: y_hat(t) = y(t-168)."""
 
