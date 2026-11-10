@@ -79,7 +79,7 @@ docker run --rm -p 127.0.0.1:8000:8000 \
   -e CHRONOGRID_DIAGNOSTICS_TOKEN chronogrid:0.2.0
 ```
 
-The Dockerfile installs hash-locked dependencies during the build and need no ignored wheelhouse. The evaluation protocol and validation limits are described in [evaluation](docs/evaluation.md).
+The Dockerfile installs hash-locked dependencies during the build and needs no ignored wheelhouse. The evaluation protocol and validation limits are described in [evaluation](docs/evaluation.md).
 
 ## Architecture
 

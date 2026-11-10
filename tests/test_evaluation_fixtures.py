@@ -29,7 +29,8 @@ def compute_sha256(path: Path) -> str:
 def benchmark_data():
     report_path = ROOT_DIR / "artifacts/evaluation_legacy/benchmark.json"
     assert report_path.exists(), (
-        f"Benchmark report not found at {report_path}. Run scripts/run_sprint_3_3_evaluation.py first."
+        f"Legacy benchmark fixture not found at {report_path}. Restore the tracked fixture; "
+        "for the corrected evaluation, run scripts/benchmark_corrected.py."
     )
     with open(report_path, "r") as f:
         return json.load(f)

@@ -2,6 +2,13 @@
 
 All notable changes are documented here using [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-11-10
+
+### Fixed
+- Correct README grammar and link evaluation documentation to hosted CI results.
+- Rename the legacy evaluation fixture tests and replace the deleted-script reference.
+- Leave the published `v0.2.0` tag unchanged.
+
 ## [0.2.0] - 2026-11-10
 
 ### Fixed

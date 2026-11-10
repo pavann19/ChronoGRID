@@ -18,7 +18,7 @@ Run `python scripts/benchmark_corrected.py` to repeat the benchmark and `python 
 
 A latest-revision SMARD TSO series (filter 411) was tried as an external baseline. It showed a systematic +1,051 MW mean bias (largest between 11:00 and 16:00), no timestamp misalignment (zero shift was optimal) and irregular one-hour dips on some days, so its scope or vintage does not match the realised-load series (filter 410). It is not used for any comparison.
 
-Run `python -m pytest`, `python -m ruff check chronogrid tests scripts`, `python -m ruff format --check chronogrid tests scripts` and `python -m mypy chronogrid` for source checks. These commands validate local behavior; this document does not assert a hosted CI result. Build `deployment/Dockerfile` to check the locked diagnostic container environment.
+Run `python -m pytest`, `python -m ruff check chronogrid tests scripts`, `python -m ruff format --check chronogrid tests scripts` and `python -m mypy chronogrid` for source checks. These commands validate local behavior. Hosted results are available through the [CI badge](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml/badge.svg?branch=master) and [CI workflow runs](https://github.com/pavann19/ChronoGRID/actions/workflows/ci.yml); the [workflow definition](../.github/workflows/ci.yml) covers Python 3.11, 3.12 and 3.13. Build `deployment/Dockerfile` to check the locked diagnostic container environment.
 
 Older numerical fixtures under `artifacts/evaluation_legacy/` support regression tests for the previous fixed-model protocol. They are not the corrected headline result.
 
