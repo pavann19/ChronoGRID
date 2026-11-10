@@ -90,4 +90,4 @@ I have about 19 months of data and only 35 reused evaluation days. Weather featu
 
 ## Sources and licensing
 
-Load data: **Bundesnetzagentur | SMARD.de**, under [SMARD's CC BY 4.0 data-use terms](https://www.smard.de/home/datennutzung). [Weather data by Open-Meteo.com](https://open-meteo.com/), under its [data licence](https://open-meteo.com/en/licence). DWD open data is credited as **Deutscher Wetterdienst (DWD)** where used by the separate ICON adapter; its [CDC terms](https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf) specify CC BY 4.0. I checked these sources on 2026-11-10. [NOTICE](NOTICE) describes attribution and transformations; the code uses [Apache-2.0](LICENSE).
+Load data: **Bundesnetzagentur | SMARD.de**, under [SMARD's CC BY 4.0 data-use terms](https://www.smard.de/home/datennutzung). [Weather data by Open-Meteo.com](https://open-meteo.com/), under its [data licence](https://open-meteo.com/en/licence). I checked these sources on 2026-11-10. [NOTICE](NOTICE) describes attribution and transformations; the code uses [Apache-2.0](LICENSE).

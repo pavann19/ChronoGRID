@@ -15,8 +15,9 @@ The historical benchmark collector used Open-Meteo's archive; the retained DWD-l
 filename does not establish direct station provenance. The archive can use ECMWF/C3S
 reanalysis products. I do not assert an unrecorded source-model vintage.
 
-Deutscher Wetterdienst (DWD): credited where DWD ICON data is used by the separate
-single-run adapter. DWD CDC open-data terms specify CC BY 4.0:
+Deutscher Wetterdienst (DWD) is identified among Open-Meteo upstream sources.
+This does not establish the upstream model of the retained historical dataset.
+DWD CDC open-data terms specify CC BY 4.0:
 https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf
 Open-Meteo's licence page identifies its DWD data source and licence.
 
