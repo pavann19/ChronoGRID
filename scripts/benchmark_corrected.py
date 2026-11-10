@@ -176,7 +176,9 @@ def main():
             tso["status"] = "incomplete_same_hour_coverage_not_scored"
     except Exception as exc:
         tso.update(status="download_failed", error=str(exc))
-    frame.to_csv(OUT / "per_hour_predictions.csv", index=False)
+    frame.to_csv(
+        OUT / "per_hour_predictions.csv.gz", index=False, compression={"method": "gzip", "mtime": 0}
+    )
     rows = []
     for (policy, model), g in frame.groupby(["policy", "model"], sort=True):
         g = g.sort_values("timestamp")

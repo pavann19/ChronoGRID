@@ -8,3 +8,7 @@ __pycache__
 output
 data
 mlruns
+
+artifacts/engineering
+build
+*.egg-info

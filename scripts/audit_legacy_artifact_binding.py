@@ -11,9 +11,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from chronogrid.operations.evidence_assets import external_evidence_root  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = (
-    ROOT / "artifacts/engineering/v1_improvement_phase/legacy_artifact_binding_audit_v1.json"
+    external_evidence_root()
+    / "artifacts/engineering/v1_improvement_phase/legacy_artifact_binding_audit_v1.json"
 )
 ARM_INPUTS = {
     "primary": {

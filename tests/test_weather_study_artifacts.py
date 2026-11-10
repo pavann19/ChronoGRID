@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pandas as pd
 
 from scripts.audit_weather_v4_research import audit
@@ -13,7 +11,9 @@ def test_fixed_weather_replay_reconstructs_without_training():
 
 
 def test_dst_horizon_totals_and_actual_day_lengths():
-    root = Path(__file__).resolve().parents[1] / "artifacts/experiments/weather_v4"
+    from chronogrid.operations.evidence_assets import weather_replay_root
+
+    root = weather_replay_root()
     origins = pd.read_csv(root / "per_origin_intervals.csv")
     horizons = pd.read_csv(root / "per_utc_horizon.csv")
     daily = origins[
